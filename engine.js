@@ -331,13 +331,13 @@ function clearDraft() {
 const SHEETS_CONFIG = {
   // Сюда вставляется URL веб-приложения Google Apps Script (заканчивается на /exec).
   // Пока пусто — заполнит преподаватель после настройки скрипта.
-  url: 'https://script.google.com/macros/s/AKfycbzILX5wwyvqv9KgXNajdqygxbDazzwcl9elrUKLIcfHgeX8nljXy7wI5udhWwxBBV8-/exec',
+  url: 'https://script.google.com/macros/s/AKfycbw1ixq47tU7cQO6bfCw0DlS66BiKpyMtR7Bw0ktgRQ9hCg8f40zOYA_gTQL3l60VNAM/exec',
 };
 
 /* Отдельный URL для приёма голосовых записей (свой скрипт, см.
    google-apps-script-recordings.gs). Заполнит преподаватель после настройки. */
 const RECORDINGS_CONFIG = {
-  url: 'https://script.google.com/macros/s/AKfycbzY7phq-oaT0RZ-_tOcreU9ze7zb_5sFJQEskpWLPJTstdrhUzuey0pqa2Nnso_K0sH/exec',
+  url: '',  // не используется: записи идут на SHEETS_CONFIG.url
 };
 
 /* Превратить аудио-Blob в base64 (чтобы отправить как текст). */
@@ -358,11 +358,13 @@ function blobToBase64(blob) {
 /* Отправить одну запись чтения. Вызывается для каждого recite-задания,
    у которого есть запись. Не блокирует — как и результаты тестов. */
 function sendRecording(student, ayahId, ayahText, blob, examMeta) {
-  if (!RECORDINGS_CONFIG.url || !blob) {
+  var endpoint = SHEETS_CONFIG.url;   // единый скрипт (результаты + записи)
+  if (!endpoint || !blob) {
     return Promise.resolve({ sent: false, reason: 'no-url-or-blob' });
   }
   return blobToBase64(blob).then(function (b64) {
     var payload = {
+      kind: 'recording',               // ← скрипт поймёт, что это запись
       fullName: student.name,
       group: student.group,
       ayahId: ayahId,
@@ -372,7 +374,7 @@ function sendRecording(student, ayahId, ayahText, blob, examMeta) {
       exam: examMeta ? examMeta.id : '',
       examTitle: examMeta ? examMeta.title : '',
     };
-    return fetch(RECORDINGS_CONFIG.url, {
+    return fetch(endpoint, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -395,6 +397,7 @@ function buildResultPayload(result) {
   const durRem = durSec % 60;
 
   return {
+    kind: 'result',                // ← скрипт поймёт, что это результат теста
     exam: (session.config || EXAM_CONFIG).id,
     examTitle: (session.config || EXAM_CONFIG).title,
     fullName: result.student.name,
