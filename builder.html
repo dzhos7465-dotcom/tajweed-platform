@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конструктор экзамена — выбор аятов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="design-system.css">
+<style>
+.sheet { max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.masthead { text-align: center; padding-bottom: var(--space-5); margin-bottom: var(--space-6); border-bottom: 1px solid var(--line-strong); }
+.masthead .eyebrow { font-size: var(--text-xs); font-weight: var(--weight-semi); letter-spacing: 0.18em; text-transform: uppercase; color: var(--seal); margin-bottom: var(--space-3); }
+.masthead h1 { font-size: var(--text-2xl); font-weight: var(--weight-bold); letter-spacing: -0.02em; line-height: 1.15; color: var(--ink); }
+.masthead .lede { font-size: var(--text-sm); color: var(--ink-soft); margin-top: var(--space-3); }
+
+.hint { font-size: var(--text-sm); color: var(--ink-soft); line-height: 1.65; margin-bottom: var(--space-5); background: var(--paper-sunken); border-radius: var(--radius); padding: var(--space-4); }
+
+.rule-group { margin-bottom: var(--space-6); }
+.rule-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.rule-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rule-accent, var(--seal)); flex-shrink: 0; }
+.rule-name { font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--ink); }
+.rule-count { font-size: var(--text-xs); color: var(--ink-faint); margin-inline-start: auto; }
+
+.ayah { display: flex; align-items: flex-start; gap: var(--space-3); border: 1.5px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); background: var(--paper-raised); cursor: pointer; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease); }
+.ayah:hover { border-color: var(--seal-hover); }
+.ayah.on { border-color: var(--seal); background: var(--seal-tint); }
+.ayah .box { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-strong); flex-shrink: 0; margin-top: 4px; display: flex; align-items: center; justify-content: center; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease); }
+.ayah.on .box { border-color: var(--seal); background: var(--seal); }
+.ayah.on .box::after { content: '✓'; color: #fff; font-size: 14px; font-weight: 700; }
+.ayah .ar { font-family: var(--font-arabic); direction: rtl; font-size: 1.75rem; line-height: 1.7; color: var(--ink); flex: 1; text-align: right; }
+
+.bar { position: sticky; bottom: 0; background: var(--paper); border-top: 1px solid var(--line-strong); padding: var(--space-4) 0; margin-top: var(--space-6); display: flex; align-items: center; gap: var(--space-4); }
+.bar .count { font-size: var(--text-sm); color: var(--ink-soft); font-weight: var(--weight-semi); }
+.bar .grow { flex: 1; }
+.btn { font-family: var(--font-ui); font-size: var(--text-base); font-weight: var(--weight-semi); border: none; cursor: pointer; border-radius: var(--radius); padding: var(--space-3) var(--space-5); transition: background var(--motion-base) var(--ease), transform var(--motion-fast) var(--ease), opacity var(--motion-base) var(--ease); }
+.btn-primary { background: var(--seal); color: #fff; }
+.btn-primary:hover { background: var(--seal-hover); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+.btn-quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
+
+.result-panel { display: none; margin-top: var(--space-5); border: 1.5px solid var(--seal); border-radius: var(--radius); padding: var(--space-5); background: var(--seal-tint); }
+.result-panel.show { display: block; animation: ds-rise var(--motion-base) var(--ease); }
+.result-panel h3 { font-size: var(--text-lg); font-weight: var(--weight-bold); margin-bottom: var(--space-3); color: var(--ink); }
+.link-box { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.link-box input { flex: 1; font-family: var(--font-ui); font-size: var(--text-sm); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-3); background: var(--paper-raised); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="masthead">
+    <div class="eyebrow">Панель преподавателя</div>
+    <h1>Конструктор экзамена: выбор аятов для чтения</h1>
+    <div class="lede">Отметьте аяты, которые войдут в экзамен · получите ссылку для учеников</div>
+  </div>
+
+  <div class="hint">
+    Отметьте нужные аяты — они попадут в раздел чтения вслух. После выбора нажмите
+    «Собрать экзамен», и вы получите ссылку, которую отправите ученикам. В ссылке
+    зашит именно ваш выбор — у всех учеников будут одни и те же аяты.
+    <br><br>
+    <b>Примечание:</b> запись голоса ещё в разработке. Пока конструктор фиксирует выбор
+    аятов, чтобы всё было готово, как только запись появится.
+  </div>
+
+  <div id="groups"></div>
+
+  <div class="bar">
+    <span class="count"><span id="sel-count">0</span> выбрано</span>
+    <span class="grow"></span>
+    <button class="btn btn-quiet" id="btn-clear">Сбросить</button>
+    <button class="btn btn-primary" id="btn-build" disabled>Собрать экзамен</button>
+  </div>
+
+  <div class="result-panel" id="result">
+    <h3>Экзамен собран</h3>
+    <div style="font-size:var(--text-sm); color:var(--ink-soft);">Отправьте эту ссылку ученикам:</div>
+    <div class="link-box">
+      <input id="out-link" readonly>
+      <button class="btn btn-primary" id="btn-copy">Копировать</button>
+    </div>
+  </div>
+</div>
+
+<script src="knowledge.js"></script>
+<script src="pedagogy.js"></script>
+<script src="ayahs.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const selected = new Set();
+
+  const RULE_ORDER = ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim','izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'];
+
+  function ruleName(id) { return (typeof THEMES!=='undefined' && THEMES[id]) ? THEMES[id].name : id; }
+  function ruleColor(id) { return (typeof ruleAccent==='function') ? ruleAccent(id) : 'var(--seal)'; }
+
+  function render() {
+    const wrap = $('groups');
+    wrap.innerHTML = '';
+    RULE_ORDER.forEach(rule => {
+      const list = AYAHS.filter(a => a.rules.indexOf(rule) !== -1);
+      if (!list.length) return;
+      const group = document.createElement('div');
+      group.className = 'rule-group';
+      group.innerHTML =
+        '<div class="rule-head">' +
+        '<span class="rule-dot" style="--rule-accent:' + ruleColor(rule) + '"></span>' +
+        '<span class="rule-name">' + ruleName(rule) + '</span>' +
+        '<span class="rule-count">' + list.length + ' аятов</span>' +
+        '</div>';
+      list.forEach(a => {
+        const row = document.createElement('div');
+        row.className = 'ayah' + (selected.has(a.id) ? ' on' : '');
+        row.innerHTML = '<span class="box"></span><span class="ar">' + a.text + '</span>';
+        row.addEventListener('click', () => {
+          if (selected.has(a.id)) selected.delete(a.id); else selected.add(a.id);
+          row.classList.toggle('on');
+          updateBar();
+        });
+        group.appendChild(row);
+      });
+      wrap.appendChild(group);
+    });
+  }
+
+  function updateBar() {
+    $('sel-count').textContent = selected.size;
+    $('btn-build').disabled = selected.size === 0;
+  }
+
+  function build() {
+    // Выбор зашивается в ссылку как список id аятов, разделённых запятыми
+    const ids = Array.from(selected).join(',');
+    const base = window.location.href.replace(/builder\.html.*/, 'exam.html');
+    const link = base + '?mode=exam&ayahs=' + encodeURIComponent(ids);
+    $('out-link').value = link;
+    $('result').classList.add('show');
+    $('result').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  $('btn-build').addEventListener('click', build);
+  $('btn-clear').addEventListener('click', () => { selected.clear(); render(); updateBar(); $('result').classList.remove('show'); });
+  $('btn-copy').addEventListener('click', () => {
+    const inp = $('out-link'); inp.select();
+    try { document.execCommand('copy'); $('btn-copy').textContent = 'Скопировано'; setTimeout(()=>$('btn-copy').textContent='Копировать',1500); } catch(e){}
+  });
+
+  render();
+  updateBar();
+})();
+</script>
+</body>
+</html>
