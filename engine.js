@@ -331,7 +331,7 @@ function clearDraft() {
 const SHEETS_CONFIG = {
   // Сюда вставляется URL веб-приложения Google Apps Script (заканчивается на /exec).
   // Пока пусто — заполнит преподаватель после настройки скрипта.
-  url: 'https://script.google.com/macros/s/AKfycbw1ixq47tU7cQO6bfCw0DlS66BiKpyMtR7Bw0ktgRQ9hCg8f40zOYA_gTQL3l60VNAM/exec',
+  url: 'https://script.google.com/macros/s/AKfycbwNjWb6EkWQQksqlry0hFgecagXh5L4lb-e3EISN7YSvxtF34yJ0f7xAjsJQEPycxxD/exec',
 };
 
 /* Отдельный URL для приёма голосовых записей (свой скрипт, см.
