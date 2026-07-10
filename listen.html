@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Записи чтения — прослушивание</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="design-system.css">
+<style>
+.sheet { max-width: 760px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.masthead { text-align: center; padding-bottom: var(--space-5); margin-bottom: var(--space-5); border-bottom: 1px solid var(--line-strong); }
+.masthead .eyebrow { font-size: var(--text-xs); font-weight: var(--weight-semi); letter-spacing: 0.18em; text-transform: uppercase; color: var(--seal); margin-bottom: var(--space-3); }
+.masthead h1 { font-size: var(--text-2xl); font-weight: var(--weight-bold); color: var(--ink); }
+.masthead .lede { font-size: var(--text-sm); color: var(--ink-soft); margin-top: var(--space-3); }
+
+.controls { display: flex; gap: var(--space-3); margin-bottom: var(--space-5); flex-wrap: wrap; align-items: center; }
+.controls select, .controls input { font-family: var(--font-ui); font-size: var(--text-sm); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); background: var(--paper-raised); color: var(--ink); }
+.btn { font-family: var(--font-ui); font-size: var(--text-sm); font-weight: var(--weight-semi); border: none; cursor: pointer; border-radius: var(--radius); padding: var(--space-2) var(--space-4); transition: background var(--motion-base) var(--ease); }
+.btn-primary { background: var(--seal); color: #fff; }
+.btn-primary:hover { background: var(--seal-hover); }
+.btn-quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
+
+.status { text-align: center; color: var(--ink-soft); font-size: var(--text-sm); padding: var(--space-6); }
+
+.group-block { margin-bottom: var(--space-6); }
+.group-title { font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--seal); margin-bottom: var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
+
+.rec { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); }
+.rec-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); flex-wrap: wrap; }
+.rec-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
+.rec-meta { font-size: var(--text-xs); color: var(--ink-faint); }
+.rec-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.9rem; line-height: 1.7; color: var(--ink); margin: var(--space-3) 0; }
+.rec-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.rec audio { height: 40px; }
+.rec-grade { font-size: var(--text-sm); color: var(--ink-soft); }
+.rec-grade b { color: var(--ok); }
+.rec-open { font-size: var(--text-sm); color: var(--seal); text-decoration: none; }
+.rec-open:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="masthead">
+    <div class="eyebrow">Панель преподавателя</div>
+    <h1>Записи чтения учеников</h1>
+    <div class="lede">Слушайте чтение и выставляйте баллы в таблице (колонка «Балл преподавателя»)</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" id="btn-load">Загрузить записи</button>
+    <select id="filter-group"><option value="">Все группы</option></select>
+    <input type="text" id="filter-name" placeholder="Поиск по фамилии…">
+    <span class="grow" style="flex:1"></span>
+    <a class="rec-open" id="open-sheet" href="#" target="_blank">Открыть таблицу →</a>
+  </div>
+
+  <div class="status" id="status">Нажмите «Загрузить записи», чтобы увидеть чтение учеников.</div>
+  <div id="list"></div>
+</div>
+
+<script src="knowledge.js"></script>
+<script src="pedagogy.js"></script>
+<script src="ayahs.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  // URL того же единого скрипта, что принимает записи (doGet отдаёт список)
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNjWb6EkWQQksqlry0hFgecagXh5L4lb-e3EISN7YSvxtF34yJ0f7xAjsJQEPycxxD/exec';
+
+  let allRecordings = [];
+
+  // Превратить ссылку Google Drive в прямую для проигрывания
+  function directAudioUrl(driveUrl) {
+    // ссылка вида https://drive.google.com/file/d/FILE_ID/view?...
+    const m = String(driveUrl).match(/\/d\/([^\/]+)/);
+    if (!m) return driveUrl;
+    return 'https://drive.google.com/uc?export=download&id=' + m[1];
+  }
+
+  function load() {
+    $('status').textContent = 'Загружаю записи…';
+    $('list').innerHTML = '';
+    fetch(SCRIPT_URL + '?action=recordings')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) throw new Error(data.error || 'Ошибка');
+        allRecordings = data.recordings || [];
+        if (!allRecordings.length) {
+          $('status').textContent = 'Пока нет ни одной записи.';
+          return;
+        }
+        $('status').textContent = 'Записей: ' + allRecordings.length;
+        fillGroupFilter();
+        render();
+      })
+      .catch(err => {
+        $('status').textContent = 'Не удалось загрузить: ' + err.message +
+          '. Проверьте, что скрипт развёрнут и доступен «всем».';
+      });
+  }
+
+  function fillGroupFilter() {
+    const groups = Array.from(new Set(allRecordings.map(r => r.group).filter(Boolean))).sort();
+    const sel = $('filter-group');
+    sel.innerHTML = '<option value="">Все группы</option>';
+    groups.forEach(g => {
+      const o = document.createElement('option');
+      o.value = g; o.textContent = 'Группа ' + g;
+      sel.appendChild(o);
+    });
+  }
+
+  function render() {
+    const grpFilter = $('filter-group').value;
+    const nameFilter = $('filter-name').value.trim().toLowerCase();
+    let items = allRecordings.slice();
+    if (grpFilter) items = items.filter(r => r.group === grpFilter);
+    if (nameFilter) items = items.filter(r => String(r.fullName).toLowerCase().indexOf(nameFilter) !== -1);
+
+    // Сгруппировать по группе
+    const byGroup = {};
+    items.forEach(r => {
+      const g = r.group || 'без группы';
+      (byGroup[g] = byGroup[g] || []).push(r);
+    });
+
+    const list = $('list');
+    list.innerHTML = '';
+    if (!items.length) { list.innerHTML = '<div class="status">Ничего не найдено.</div>'; return; }
+
+    Object.keys(byGroup).sort().forEach(g => {
+      const block = document.createElement('div');
+      block.className = 'group-block';
+      block.innerHTML = '<div class="group-title">Группа ' + g + ' · ' + byGroup[g].length + '</div>';
+      byGroup[g].forEach(r => block.appendChild(recCard(r)));
+      list.appendChild(block);
+    });
+  }
+
+  function recCard(r) {
+    const card = document.createElement('div');
+    card.className = 'rec';
+    const ayahText = r.ayahText || (window.AYAH_BY_ID && AYAH_BY_ID[r.ayahId] ? AYAH_BY_ID[r.ayahId].text : '');
+    const graded = (r.grade !== '' && r.grade != null);
+
+    card.innerHTML =
+      '<div class="rec-top">' +
+        '<span class="rec-name">' + (r.fullName || '—') + '</span>' +
+        '<span class="rec-meta">' + (r.date || '') + ' ' + (r.time || '') + '</span>' +
+      '</div>' +
+      (ayahText ? '<div class="rec-ayah">' + ayahText + '</div>' : '') +
+      '<div class="rec-actions">' +
+        '<audio controls preload="none" src="' + directAudioUrl(r.url) + '"></audio>' +
+        '<a class="rec-open" href="' + r.url + '" target="_blank">Открыть на Диске</a>' +
+        '<span class="grow" style="flex:1"></span>' +
+        '<span class="rec-grade">' + (graded ? 'Балл: <b>' + r.grade + '</b>' : 'Балл не выставлен') + '</span>' +
+      '</div>';
+    return card;
+  }
+
+  $('btn-load').addEventListener('click', load);
+  $('filter-group').addEventListener('change', render);
+  $('filter-name').addEventListener('input', render);
+  $('open-sheet').addEventListener('click', function (e) {
+    // ссылку на таблицу преподаватель откроет сам; тут просто заглушка
+    e.preventDefault();
+    alert('Откройте вашу Google-таблицу с листом «Записи», чтобы выставить баллы.');
+  });
+})();
+</script>
+</body>
+</html>
