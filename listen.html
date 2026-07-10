@@ -32,6 +32,7 @@
 .rec-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.9rem; line-height: 1.7; color: var(--ink); margin: var(--space-3) 0; }
 .rec-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .rec audio { height: 40px; }
+.rec-frame { width: 100%; height: 62px; border: none; border-radius: var(--radius-sm); background: var(--paper-sunken); }
 .rec-grade { font-size: var(--text-sm); color: var(--ink-soft); }
 .rec-grade b { color: var(--ok); }
 .rec-open { font-size: var(--text-sm); color: var(--seal); text-decoration: none; }
@@ -73,10 +74,16 @@
 
   // Превратить ссылку Google Drive в прямую для проигрывания
   function directAudioUrl(driveUrl) {
-    // ссылка вида https://drive.google.com/file/d/FILE_ID/view?...
     const m = String(driveUrl).match(/\/d\/([^\/]+)/);
     if (!m) return driveUrl;
     return 'https://drive.google.com/uc?export=download&id=' + m[1];
+  }
+
+  // Встроенный проигрыватель Google Drive — надёжнее прямой ссылки.
+  function drivePreviewUrl(driveUrl) {
+    const m = String(driveUrl).match(/\/d\/([^\/]+)/);
+    if (!m) return driveUrl;
+    return 'https://drive.google.com/file/d/' + m[1] + '/preview';
   }
 
   function load() {
@@ -152,7 +159,7 @@
       '</div>' +
       (ayahText ? '<div class="rec-ayah">' + ayahText + '</div>' : '') +
       '<div class="rec-actions">' +
-        '<audio controls preload="none" src="' + directAudioUrl(r.url) + '"></audio>' +
+        '<iframe class="rec-frame" src="' + drivePreviewUrl(r.url) + '" allow="autoplay"></iframe>' +
         '<a class="rec-open" href="' + r.url + '" target="_blank">Открыть на Диске</a>' +
         '<span class="grow" style="flex:1"></span>' +
         '<span class="rec-grade">' + (graded ? 'Балл: <b>' + r.grade + '</b>' : 'Балл не выставлен') + '</span>' +
