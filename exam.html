@@ -63,9 +63,9 @@
   border-radius: var(--radius-lg);
   /* верхняя цветная полоса — цвет текущего правила, единственный «характер» */
   border-top: 3px solid var(--theme-accent, var(--seal));
-  padding: var(--space-9) var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-5);
   text-align: center;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-5);
   box-shadow: var(--shadow-sm);
 }
 .example .arabic {
@@ -85,15 +85,15 @@
   opacity: 0.85;
 }
 
-.options { display: flex; flex-direction: column; gap: var(--space-3); }
-.opt { display: flex; align-items: center; gap: var(--space-4); border: 1.5px solid var(--line); border-radius: var(--radius); padding: var(--space-4); background: var(--paper-raised); font-family: var(--font-ui); font-size: var(--text-base); font-weight: var(--weight-medium); color: var(--ink); cursor: pointer; text-align: start; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease); }
+.options { display: flex; flex-direction: column; gap: var(--space-2); }
+.opt { display: flex; align-items: center; gap: var(--space-3); border: 1.5px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); background: var(--paper-raised); font-family: var(--font-ui); font-size: var(--text-base); font-weight: var(--weight-medium); color: var(--ink); cursor: pointer; text-align: start; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease); }
 .opt:hover { border-color: var(--seal-hover); }
 .opt .dot { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line-strong); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease); }
 .opt.on { border-color: var(--seal); background: var(--seal-tint); }
 .opt.on .dot { border-color: var(--seal); background: var(--seal); }
 .opt.on .dot::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
 
-.nav { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--line); }
+.nav { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .nav .grow { flex: 1; }
 
 .scrim { position: fixed; inset: 0; background: rgba(35,37,46,0.42); display: none; align-items: center; justify-content: center; padding: var(--space-4); z-index: 50; animation: ds-fade var(--motion-base) var(--ease); }
