@@ -56,6 +56,23 @@ body { margin: 0; }
   .nav-item { justify-content: center; }
   .main { padding: var(--space-5) var(--space-4); }
 }
+
+/* Форма активности */
+.field { margin-bottom: var(--space-4); }
+.field > label { display: block; font-size: var(--text-sm); font-weight: var(--weight-semi); color: var(--ink); margin-bottom: var(--space-2); }
+.field input, .field select { width: 100%; box-sizing: border-box; font-family: var(--font-ui); font-size: var(--text-base); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-3); background: var(--paper-raised); color: var(--ink); }
+.field-row { display: flex; gap: var(--space-4); }
+.field-row .field { flex: 1; }
+.themes-picker { display: flex; flex-direction: column; gap: var(--space-2); }
+.theme-pick { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1.5px solid var(--line); border-radius: var(--radius-sm); }
+.theme-pick.on { border-color: var(--seal); background: var(--seal-tint); }
+.theme-pick .tp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.theme-pick .tp-name { flex: 1; font-size: var(--text-sm); color: var(--ink); }
+.theme-pick .tp-count { width: 64px; text-align: center; font-family: var(--font-ui); font-size: var(--text-sm); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.theme-pick .tp-count:disabled { opacity: 0.35; }
+.form-actions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-5); }
+.btn-quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
+
 </style>
 </head>
 <body>
@@ -93,7 +110,42 @@ body { margin: 0; }
     <section class="section" id="s-activities">
       <div class="page-title">Активности</div>
       <div class="page-sub">Экзамены, тренировки, домашние задания — их рецепты</div>
-      <div class="panel-box">
+
+      <!-- Форма создания (скрыта по умолчанию) -->
+      <div class="panel-box" id="activity-form" style="display:none;">
+        <h3 id="form-title">Новая активность</h3>
+        <div class="field">
+          <label>Название</label>
+          <input id="af-title" type="text" placeholder="Например: Контрольная мим и нун, 3-Б">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Тип</label>
+            <select id="af-type">
+              <option value="exam">Экзамен / контрольная</option>
+              <option value="training">Тренировка</option>
+              <option value="homework">Домашнее задание</option>
+              <option value="review">Повторение</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Время (мин), 0 = без лимита</label>
+            <input id="af-time" type="number" min="0" value="20">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Темы и количество вопросов</label>
+          <div id="af-themes" class="themes-picker"></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-quiet" id="af-cancel">Отмена</button>
+          <button class="btn btn-primary" id="af-save">Сохранить</button>
+        </div>
+      </div>
+
+      <div class="panel-box" id="activities-top">
         <button class="btn btn-primary" id="btn-new-activity">+ Новая активность</button>
       </div>
       <div class="panel-box">
@@ -241,10 +293,96 @@ body { margin: 0; }
     }).catch(function () { $('results-list').textContent = 'Ошибка загрузки.'; });
   }
 
-  // Новая активность — заглушка (форму создадим следующим шагом)
-  $('btn-new-activity').addEventListener('click', function () {
-    alert('Форма создания активности появится на следующем шаге.');
-  });
+  // ── Форма создания активности ──
+  const THEME_LIST = (typeof THEMES !== 'undefined') ? Object.values(THEMES) : [];
+
+  function themeColor(id) { return (typeof ruleAccent === 'function') ? ruleAccent(id) : 'var(--seal)'; }
+
+  function buildThemePicker() {
+    const wrap = $('af-themes');
+    wrap.innerHTML = '';
+    THEME_LIST.forEach(function (t) {
+      const row = document.createElement('div');
+      row.className = 'theme-pick';
+      row.innerHTML =
+        '<input type="checkbox" class="tp-check" data-theme="' + t.id + '">' +
+        '<span class="tp-dot" style="background:' + themeColor(t.id) + '"></span>' +
+        '<span class="tp-name">' + t.name + '</span>' +
+        '<input type="number" class="tp-count" min="1" value="3" disabled>';
+      const check = row.querySelector('.tp-check');
+      const count = row.querySelector('.tp-count');
+      check.addEventListener('change', function () {
+        row.classList.toggle('on', check.checked);
+        count.disabled = !check.checked;
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function showForm() {
+    $('activity-form').style.display = '';
+    $('activities-top').style.display = 'none';
+    $('af-title').value = '';
+    $('af-type').value = 'exam';
+    $('af-time').value = '20';
+    buildThemePicker();
+    $('activity-form').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function hideForm() {
+    $('activity-form').style.display = 'none';
+    $('activities-top').style.display = '';
+  }
+
+  function collectThemes() {
+    // Каждая тема — ОБЪЕКТ с запасом полей на будущее (вес, сложность, типы…).
+    // Сейчас заполняем только count; остальное null — интерфейс покажет позже,
+    // без переделки структуры.
+    const rows = $('af-themes').querySelectorAll('.theme-pick');
+    const out = [];
+    rows.forEach(function (row) {
+      const check = row.querySelector('.tp-check');
+      if (!check.checked) return;
+      const count = parseInt(row.querySelector('.tp-count').value, 10) || 1;
+      out.push({
+        theme: check.getAttribute('data-theme'),
+        count: count,
+        taskTypes: null,     // потом: какие типы заданий
+        weight: null,        // потом: вес темы
+        difficulty: null,    // потом: сложность
+        onlyExamples: null,  // потом: только определённые примеры
+      });
+    });
+    return out;
+  }
+
+  function saveActivity() {
+    const title = $('af-title').value.trim();
+    if (!title) { alert('Введите название активности'); return; }
+    const themes = collectThemes();
+    if (!themes.length) { alert('Выберите хотя бы одну тему'); return; }
+
+    const activity = {
+      title: title,
+      type: $('af-type').value,
+      timeLimit: parseInt($('af-time').value, 10) || 0,
+      themes: themes,
+      recite: [],          // аяты для чтения — добавим из конструктора позже
+    };
+
+    $('af-save').textContent = 'Сохранение…';
+    $('af-save').disabled = true;
+    StorageAPI.activities.save(activity).then(function () {
+      $('af-save').textContent = 'Сохранить';
+      $('af-save').disabled = false;
+      hideForm();
+      loadActivities();
+    });
+  }
+
+  $('btn-new-activity').addEventListener('click', showForm);
+  $('af-cancel').addEventListener('click', hideForm);
+  $('af-save').addEventListener('click', saveActivity);
 
   // Старт — открыть Dashboard
   loadDashboard();
