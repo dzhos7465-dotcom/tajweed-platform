@@ -110,6 +110,28 @@ body { margin: 0; }
 .rec-grade-input { width: 80px; font-family: var(--font-ui); font-size: var(--text-base); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-2); text-align: center; background: var(--paper-raised); color: var(--ink); }
 .rec-grade-saved { font-size: var(--text-xs); color: var(--ok); font-weight: var(--weight-semi); }
 .rec-group-title { font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--seal); margin: var(--space-5) 0 var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
+
+/* Материалы — библиотека */
+.mat-tabs { display: flex; gap: var(--space-2); }
+.mat-tab { font-family: var(--font-ui); font-size: var(--text-sm); font-weight: var(--weight-semi); border: 1.5px solid var(--line-strong); background: var(--paper-raised); color: var(--ink-soft); border-radius: var(--radius); padding: var(--space-2) var(--space-4); cursor: pointer; }
+.mat-tab.active { background: var(--seal); color: #fff; border-color: var(--seal); }
+.mat-rule { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: var(--space-3); overflow: hidden; }
+.mat-rule-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); cursor: pointer; user-select: none; }
+.mat-rule-head:hover { background: var(--paper-sunken); }
+.mat-rule-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.mat-rule-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
+.mat-rule-count { margin-left: auto; font-size: var(--text-sm); color: var(--ink-faint); }
+.mat-rule-arrow { color: var(--seal); font-size: var(--text-xs); transition: transform var(--motion-base) var(--ease); }
+.mat-rule.open .mat-rule-arrow { transform: rotate(90deg); }
+.mat-rule-body { display: none; padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--line); }
+.mat-rule.open .mat-rule-body { display: block; }
+.mat-examples { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.mat-example { font-family: var(--font-arabic); direction: rtl; font-size: 1.5rem; line-height: 1.6; padding: var(--space-2) var(--space-4); background: var(--paper-sunken); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.mat-low { color: var(--err); font-size: var(--text-xs); font-weight: var(--weight-semi); margin-left: var(--space-2); }
+.mat-ayah { display: flex; gap: var(--space-3); align-items: flex-start; background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-2); }
+.mat-ayah-text { flex: 1; font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.5rem; line-height: 1.9; color: var(--ink); }
+.mat-ayah-rules { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--space-2); }
+.mat-ayah-tag { font-size: var(--text-xs); padding: 2px 8px; border-radius: var(--radius-pill); background: var(--seal-tint); color: var(--seal); }
 </style>
 </head>
 <body>
@@ -273,10 +295,14 @@ body { margin: 0; }
     <section class="section" id="s-materials">
       <div class="page-title">Материалы</div>
       <div class="page-sub">Темы, правила, примеры, аяты — библиотека платформы</div>
-      <div class="placeholder">
-        Здесь будет библиотека: темы, примеры, аяты, правила.<br>
-        Позже — редактор, чтобы пополнять её самостоятельно.
+      <div class="panel-box">
+        <div class="mat-tabs">
+          <button class="mat-tab active" data-tab="rules">Правила и примеры</button>
+          <button class="mat-tab" data-tab="ayahs">Аяты для чтения</button>
+        </div>
       </div>
+      <div id="mat-rules" class="mat-pane"></div>
+      <div id="mat-ayahs" class="mat-pane" style="display:none;"></div>
     </section>
   </main>
 </div>
@@ -310,6 +336,7 @@ body { margin: 0; }
     if (sec === 'sessions') loadSessions();
     if (sec === 'results') loadResults();
     if (sec === 'recordings') { /* грузим по кнопке, не автоматически */ }
+    if (sec === 'materials') loadMaterials();
   }
 
   function loadDashboard() {
@@ -783,6 +810,69 @@ body { margin: 0; }
   $('rec-load').addEventListener('click', loadRecordings);
   $('rec-filter-group').addEventListener('change', renderRecordings);
   $('rec-filter-name').addEventListener('input', renderRecordings);
+
+  // ── Материалы: витрина библиотеки ──
+  var materialsBuilt = false;
+
+  function loadMaterials() {
+    if (materialsBuilt) return;   // строим один раз
+    materialsBuilt = true;
+    buildRulesPane();
+    buildAyahsPane();
+    // переключение вкладок
+    document.querySelectorAll('.mat-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.mat-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var which = tab.getAttribute('data-tab');
+        $('mat-rules').style.display = (which === 'rules') ? '' : 'none';
+        $('mat-ayahs').style.display = (which === 'ayahs') ? '' : 'none';
+      });
+    });
+  }
+
+  function buildRulesPane() {
+    if (typeof THEMES === 'undefined' || typeof EXAMPLES === 'undefined') {
+      $('mat-rules').innerHTML = '<div class="status-line">Библиотека недоступна.</div>'; return;
+    }
+    var order = ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim','izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun','shadda_nun'];
+    $('mat-rules').innerHTML = order.map(function (id) {
+      var t = THEMES[id]; if (!t) return '';
+      var examples = EXAMPLES.filter(function (e) { return e.themes.indexOf(id) !== -1; });
+      var color = (typeof ruleAccent === 'function') ? ruleAccent(id) : 'var(--seal)';
+      var low = examples.length < 10 ? '<span class="mat-low">мало примеров</span>' : '';
+      var exHtml = examples.map(function (e) { return '<span class="mat-example">' + e.text + '</span>'; }).join('');
+      return '<div class="mat-rule">' +
+        '<div class="mat-rule-head">' +
+          '<span class="mat-rule-arrow">▸</span>' +
+          '<span class="mat-rule-dot" style="background:' + color + '"></span>' +
+          '<span class="mat-rule-name">' + t.name + '</span>' +
+          '<span class="mat-rule-count">' + examples.length + ' примеров' + '</span>' + low +
+        '</div>' +
+        '<div class="mat-rule-body"><div class="mat-examples">' + exHtml + '</div></div>' +
+      '</div>';
+    }).join('');
+    // сворачивание
+    $('mat-rules').querySelectorAll('.mat-rule-head').forEach(function (head) {
+      head.addEventListener('click', function () { head.parentElement.classList.toggle('open'); });
+    });
+  }
+
+  function buildAyahsPane() {
+    if (typeof AYAHS === 'undefined') {
+      $('mat-ayahs').innerHTML = '<div class="status-line">Аяты недоступны.</div>'; return;
+    }
+    function rn(id) { return (typeof THEMES !== 'undefined' && THEMES[id]) ? THEMES[id].name : id; }
+    $('mat-ayahs').innerHTML =
+      '<div class="panel-box" style="margin-bottom:var(--space-3);"><b>' + AYAHS.length + '</b> аятов в библиотеке</div>' +
+      AYAHS.map(function (a) {
+        var tags = (a.rules || []).map(function (r) { return '<span class="mat-ayah-tag">' + rn(r) + '</span>'; }).join('');
+        return '<div class="mat-ayah"><div style="flex:1;">' +
+          '<div class="mat-ayah-text">' + a.text + '</div>' +
+          '<div class="mat-ayah-rules">' + tags + '</div>' +
+        '</div></div>';
+      }).join('');
+  }
 
   // Старт — открыть Dashboard
   loadDashboard();
