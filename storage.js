@@ -80,6 +80,15 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('sessions').then(r => (r && r.ok ? r.sessions || [] : []));
       },
+      // Получить одну сессию по id (для проверки доступа на входе в экзамен).
+      // Внутри — тот же список, отфильтрованный; когда backend научится
+      // отдавать одну сессию напрямую, поменяется только эта функция.
+      get: function (id) {
+        return backendGet('sessions').then(function (r) {
+          const list = (r && r.ok ? r.sessions || [] : []);
+          return list.filter(s => s.id === id)[0] || null;
+        });
+      },
       open: function (activityId, group) {
         const session = {
           id: uid('ses'), activityId: activityId, group: group,

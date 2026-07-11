@@ -233,6 +233,15 @@
 <body>
 <div class="sheet">
 
+  <!-- Экран проверки сессии: показывается, пока проверяем доступ по ?session= -->
+  <section id="screen-session" class="screen">
+    <div class="masthead">
+      <div class="eyebrow">Проверка доступа</div>
+      <h1 id="session-msg-title">Проверяем сессию…</h1>
+      <div class="lede" id="session-msg">Одну секунду</div>
+    </div>
+  </section>
+
   <section id="screen-start" class="screen active">
     <div class="masthead">
       <div class="eyebrow" id="cover-eyebrow">Контрольная работа</div>
@@ -323,9 +332,68 @@
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
+<script src="storage.js"></script>
 <script src="tasks.js"></script>
 <script src="engine.js"></script>
 <script src="ui.js"></script>
+<script>
+/* ── Проверка сессии по ссылке ?session=ID ──
+   Этап 1: сессия управляет ДОСТУПОМ.
+     закрыта → не пускаем, показываем сообщение
+     открыта → пускаем к обычному экзамену
+   Задел на этап 2: мы уже достаём activityId из сессии и кладём его в
+   window.SESSION_ACTIVITY_ID. Сейчас он не используется — но когда экзамен
+   научится собираться по активности, он возьмётся отсюда, без переделки. */
+(function () {
+  'use strict';
+  function qs(name) {
+    try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
+  }
+  var sessionId = qs('session');
+  if (!sessionId) return;  // обычный вход без сессии — ничего не меняем
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    var el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  // Пока проверяем — показываем экран проверки
+  show('screen-session');
+
+  if (typeof StorageAPI === 'undefined') {
+    // storage недоступен — не блокируем, пускаем как обычно
+    show('screen-start');
+    return;
+  }
+
+  StorageAPI.sessions.get(sessionId).then(function (session) {
+    if (!session) {
+      document.getElementById('session-msg-title').textContent = 'Сессия не найдена';
+      document.getElementById('session-msg').textContent =
+        'Проверьте ссылку или обратитесь к преподавателю.';
+      return;
+    }
+    if (session.status !== 'open') {
+      document.getElementById('session-msg-title').textContent = 'Эта сессия закрыта';
+      document.getElementById('session-msg').textContent =
+        'Приём ответов завершён. Обратитесь к преподавателю.';
+      return;
+    }
+    // Сессия открыта — задел на этап 2: запомнить активность
+    window.SESSION_ACTIVITY_ID = session.activityId || null;
+    window.SESSION_GROUP = session.group || '';
+    // Пустить ученика к обычному входу
+    show('screen-start');
+    // Если группа известна — подставить её в поле группы
+    var g = document.getElementById('in-group');
+    if (g && window.SESSION_GROUP) { g.value = window.SESSION_GROUP; }
+  }).catch(function () {
+    // Ошибка проверки — не блокируем совсем, пускаем как обычно
+    show('screen-start');
+  });
+})();
+</script>
 <div class="time-toast" id="time-toast"></div>
 </body>
 </html>
