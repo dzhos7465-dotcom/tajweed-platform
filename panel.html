@@ -158,6 +158,31 @@ body { margin: 0; }
     <section class="section" id="s-sessions">
       <div class="page-title">Сессии</div>
       <div class="page-sub">Запуск активностей для групп: открыть, следить, закрыть</div>
+
+      <div class="panel-box">
+        <h3>Провести активность для группы</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Активность</label>
+            <select id="ses-activity"><option value="">Загрузка…</option></select>
+          </div>
+          <div class="field">
+            <label>Группа</label>
+            <input id="ses-group" type="text" placeholder="Например: 3-Б">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="ses-open">Открыть сессию</button>
+        </div>
+        <div id="ses-link-box" style="display:none; margin-top:var(--space-4);">
+          <label style="display:block; font-size:var(--text-sm); font-weight:var(--weight-semi); margin-bottom:var(--space-2);">Ссылка для учеников:</label>
+          <div style="display:flex; gap:var(--space-2);">
+            <input id="ses-link" readonly style="flex:1; font-family:var(--font-ui); font-size:var(--text-sm); border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); padding:var(--space-3); background:var(--paper-raised); color:var(--ink);">
+            <button class="btn btn-primary" id="ses-copy">Копировать</button>
+          </div>
+        </div>
+      </div>
+
       <div class="panel-box">
         <h3>Активные и прошедшие сессии</h3>
         <div id="sessions-list" class="status-line">Загрузка…</div>
@@ -265,17 +290,74 @@ body { margin: 0; }
   }
 
   function loadSessions() {
+    // Заполнить список активностей для выпадающего меню
+    StorageAPI.activities.list().then(function (acts) {
+      const sel = $('ses-activity');
+      if (!acts.length) {
+        sel.innerHTML = '<option value="">Сначала создайте активность</option>';
+      } else {
+        sel.innerHTML = acts.map(function (a) {
+          return '<option value="' + a.id + '">' + (a.title || 'Без названия') + '</option>';
+        }).join('');
+      }
+    });
+
+    // Показать существующие сессии
     StorageAPI.sessions.list().then(function (ses) {
       if (!ses.length) { $('sessions-list').textContent = 'Пока нет сессий.'; return; }
-      $('sessions-list').innerHTML = ses.map(function (s) {
+      // новые сверху
+      const sorted = ses.slice().sort(function (a, b) { return (b.openedAt || 0) - (a.openedAt || 0); });
+      $('sessions-list').innerHTML = sorted.map(function (s) {
         const cls = s.status === 'open' ? 'pill-open' : 'pill-closed';
         const label = s.status === 'open' ? 'открыта' : 'закрыта';
+        const when = s.openedAt ? new Date(s.openedAt).toLocaleString('ru') : '';
+        const closeBtn = s.status === 'open'
+          ? '<button class="btn btn-quiet ses-close-btn" data-id="' + s.id + '" style="padding:4px 12px;">Закрыть</button>'
+          : '';
         return '<div class="list-row"><b>Группа ' + (s.group || '?') + '</b>' +
           '<span class="pill ' + cls + '">' + label + '</span>' +
-          '<span style="flex:1"></span></div>';
+          '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + when + '</span>' +
+          '<span style="flex:1"></span>' + closeBtn + '</div>';
       }).join('');
+      // повесить закрытие
+      $('sessions-list').querySelectorAll('.ses-close-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          btn.textContent = 'Закрываю…';
+          StorageAPI.sessions.close(btn.getAttribute('data-id')).then(function () {
+            loadSessions();
+          });
+        });
+      });
     }).catch(function () { $('sessions-list').textContent = 'Ошибка загрузки.'; });
   }
+
+  // Открыть новую сессию: создать объект + сгенерировать ссылку для учеников
+  function openSession() {
+    const activityId = $('ses-activity').value;
+    const group = $('ses-group').value.trim();
+    if (!activityId) { alert('Выберите активность'); return; }
+    if (!group) { alert('Укажите группу'); return; }
+
+    $('ses-open').textContent = 'Открываю…';
+    $('ses-open').disabled = true;
+    StorageAPI.sessions.open(activityId, group).then(function (session) {
+      $('ses-open').textContent = 'Открыть сессию';
+      $('ses-open').disabled = false;
+      // Ссылка для учеников: экзамен с id сессии (ученики войдут по ней)
+      const base = window.location.href.replace(/panel\.html.*/, 'exam.html');
+      const link = base + '?session=' + session.id;
+      $('ses-link').value = link;
+      $('ses-link-box').style.display = '';
+      $('ses-group').value = '';
+      loadSessions();
+    });
+  }
+
+  $('ses-open').addEventListener('click', openSession);
+  $('ses-copy').addEventListener('click', function () {
+    const inp = $('ses-link'); inp.select();
+    try { document.execCommand('copy'); $('ses-copy').textContent = 'Скопировано'; setTimeout(function(){ $('ses-copy').textContent = 'Копировать'; }, 1500); } catch (e) {}
+  });
 
   function loadResults() {
     StorageAPI.results.list().then(function (res) {
