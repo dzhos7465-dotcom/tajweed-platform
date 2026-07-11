@@ -39,8 +39,15 @@
     const data = validate();
     if (!data) return;
     // Ученик открывает ту активность, которую открыл преподаватель.
-    // Он не выбирает режим — получает уже настроенное.
-    const activity = (typeof getOpenActivity === 'function') ? getOpenActivity() : EXAM_CONFIG;
+    // Приоритет: конфиг из сессии (собран по активности панели) → иначе обычный.
+    let activity;
+    if (window.SESSION_EXAM_CONFIG) {
+      activity = window.SESSION_EXAM_CONFIG;
+    } else if (typeof getOpenActivity === 'function') {
+      activity = getOpenActivity();
+    } else {
+      activity = EXAM_CONFIG;
+    }
     startExam(data, activity);
     renderTask();
     show('screen-exam');

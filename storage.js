@@ -66,6 +66,12 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('activities').then(r => (r && r.ok ? r.activities || [] : []));
       },
+      get: function (id) {
+        return backendGet('activities').then(function (r) {
+          const list = (r && r.ok ? r.activities || [] : []);
+          return list.filter(a => a.id === id)[0] || null;
+        });
+      },
       save: function (activity) {
         if (!activity.id) { activity.id = uid('act'); activity.createdAt = Date.now(); }
         return backendPost('activity', { activity: activity }).then(() => activity);

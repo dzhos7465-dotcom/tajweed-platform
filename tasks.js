@@ -102,6 +102,21 @@ const RULE_TEMPLATES = [
   { theme: 'shadda_nun', answer: 'shadda_nun', count: 2 },
 ];
 
+/* Карта «тема → правильный ответ». Нужна, когда шаблоны приходят из
+   активности (там только тема и количество, без ответа). По теме находим,
+   какой вариант верный. Один источник истины для встроенных и внешних тем. */
+const THEME_ANSWER = {};
+RULE_TEMPLATES.forEach(function (t) { THEME_ANSWER[t.theme] = t.answer; });
+function answerForTheme(themeId) {
+  // shadda различает букву; остальные — по «семейству» правила
+  if (THEME_ANSWER[themeId]) return THEME_ANSWER[themeId];
+  if (themeId.indexOf('izhar') === 0) return 'izhar';
+  if (themeId.indexOf('idgham') === 0) return 'idgham';
+  if (themeId.indexOf('ikhfa') === 0) return 'ikhfa';
+  if (themeId.indexOf('iqlab') === 0) return 'iqlab';
+  return themeId;
+}
+
 /* Шаблоны sort. groups.id = тема библиотеки (откуда брать примеры). */
 const SORT_TEMPLATES = [
   {
@@ -195,7 +210,7 @@ function examplesOfTheme(themeId) {
 /* Построить задания из шаблонов.
    randomize=false (контрольная): фиксированный seed → у всех одинаковый набор.
    randomize=true (тренировка): настоящая случайность → каждый раз разное. */
-function buildTasksFromTemplates(randomize) {
+function buildTasksFromTemplates(randomize, activityThemes) {
   // Для контрольной seed постоянный — «билет» стабилен для всей группы.
   // Для тренировки seed из времени — каждый запуск свежий.
   const rng = randomize ? makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0)
@@ -206,8 +221,19 @@ function buildTasksFromTemplates(randomize) {
   let uid = 0;
   const nextId = prefix => prefix + '_' + (uid++);
 
+  // Источник тем: если пришли темы из активности — берём их, иначе встроенные.
+  // Движок не знает, откуда список — из файла или из панели. Граница соблюдена.
+  let ruleTemplates;
+  if (activityThemes && activityThemes.length) {
+    ruleTemplates = activityThemes.map(function (t) {
+      return { theme: t.theme, count: t.count || 1, answer: answerForTheme(t.theme) };
+    });
+  } else {
+    ruleTemplates = RULE_TEMPLATES;
+  }
+
   // 1. Вопросы «какое правило?»
-  RULE_TEMPLATES.forEach(tpl => {
+  ruleTemplates.forEach(tpl => {
     const pool = examplesOfTheme(tpl.theme);
     const chosen = pick(pool, tpl.count);
     chosen.forEach(ex => {
@@ -225,8 +251,9 @@ function buildTasksFromTemplates(randomize) {
     });
   });
 
-  // 2. Sort-задания
-  SORT_TEMPLATES.forEach(tpl => {
+  // 2. Sort-задания — только для встроенного набора (из активности пока
+  //    берём вопросы «какое правило». Sort по активности добавим позже.)
+  if (!(activityThemes && activityThemes.length)) SORT_TEMPLATES.forEach(tpl => {
     const items = [];
     const answer = {};
     let k = 0;
@@ -300,8 +327,8 @@ function buildTasksFromTemplates(randomize) {
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize) {
-  TASKS = buildTasksFromTemplates(!!randomize);
+function rebuildTasks(randomize, activityThemes) {
+  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null);
   return TASKS;
 }
 

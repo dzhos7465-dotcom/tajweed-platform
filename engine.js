@@ -92,8 +92,10 @@ function startExam(student, config) {
   session.mode = MODES[activeConfig.mode] || MODES.exam;
   // Пересобрать задания. Случайность — по режиму: тренировка перемешивает,
   // контрольная фиксирована (одинакова у всех учеников).
+  // Если конфиг несёт темы из активности (activityThemes) — собираем по ним,
+  // иначе по встроенным шаблонам. Движок не знает, откуда темы.
   if (typeof rebuildTasks === 'function') {
-    rebuildTasks(session.mode.randomizeExamples);
+    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null);
   }
   session.student = student;
   session.startTime = Date.now();

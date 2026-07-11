@@ -380,14 +380,42 @@
         'Приём ответов завершён. Обратитесь к преподавателю.';
       return;
     }
-    // Сессия открыта — задел на этап 2: запомнить активность
+    // Сессия открыта — собрать экзамен ПО АКТИВНОСТИ этой сессии.
     window.SESSION_ACTIVITY_ID = session.activityId || null;
     window.SESSION_GROUP = session.group || '';
-    // Пустить ученика к обычному входу
-    show('screen-start');
-    // Если группа известна — подставить её в поле группы
-    var g = document.getElementById('in-group');
-    if (g && window.SESSION_GROUP) { g.value = window.SESSION_GROUP; }
+
+    function proceed() {
+      show('screen-start');
+      var g = document.getElementById('in-group');
+      if (g && window.SESSION_GROUP) { g.value = window.SESSION_GROUP; }
+    }
+
+    // Если у сессии есть активность — загрузить её и построить конфиг экзамена
+    if (window.SESSION_ACTIVITY_ID && StorageAPI.activities && StorageAPI.activities.get) {
+      StorageAPI.activities.get(window.SESSION_ACTIVITY_ID).then(function (activity) {
+        if (activity && activity.themes && activity.themes.length) {
+          // Собрать конфиг на основе встроенного EXAM_CONFIG, подменив темы и время.
+          // Движок соберёт задания по activityThemes (см. buildTasksFromTemplates).
+          var cfg = JSON.parse(JSON.stringify(EXAM_CONFIG));
+          cfg.title = activity.title || cfg.title;
+          cfg.activityThemes = activity.themes;      // ← рецепт преподавателя
+          cfg.mode = (activity.type === 'training') ? 'training' : 'exam';
+          if (activity.timeLimit != null) {
+            cfg.settings = cfg.settings || {};
+            cfg.settings.timeLimitMinutes = activity.timeLimit > 0 ? activity.timeLimit : null;
+          }
+          window.SESSION_EXAM_CONFIG = cfg;
+          // Обновить подпись обложки
+          var eb = document.getElementById('cover-eyebrow');
+          if (eb) eb.textContent = (cfg.mode === 'training') ? 'Тренировка' : 'Контрольная работа';
+          var h1 = document.querySelector('#screen-start h1');
+          if (h1 && activity.title) h1.textContent = activity.title;
+        }
+        proceed();
+      }).catch(proceed);
+    } else {
+      proceed();
+    }
   }).catch(function () {
     // Ошибка проверки — не блокируем совсем, пускаем как обычно
     show('screen-start');
