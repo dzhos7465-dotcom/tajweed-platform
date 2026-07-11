@@ -95,7 +95,7 @@ function startExam(student, config) {
   // Если конфиг несёт темы из активности (activityThemes) — собираем по ним,
   // иначе по встроенным шаблонам. Движок не знает, откуда темы.
   if (typeof rebuildTasks === 'function') {
-    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null);
+    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null, activeConfig.activityRecite || null);
   }
   session.student = student;
   session.startTime = Date.now();

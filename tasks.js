@@ -210,7 +210,7 @@ function examplesOfTheme(themeId) {
 /* Построить задания из шаблонов.
    randomize=false (контрольная): фиксированный seed → у всех одинаковый набор.
    randomize=true (тренировка): настоящая случайность → каждый раз разное. */
-function buildTasksFromTemplates(randomize, activityThemes) {
+function buildTasksFromTemplates(randomize, activityThemes, activityRecite) {
   // Для контрольной seed постоянный — «билет» стабилен для всей группы.
   // Для тренировки seed из времени — каждый запуск свежий.
   const rng = randomize ? makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0)
@@ -282,7 +282,12 @@ function buildTasksFromTemplates(randomize, activityThemes) {
   //    Если преподаватель выбрал аяты в конструкторе (?ayahs=…) — читаем их.
   //    Иначе берём по одному случайному аяту нужного правила.
   if (typeof AYAHS !== 'undefined') {
-    var selectedIds = (typeof getSelectedAyahIds === 'function') ? getSelectedAyahIds() : [];
+    // Приоритет источника аятов для чтения:
+    //   1) активность (recite из панели), 2) выбранные в конструкторе (?ayahs=),
+    //   3) иначе случайные по правилу.
+    var selectedIds = (activityRecite && activityRecite.length)
+      ? activityRecite
+      : ((typeof getSelectedAyahIds === 'function') ? getSelectedAyahIds() : []);
 
     if (selectedIds.length > 0) {
       // FIXED: преподаватель задал конкретные аяты — по заданию на каждый
@@ -327,8 +332,8 @@ function buildTasksFromTemplates(randomize, activityThemes) {
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize, activityThemes) {
-  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null);
+function rebuildTasks(randomize, activityThemes, activityRecite) {
+  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null);
   return TASKS;
 }
 

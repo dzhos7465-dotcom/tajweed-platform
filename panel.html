@@ -73,6 +73,14 @@ body { margin: 0; }
 .form-actions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-5); }
 .btn-quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
 
+
+/* Выбор аятов в активности */
+.ayahs-picker { display: flex; flex-direction: column; gap: var(--space-2); max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3); background: var(--paper-sunken); }
+.ayah-group-label { font-size: var(--text-xs); font-weight: var(--weight-semi); color: var(--seal); margin: var(--space-2) 0 var(--space-1); }
+.ayah-pick { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--paper-raised); cursor: pointer; }
+.ayah-pick.on { border-color: var(--seal); background: var(--seal-tint); }
+.ayah-pick .ap-ar { flex: 1; font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.4rem; line-height: 1.6; color: var(--ink); }
+
 </style>
 </head>
 <body>
@@ -137,6 +145,11 @@ body { margin: 0; }
         <div class="field">
           <label>Темы и количество вопросов</label>
           <div id="af-themes" class="themes-picker"></div>
+        </div>
+
+        <div class="field">
+          <label>Аяты для чтения вслух <span style="font-weight:var(--weight-medium); color:var(--ink-faint);">(необязательно)</span></label>
+          <div id="af-ayahs" class="ayahs-picker"></div>
         </div>
 
         <div class="form-actions">
@@ -401,6 +414,43 @@ body { margin: 0; }
     });
   }
 
+  // Выбор аятов для чтения — сгруппированы по правилу, галочки
+  const RULE_ORDER = ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim','izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun','shadda_nun'];
+  function ruleName(id) { return (typeof THEMES !== 'undefined' && THEMES[id]) ? THEMES[id].name : id; }
+
+  function buildAyahPicker() {
+    const wrap = $('af-ayahs');
+    wrap.innerHTML = '';
+    if (typeof AYAHS === 'undefined') { wrap.innerHTML = '<div style="color:var(--ink-faint);font-size:var(--text-sm)">Библиотека аятов недоступна.</div>'; return; }
+    RULE_ORDER.forEach(function (rule) {
+      const list = AYAHS.filter(function (a) { return a.rules.indexOf(rule) !== -1; });
+      if (!list.length) return;
+      const label = document.createElement('div');
+      label.className = 'ayah-group-label';
+      label.textContent = ruleName(rule);
+      wrap.appendChild(label);
+      list.forEach(function (a) {
+        const row = document.createElement('div');
+        row.className = 'ayah-pick';
+        row.innerHTML = '<input type="checkbox" class="ap-check" data-ayah="' + a.id + '"><span class="ap-ar">' + a.text + '</span>';
+        const check = row.querySelector('.ap-check');
+        row.addEventListener('click', function (e) {
+          if (e.target !== check) check.checked = !check.checked;
+          row.classList.toggle('on', check.checked);
+        });
+        wrap.appendChild(row);
+      });
+    });
+  }
+
+  function collectAyahs() {
+    const out = [];
+    $('af-ayahs').querySelectorAll('.ap-check').forEach(function (c) {
+      if (c.checked) out.push(c.getAttribute('data-ayah'));
+    });
+    return out;
+  }
+
   function showForm() {
     $('activity-form').style.display = '';
     $('activities-top').style.display = 'none';
@@ -408,6 +458,7 @@ body { margin: 0; }
     $('af-type').value = 'exam';
     $('af-time').value = '20';
     buildThemePicker();
+    buildAyahPicker();
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -449,7 +500,7 @@ body { margin: 0; }
       type: $('af-type').value,
       timeLimit: parseInt($('af-time').value, 10) || 0,
       themes: themes,
-      recite: [],          // аяты для чтения — добавим из конструктора позже
+      recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
     };
 
     $('af-save').textContent = 'Сохранение…';
