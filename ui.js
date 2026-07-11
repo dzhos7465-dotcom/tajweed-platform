@@ -60,19 +60,30 @@
     const total = session.taskOrder.length;
     const idx = session.currentIndex;
 
-    applyThemeAccent(task.theme);
+    // ВАЖНО: для вопросов «какое правило?» (SINGLE) нельзя показывать само
+    // правило — это выдало бы ответ. Поэтому у таких заданий НЕТ ни названия
+    // темы в шапке, ни цветовой подсветки, ни метки правила на карточке.
+    // Для sort/recite показывать тему можно — они не спрашивают «какое правило».
+    const revealsRule = (task.type === TASK_TYPES.SINGLE);
+
+    if (revealsRule) {
+      $('screen-exam').style.setProperty('--theme-accent', 'var(--seal)');  // нейтральный цвет
+      $('q-theme').textContent = '';                                        // без названия правила
+    } else {
+      applyThemeAccent(task.theme);
+      $('q-theme').textContent = THEMES[task.theme] ? THEMES[task.theme].name : '';
+    }
 
     $('q-cur').textContent = idx + 1;
     $('q-total').textContent = total;
-    $('q-theme').textContent = THEMES[task.theme] ? THEMES[task.theme].name : '';
     $('track-fill').parentElement.style.setProperty('--pct', ((idx + 1) / total * 100) + '%');
 
     $('q-no').textContent = 'Задание ' + (idx + 1);
     $('q-prompt').textContent = task.prompt;
 
-    // Тег правила в карточке — имя темы её педагогическим цветом
+    // Метка правила на карточке — только для НЕ-вопросов о правиле
     const tag = document.getElementById('q-rule-tag');
-    if (tag) tag.textContent = THEMES[task.theme] ? THEMES[task.theme].name : '';
+    if (tag) tag.textContent = revealsRule ? '' : (THEMES[task.theme] ? THEMES[task.theme].name : '');
 
     const wrap = $('q-options');
     wrap.innerHTML = '';
