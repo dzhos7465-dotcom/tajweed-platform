@@ -82,6 +82,21 @@ body { margin: 0; }
 .ayah-pick.on { border-color: var(--seal); background: var(--seal-tint); }
 .ayah-pick .ap-ar { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.3rem; line-height: 1.9; color: var(--ink); }
 
+
+/* Галочки заданий на распределение */
+.sort-picker { display: flex; flex-direction: column; gap: var(--space-2); }
+.sort-opt { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1.5px solid var(--line); border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--ink); cursor: pointer; }
+.sort-opt input { margin: 0; }
+
+/* Сворачиваемые блоки видов заданий */
+.collapse { border: 1.5px solid var(--line); border-radius: var(--radius-sm); margin-bottom: var(--space-3); overflow: hidden; }
+.collapse-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); font-weight: var(--weight-semi); color: var(--ink); cursor: pointer; background: var(--paper-raised); user-select: none; }
+.collapse-head:hover { background: var(--paper-sunken); }
+.collapse-arrow { display: inline-block; transition: transform var(--motion-base) var(--ease); color: var(--seal); font-size: var(--text-xs); }
+.collapse.open .collapse-arrow { transform: rotate(90deg); }
+.collapse-hint { margin-left: auto; font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--seal); }
+.collapse-body { display: none; padding: var(--space-4); border-top: 1px solid var(--line); }
+.collapse.open .collapse-body { display: block; }
 </style>
 </head>
 <body>
@@ -143,14 +158,28 @@ body { margin: 0; }
           </div>
         </div>
 
-        <div class="field">
-          <label>Темы и количество вопросов</label>
-          <div id="af-themes" class="themes-picker"></div>
+        <div class="collapse" data-collapse>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Вопросы «какое правило» <span class="collapse-hint" id="cnt-themes"></span></div>
+          <div class="collapse-body">
+            <div id="af-themes" class="themes-picker"></div>
+          </div>
         </div>
 
-        <div class="field">
-          <label>Аяты для чтения вслух <span style="font-weight:var(--weight-medium); color:var(--ink-faint);">(необязательно)</span></label>
-          <div id="af-ayahs" class="ayahs-picker"></div>
+        <div class="collapse" data-collapse>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Аяты для чтения вслух <span class="collapse-hint" id="cnt-ayahs"></span></div>
+          <div class="collapse-body">
+            <div id="af-ayahs" class="ayahs-picker"></div>
+          </div>
+        </div>
+
+        <div class="collapse" data-collapse>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Задания на распределение <span class="collapse-hint" id="cnt-sort"></span></div>
+          <div class="collapse-body">
+            <div class="sort-picker">
+              <label class="sort-opt"><input type="checkbox" id="af-sort-mim"> Распределение по правилам <b>мима</b></label>
+              <label class="sort-opt"><input type="checkbox" id="af-sort-nun"> Распределение по правилам <b>нуна</b></label>
+            </div>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -498,8 +527,32 @@ body { margin: 0; }
     return out;
   }
 
-  // Какую активность редактируем (null = создаём новую)
-  var editingActivity = null;
+  // Сворачивание блоков видов заданий
+  var editingActivity = null;  // какую активность редактируем (null = новая)
+  document.querySelectorAll('.collapse[data-collapse] .collapse-head').forEach(function (head) {
+    head.addEventListener('click', function () {
+      head.parentElement.classList.toggle('open');
+    });
+  });
+
+  // Обновить подсказки-счётчики в заголовках (что выбрано, видно и в свёрнутом)
+  function updateCollapseHints() {
+    var nThemes = $('af-themes') ? $('af-themes').querySelectorAll('.tp-check:checked').length : 0;
+    var nAyahs = $('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0;
+    var nSort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) + (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0);
+    if ($('cnt-themes')) $('cnt-themes').textContent = nThemes ? 'выбрано: ' + nThemes : '';
+    if ($('cnt-ayahs')) $('cnt-ayahs').textContent = nAyahs ? 'выбрано: ' + nAyahs : '';
+    if ($('cnt-sort')) $('cnt-sort').textContent = nSort ? 'включено: ' + nSort : '';
+  }
+  // Обновлять при любом изменении в форме
+  ['af-themes','af-ayahs'].forEach(function (id) {
+    var el = $(id);
+    if (el) el.addEventListener('change', updateCollapseHints);
+  });
+  ['af-sort-mim','af-sort-nun'].forEach(function (id) {
+    var el = $(id);
+    if (el) el.addEventListener('change', updateCollapseHints);
+  });
 
   function showForm() {
     editingActivity = null;
@@ -509,8 +562,14 @@ body { margin: 0; }
     $('af-title').value = '';
     $('af-type').value = 'exam';
     $('af-time').value = '20';
+    $('af-sort-mim').checked = false;
+    $('af-sort-nun').checked = false;
     buildThemePicker();
     buildAyahPicker();
+    // Свернуть все блоки, кроме первого (Вопросы) — он основной
+    var blocks = document.querySelectorAll('.collapse[data-collapse]');
+    blocks.forEach(function (b, i) { b.classList.toggle('open', i === 0); });
+    updateCollapseHints();
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -544,6 +603,15 @@ body { margin: 0; }
       const c = $('af-ayahs').querySelector('.ap-check[data-ayah="' + ayId + '"]');
       if (c) { c.checked = true; c.closest('.ayah-pick').classList.add('on'); }
     });
+    // Галочки распределения
+    $('af-sort-mim').checked = !!act.sortMim;
+    $('af-sort-nun').checked = !!act.sortNun;
+    // Открыть блоки, где что-то выбрано (чтобы сразу видеть настройки)
+    var blocks = document.querySelectorAll('.collapse[data-collapse]');
+    if (blocks[0]) blocks[0].classList.add('open');  // вопросы всегда
+    if (blocks[1]) blocks[1].classList.toggle('open', (act.recite || []).length > 0);
+    if (blocks[2]) blocks[2].classList.toggle('open', !!act.sortMim || !!act.sortNun);
+    updateCollapseHints();
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -587,6 +655,8 @@ body { margin: 0; }
       timeLimit: parseInt($('af-time').value, 10) || 0,
       themes: themes,
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
+      sortMim: $('af-sort-mim').checked,   // распределение по миму
+      sortNun: $('af-sort-nun').checked,   // распределение по нуну
     };
     // Если редактируем — сохранить тот же id и дату создания (backend обновит строку)
     if (editingActivity) {

@@ -398,6 +398,7 @@
           cfg.title = activity.title || cfg.title;
           cfg.activityThemes = activity.themes;      // ← рецепт преподавателя
           cfg.activityRecite = (activity.recite && activity.recite.length) ? activity.recite : null;
+          cfg.activitySort = { mim: !!activity.sortMim, nun: !!activity.sortNun };
           cfg.mode = (activity.type === 'training') ? 'training' : 'exam';
           if (activity.timeLimit != null) {
             cfg.settings = cfg.settings || {};

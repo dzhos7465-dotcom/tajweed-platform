@@ -210,7 +210,7 @@ function examplesOfTheme(themeId) {
 /* Построить задания из шаблонов.
    randomize=false (контрольная): фиксированный seed → у всех одинаковый набор.
    randomize=true (тренировка): настоящая случайность → каждый раз разное. */
-function buildTasksFromTemplates(randomize, activityThemes, activityRecite) {
+function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort) {
   // Для контрольной seed постоянный — «билет» стабилен для всей группы.
   // Для тренировки seed из времени — каждый запуск свежий.
   const rng = randomize ? makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0)
@@ -251,9 +251,17 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite) {
     });
   });
 
-  // 2. Sort-задания — только для встроенного набора (из активности пока
-  //    берём вопросы «какое правило». Sort по активности добавим позже.)
-  if (!(activityThemes && activityThemes.length)) SORT_TEMPLATES.forEach(tpl => {
+  // 2. Sort-задания (распределение).
+  //    Встроенный экзамен: все SORT_TEMPLATES.
+  //    По активности: только те, что преподаватель отметил галочкой
+  //      (sortMim → sort_mim, sortNun → sort_nun).
+  const byActivity = !!(activityThemes && activityThemes.length);
+  SORT_TEMPLATES.forEach(tpl => {
+    if (byActivity) {
+      const want = (tpl.id === 'sort_mim' && activitySort && activitySort.mim) ||
+                   (tpl.id === 'sort_nun' && activitySort && activitySort.nun);
+      if (!want) return;   // галочка не стоит — пропускаем это распределение
+    }
     const items = [];
     const answer = {};
     let k = 0;
@@ -332,8 +340,8 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite) {
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize, activityThemes, activityRecite) {
-  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null);
+function rebuildTasks(randomize, activityThemes, activityRecite, activitySort) {
+  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null, activitySort || null);
   return TASKS;
 }
 
