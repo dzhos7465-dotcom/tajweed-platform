@@ -120,6 +120,11 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('recordings').then(r => (r && r.ok ? r.recordings || [] : []));
       },
+      // Выставить балл за запись (обратная запись в хранилище).
+      // Запись определяется по url — он уникален.
+      grade: function (url, grade) {
+        return backendPost('grade_recording', { url: url, grade: grade });
+      },
     },
 
     // Служебное: узнать, доступно ли хранилище

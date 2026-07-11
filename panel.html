@@ -97,6 +97,19 @@ body { margin: 0; }
 .collapse-hint { margin-left: auto; font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--seal); }
 .collapse-body { display: none; padding: var(--space-4); border-top: 1px solid var(--line); }
 .collapse.open .collapse-body { display: block; }
+
+/* Проверка чтения — карточки записей */
+.rec-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); }
+.rec-card-top { display: flex; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-2); flex-wrap: wrap; }
+.rec-card-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
+.rec-card-meta { font-size: var(--text-xs); color: var(--ink-faint); }
+.rec-card-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.5rem; line-height: 1.8; color: var(--ink); margin: var(--space-2) 0; }
+.rec-frame { width: 100%; height: 60px; border: none; border-radius: var(--radius-sm); background: var(--paper-sunken); }
+.rec-grade-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); flex-wrap: wrap; }
+.rec-grade-row label { font-size: var(--text-sm); color: var(--ink-soft); }
+.rec-grade-input { width: 80px; font-family: var(--font-ui); font-size: var(--text-base); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-2); text-align: center; background: var(--paper-raised); color: var(--ink); }
+.rec-grade-saved { font-size: var(--text-xs); color: var(--ok); font-weight: var(--weight-semi); }
+.rec-group-title { font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--seal); margin: var(--space-5) 0 var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
 </style>
 </head>
 <body>
@@ -244,12 +257,16 @@ body { margin: 0; }
     <!-- ── ПРОВЕРКА ЧТЕНИЯ ── -->
     <section class="section" id="s-recordings">
       <div class="page-title">Проверка чтения</div>
-      <div class="page-sub">Записи учеников — слушайте и оценивайте</div>
-      <div class="placeholder">
-        Здесь появится прослушивание записей.<br>
-        Пока используйте отдельную страницу listen.html —<br>
-        мы встроим её сюда и добавим выставление балла.
+      <div class="page-sub">Записи учеников — слушайте и выставляйте баллы</div>
+      <div class="panel-box">
+        <div style="display:flex; gap:var(--space-3); align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="rec-load">Загрузить записи</button>
+          <select id="rec-filter-group" style="font-family:var(--font-ui); font-size:var(--text-sm); border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); background:var(--paper-raised); color:var(--ink);"><option value="">Все группы</option></select>
+          <input id="rec-filter-name" type="text" placeholder="Поиск по фамилии…" style="font-family:var(--font-ui); font-size:var(--text-sm); border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); background:var(--paper-raised); color:var(--ink);">
+        </div>
       </div>
+      <div id="rec-status" class="status-line">Нажмите «Загрузить записи».</div>
+      <div id="rec-list"></div>
     </section>
 
     <!-- ── МАТЕРИАЛЫ ── -->
@@ -292,6 +309,7 @@ body { margin: 0; }
     if (sec === 'activities') loadActivities();
     if (sec === 'sessions') loadSessions();
     if (sec === 'results') loadResults();
+    if (sec === 'recordings') { /* грузим по кнопке, не автоматически */ }
   }
 
   function loadDashboard() {
@@ -678,6 +696,93 @@ body { margin: 0; }
   $('btn-new-activity').addEventListener('click', showForm);
   $('af-cancel').addEventListener('click', hideForm);
   $('af-save').addEventListener('click', saveActivity);
+
+  // ── Проверка чтения: слушать + ставить балл ──
+  var allRecordings = [];
+
+  function drivePreviewUrl(url) {
+    var m = String(url).match(/\/d\/([^\/]+)/);
+    return m ? 'https://drive.google.com/file/d/' + m[1] + '/preview' : url;
+  }
+
+  function loadRecordings() {
+    $('rec-status').textContent = 'Загружаю записи…';
+    $('rec-list').innerHTML = '';
+    StorageAPI.recordings.list().then(function (recs) {
+      allRecordings = recs || [];
+      if (!allRecordings.length) { $('rec-status').textContent = 'Пока нет записей.'; return; }
+      $('rec-status').textContent = 'Записей: ' + allRecordings.length;
+      // заполнить фильтр групп
+      var groups = Array.from(new Set(allRecordings.map(function (r) { return r.group; }).filter(Boolean))).sort();
+      var sel = $('rec-filter-group');
+      sel.innerHTML = '<option value="">Все группы</option>' + groups.map(function (g) { return '<option value="' + g + '">Группа ' + g + '</option>'; }).join('');
+      renderRecordings();
+    }).catch(function () { $('rec-status').textContent = 'Не удалось загрузить.'; });
+  }
+
+  function renderRecordings() {
+    var grp = $('rec-filter-group').value;
+    var name = $('rec-filter-name').value.trim().toLowerCase();
+    var items = allRecordings.slice();
+    if (grp) items = items.filter(function (r) { return r.group === grp; });
+    if (name) items = items.filter(function (r) { return String(r.fullName).toLowerCase().indexOf(name) !== -1; });
+
+    if (!items.length) { $('rec-list').innerHTML = '<div class="status-line">Ничего не найдено.</div>'; return; }
+
+    // группировка по группе
+    var byGroup = {};
+    items.forEach(function (r) { var g = r.group || 'без группы'; (byGroup[g] = byGroup[g] || []).push(r); });
+
+    $('rec-list').innerHTML = '';
+    Object.keys(byGroup).sort().forEach(function (g) {
+      var title = document.createElement('div');
+      title.className = 'rec-group-title';
+      title.textContent = 'Группа ' + g + ' · ' + byGroup[g].length;
+      $('rec-list').appendChild(title);
+      byGroup[g].forEach(function (r) { $('rec-list').appendChild(recCard(r)); });
+    });
+  }
+
+  function recCard(r) {
+    var card = document.createElement('div');
+    card.className = 'rec-card';
+    var ayahText = r.ayahText || (window.AYAH_BY_ID && AYAH_BY_ID[r.ayahId] ? AYAH_BY_ID[r.ayahId].text : '');
+    var graded = (r.grade !== '' && r.grade != null);
+    card.innerHTML =
+      '<div class="rec-card-top">' +
+        '<span class="rec-card-name">' + (r.fullName || '—') + '</span>' +
+        '<span class="rec-card-meta">' + (r.date || '') + ' ' + (r.time || '') + '</span>' +
+      '</div>' +
+      (ayahText ? '<div class="rec-card-ayah">' + ayahText + '</div>' : '') +
+      '<iframe class="rec-frame" src="' + drivePreviewUrl(r.url) + '" allow="autoplay"></iframe>' +
+      '<div class="rec-grade-row">' +
+        '<label>Балл за чтение:</label>' +
+        '<input type="number" class="rec-grade-input" min="0" max="100" value="' + (graded ? r.grade : '') + '" placeholder="—">' +
+        '<button class="btn btn-primary rec-save-btn" style="padding:6px 16px;">Сохранить</button>' +
+        '<span class="rec-grade-saved" style="display:none;">Сохранено ✓</span>' +
+        '<span style="flex:1"></span>' +
+        '<a href="' + r.url + '" target="_blank" style="font-size:var(--text-sm); color:var(--seal);">На Диске</a>' +
+      '</div>';
+    var input = card.querySelector('.rec-grade-input');
+    var btn = card.querySelector('.rec-save-btn');
+    var saved = card.querySelector('.rec-grade-saved');
+    btn.addEventListener('click', function () {
+      var val = input.value.trim();
+      if (val === '') { alert('Введите балл'); return; }
+      btn.textContent = 'Сохраняю…'; btn.disabled = true;
+      StorageAPI.recordings.grade(r.url, val).then(function () {
+        btn.textContent = 'Сохранить'; btn.disabled = false;
+        saved.style.display = '';
+        setTimeout(function () { saved.style.display = 'none'; }, 2000);
+        r.grade = val;  // обновить в памяти
+      });
+    });
+    return card;
+  }
+
+  $('rec-load').addEventListener('click', loadRecordings);
+  $('rec-filter-group').addEventListener('change', renderRecordings);
+  $('rec-filter-name').addEventListener('input', renderRecordings);
 
   // Старт — открыть Dashboard
   loadDashboard();
