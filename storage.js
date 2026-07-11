@@ -105,6 +105,9 @@ const StorageAPI = (function () {
       close: function (id) {
         return backendPost('session_close', { id: id });
       },
+      remove: function (id) {
+        return backendPost('session_delete', { id: id });
+      },
     },
 
     // Результаты и записи (уже существуют в таблице — только чтение)
