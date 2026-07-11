@@ -290,16 +290,49 @@ body { margin: 0; }
     });
   }
 
+  function fmtDate(ts) {
+    if (!ts) return '';
+    try { return new Date(ts).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+    catch (e) { return ''; }
+  }
+
   function loadActivities() {
     StorageAPI.activities.list().then(function (acts) {
       if (!acts.length) { $('activities-list').textContent = 'Пока нет активностей. Создайте первую.'; return; }
-      $('activities-list').innerHTML = acts.map(function (a) {
-        return '<div class="list-row"><b>' + (a.title || 'Без названия') + '</b>' +
-          '<span class="pill pill-closed">' + (a.type || 'exam') + '</span>' +
+      // новые сверху
+      const sorted = acts.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+      $('activities-list').innerHTML = sorted.map(function (a) {
+        const typeLabel = { exam: 'экзамен', training: 'тренировка', homework: 'домашка', review: 'повторение' }[a.type] || a.type || 'экзамен';
+        const nThemes = (a.themes || []).length;
+        const nAyahs = (a.recite || []).length;
+        return '<div class="list-row">' +
+          '<b>' + (a.title || 'Без названия') + '</b>' +
+          '<span class="pill pill-closed">' + typeLabel + '</span>' +
+          '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + fmtDate(a.createdAt) + '</span>' +
           '<span style="flex:1"></span>' +
-          '<span style="color:var(--ink-faint)">' + ((a.themes || []).length) + ' тем</span></div>';
+          '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + nThemes + ' тем' + (nAyahs ? ' · ' + nAyahs + ' аят' : '') + '</span>' +
+          '<button class="btn btn-quiet act-edit" data-id="' + a.id + '" style="padding:4px 12px;">Изменить</button>' +
+          '<button class="btn btn-quiet act-del" data-id="' + a.id + '" style="padding:4px 12px; color:var(--err); border-color:var(--err-tint);">Удалить</button>' +
+          '</div>';
       }).join('');
+      // Кэш для редактирования (чтобы не запрашивать снова)
+      window._activitiesCache = sorted;
+      // повесить кнопки
+      $('activities-list').querySelectorAll('.act-edit').forEach(function (btn) {
+        btn.addEventListener('click', function () { editActivity(btn.getAttribute('data-id')); });
+      });
+      $('activities-list').querySelectorAll('.act-del').forEach(function (btn) {
+        btn.addEventListener('click', function () { deleteActivity(btn.getAttribute('data-id'), btn); });
+      });
     }).catch(function () { $('activities-list').textContent = 'Ошибка загрузки.'; });
+  }
+
+  function deleteActivity(id, btn) {
+    const act = (window._activitiesCache || []).filter(function (a) { return a.id === id; })[0];
+    const name = act ? (act.title || 'эту активность') : 'эту активность';
+    if (!confirm('Удалить «' + name + '»? Это действие нельзя отменить.')) return;
+    if (btn) { btn.textContent = 'Удаляю…'; btn.disabled = true; }
+    StorageAPI.activities.remove(id).then(function () { loadActivities(); });
   }
 
   function loadSessions() {
@@ -451,7 +484,12 @@ body { margin: 0; }
     return out;
   }
 
+  // Какую активность редактируем (null = создаём новую)
+  var editingActivity = null;
+
   function showForm() {
+    editingActivity = null;
+    $('form-title').textContent = 'Новая активность';
     $('activity-form').style.display = '';
     $('activities-top').style.display = 'none';
     $('af-title').value = '';
@@ -462,7 +500,41 @@ body { margin: 0; }
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }
 
+  // Открыть форму, заполненную данными существующей активности
+  function editActivity(id) {
+    const act = (window._activitiesCache || []).filter(function (a) { return a.id === id; })[0];
+    if (!act) return;
+    editingActivity = act;                     // запомнить, что редактируем (сохраним под тем же id)
+    $('form-title').textContent = 'Изменить активность';
+    $('activity-form').style.display = '';
+    $('activities-top').style.display = 'none';
+    $('af-title').value = act.title || '';
+    $('af-type').value = act.type || 'exam';
+    $('af-time').value = (act.timeLimit != null ? act.timeLimit : 20);
+    buildThemePicker();
+    buildAyahPicker();
+    // Отметить темы активности и проставить их количество
+    (act.themes || []).forEach(function (t) {
+      const row = $('af-themes').querySelector('.tp-check[data-theme="' + t.theme + '"]');
+      if (row) {
+        row.checked = true;
+        const rowEl = row.closest('.theme-pick');
+        rowEl.classList.add('on');
+        const count = rowEl.querySelector('.tp-count');
+        count.disabled = false;
+        count.value = t.count || 3;
+      }
+    });
+    // Отметить выбранные аяты
+    (act.recite || []).forEach(function (ayId) {
+      const c = $('af-ayahs').querySelector('.ap-check[data-ayah="' + ayId + '"]');
+      if (c) { c.checked = true; c.closest('.ayah-pick').classList.add('on'); }
+    });
+    $('activity-form').scrollIntoView({ behavior: 'smooth' });
+  }
+
   function hideForm() {
+    editingActivity = null;
     $('activity-form').style.display = 'none';
     $('activities-top').style.display = '';
   }
@@ -502,6 +574,12 @@ body { margin: 0; }
       themes: themes,
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
     };
+    // Если редактируем — сохранить тот же id и дату создания (backend обновит строку)
+    if (editingActivity) {
+      activity.id = editingActivity.id;
+      activity.createdAt = editingActivity.createdAt;
+      activity.updatedAt = Date.now();
+    }
 
     $('af-save').textContent = 'Сохранение…';
     $('af-save').disabled = true;
