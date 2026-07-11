@@ -137,6 +137,24 @@ body { margin: 0; }
 .mat-section-title { display: flex; align-items: baseline; gap: var(--space-3); font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); margin: var(--space-5) 0 var(--space-3); }
 .mat-section-title:first-child { margin-top: 0; }
 .mat-section-sub { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ink-faint); }
+
+/* Результаты — аккуратные карточки групп */
+.res-group { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); }
+.res-group-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.res-group-name { font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); }
+.res-group-stat { font-size: var(--text-xs); color: var(--ink-faint); }
+.res-row { display: grid; grid-template-columns: 1fr auto auto 56px; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.res-row:last-child { border-bottom: none; }
+.res-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
+.res-meta { font-size: var(--text-xs); color: var(--ink-faint); }
+.res-tag { font-size: var(--text-xs); font-weight: var(--weight-semi); padding: 2px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
+.res-tag-wait { background: var(--amber-tint, #f5ecd0); color: var(--amber, #8a6d1a); }
+.res-tag-done { background: var(--ok-tint); color: var(--ok); }
+.res-score { font-size: var(--text-xl); font-weight: var(--weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+  .res-row { grid-template-columns: 1fr auto 48px; }
+  .res-meta { display: none; }
+}
 </style>
 </head>
 <body>
@@ -500,18 +518,52 @@ body { margin: 0; }
 
   function loadResults() {
     StorageAPI.results.list().then(function (res) {
-      if (!res.length) { $('results-list').textContent = 'Пока нет результатов.'; return; }
+      if (!res.length) { $('results-list').innerHTML = '<div class="status-line">Пока нет результатов.</div>'; return; }
       // группировка по группе
       const byGroup = {};
       res.forEach(function (x) { const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
+
       $('results-list').innerHTML = Object.keys(byGroup).sort().map(function (g) {
-        const rows = byGroup[g].map(function (x) {
-          return '<div class="list-row"><b>' + (x.fullName || '—') + '</b>' +
-            '<span style="flex:1"></span><span>' + (x.autoScore != null ? x.autoScore : '') + '</span></div>';
+        const students = byGroup[g];
+        // средний балл по группе (по авто-баллу)
+        const scores = students.map(function (s) { return Number(s.autoScore); }).filter(function (n) { return !isNaN(n); });
+        const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
+
+        const rows = students.map(function (x) {
+          const score = (x.autoScore != null && x.autoScore !== '') ? Number(x.autoScore) : null;
+          // цвет балла: зелёный ≥70, янтарный 40-69, красный <40
+          let scoreColor = 'var(--ink-faint)';
+          if (score != null) scoreColor = score >= 70 ? 'var(--ok)' : (score >= 40 ? 'var(--amber, #b8860b)' : 'var(--err)');
+          const pending = (String(x.pending).toLowerCase() === 'да');
+          const pendingTag = pending
+            ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
+            : '<span class="res-tag res-tag-done">проверено</span>';
+          return '<div class="res-row">' +
+              '<div class="res-name">' + (x.fullName || '—') + '</div>' +
+              '<div class="res-meta">' + (x.date || '') + '</div>' +
+              pendingTag +
+              '<div class="res-score" style="color:' + scoreColor + '">' + (score != null ? score : '—') + '</div>' +
+            '</div>';
         }).join('');
-        return '<h3 style="margin-top:var(--space-4);color:var(--seal)">Группа ' + g + '</h3>' + rows;
+
+        return '<div class="res-group">' +
+            '<div class="res-group-head">' +
+              '<span class="res-group-name">Группа ' + g + '</span>' +
+              '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
+                (avg != null ? ' · средний ' + avg : '') + '</span>' +
+            '</div>' +
+            rows +
+          '</div>';
       }).join('');
-    }).catch(function () { $('results-list').textContent = 'Ошибка загрузки.'; });
+    }).catch(function () { $('results-list').innerHTML = '<div class="status-line">Ошибка загрузки.</div>'; });
+  }
+
+  // склонение существительного после числа
+  function plural(n, one, few, many) {
+    var n10 = n % 10, n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return one;
+    if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+    return many;
   }
 
   // ── Форма создания активности ──
