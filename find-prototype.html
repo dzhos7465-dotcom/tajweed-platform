@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Найди в аяте — прототип</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="design-system.css">
+<style>
+body { margin: 0; background: var(--paper); }
+.wrap { max-width: 480px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-8); }
+.head { margin-bottom: var(--space-5); }
+.eyebrow { font-size: var(--text-xs); font-weight: var(--weight-semi); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.prompt { font-size: var(--text-lg); font-weight: var(--weight-semi); color: var(--ink); margin-top: var(--space-2); }
+.hint { font-size: var(--text-sm); color: var(--ink-soft); margin-top: var(--space-2); }
+
+/* Аят — КРУПНО, слова кликабельны */
+.ayah { direction: rtl; text-align: center; font-family: var(--font-arabic);
+        font-size: 2.6rem; line-height: 2.6; color: var(--ink);
+        background: var(--paper-raised); border: 1px solid var(--line);
+        border-radius: var(--radius-lg); padding: var(--space-6) var(--space-4);
+        margin-bottom: var(--space-5); }
+.word { cursor: pointer; padding: 2px 6px; border-radius: var(--radius-sm);
+        transition: background var(--motion-base) var(--ease); position: relative; }
+.word:hover { background: var(--paper-sunken); }
+.word.active { background: var(--seal-tint); outline: 2px solid var(--seal); }
+.word.marked { color: #fff; }
+
+/* Панель выбора правила — снизу */
+.picker { background: var(--paper-raised); border: 1px solid var(--line-strong);
+          border-radius: var(--radius-lg); padding: var(--space-4);
+          position: sticky; bottom: var(--space-4); box-shadow: var(--shadow-lg); }
+.picker.hidden { display: none; }
+.picker-title { font-size: var(--text-sm); color: var(--ink-soft); margin-bottom: var(--space-3); text-align: center; }
+.picker-word { font-family: var(--font-arabic); font-size: 1.8rem; color: var(--ink); }
+.rule-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.rule-btn { font-family: var(--font-ui); font-size: var(--text-sm); font-weight: var(--weight-semi);
+            border: 1.5px solid var(--line-strong); background: var(--paper);
+            color: var(--ink); border-radius: var(--radius); padding: var(--space-3);
+            cursor: pointer; transition: all var(--motion-base) var(--ease); }
+.rule-btn:hover { border-color: var(--seal); }
+.rule-btn .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+.clear-btn { grid-column: 1 / -1; background: transparent; border: none; color: var(--err);
+             font-size: var(--text-sm); cursor: pointer; padding: var(--space-2); }
+
+.done-bar { margin-top: var(--space-5); display: flex; gap: var(--space-3); align-items: center; }
+.marked-count { font-size: var(--text-sm); color: var(--ink-soft); }
+.btn-primary { flex: 1; background: var(--seal); color: #fff; border: none; border-radius: var(--radius);
+               padding: var(--space-4); font-family: var(--font-ui); font-size: var(--text-base);
+               font-weight: var(--weight-semi); cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Задание · найди в аяте</div>
+    <div class="prompt">Найди правила в этом аяте</div>
+    <div class="hint">Нажми на слово, где есть правило, и выбери какое.</div>
+  </div>
+
+  <div class="ayah" id="ayah"></div>
+
+  <div class="done-bar">
+    <span class="marked-count" id="count">Отмечено: 0</span>
+    <button class="btn-primary" id="btn-check">Проверить</button>
+  </div>
+
+  <div class="picker hidden" id="picker">
+    <div class="picker-title">Какое правило в слове <span class="picker-word" id="picker-word"></span>?</div>
+    <div class="rule-btns" id="rule-btns"></div>
+  </div>
+</div>
+
+<script src="knowledge.js"></script>
+<script src="pedagogy.js"></script>
+<script src="ayahs.js"></script>
+<script src="ayah-marks.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const RULE_NAMES = {
+    izhar_mim:'Изхар мими', idgham_mim:'Идгам мими', ikhfa_mim:'Ихфа мими',
+    izhar_nun:'Изхар нуна', idgham_nun:'Идгам нуна', iqlab_nun:'Икляб', ikhfa_nun:'Ихфа нуна',
+    shadda_mim:'Мим с шаддой', shadda_nun:'Нун с шаддой'
+  };
+
+  // Демо-аят (насыщенный правилами)
+  const ayahId = 'ay_idm_2';  // فَمَا مِنكُم مِّنۡ أَحَدٍ عَنۡهُ حَٰجِزِينَ
+  const ayah = AYAH_BY_ID[ayahId];
+  const words = ayah.text.split(' ');
+  const marks = AYAH_MARKS[ayahId] || [];
+
+  // выбор ученика: индекс слова → правило
+  const chosen = {};
+  let activeWord = null;
+
+  // 4 варианта правил для выбора (того же раздела — как в обычных вопросах)
+  function optionsForWord() {
+    // для прототипа показываем набор нужных правил + пара отвлекающих
+    const mimRules = ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim'];
+    const nunRules = ['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'];
+    // покажем все 8 в прототипе — в реальном задании сузим до 4 умных
+    return ['izhar_mim','idgham_mim','ikhfa_mim','izhar_nun','idgham_nun','ikhfa_nun','iqlab_nun','shadda_mim'];
+  }
+
+  function renderAyah() {
+    $('ayah').innerHTML = words.map((w, i) => {
+      let cls = 'word';
+      if (chosen[i]) cls += ' marked';
+      if (activeWord === i) cls += ' active';
+      const style = chosen[i] ? ('style="background:' + ruleAccent(chosen[i]) + '"') : '';
+      return '<span class="' + cls + '" data-i="' + i + '" ' + style + '>' + w + '</span>';
+    }).join(' ');
+    $('ayah').querySelectorAll('.word').forEach(el => {
+      el.addEventListener('click', () => selectWord(parseInt(el.getAttribute('data-i'), 10)));
+    });
+    $('count').textContent = 'Отмечено: ' + Object.keys(chosen).length;
+  }
+
+  function selectWord(i) {
+    activeWord = i;
+    renderAyah();
+    // показать панель выбора правила
+    $('picker-word').textContent = words[i];
+    $('rule-btns').innerHTML = optionsForWord().map(r =>
+      '<button class="rule-btn" data-rule="' + r + '">' + RULE_NAMES[r] +
+      '<span class="dot" style="background:' + ruleAccent(r) + '"></span></button>'
+    ).join('') +
+    (chosen[i] ? '<button class="clear-btn" id="clear">Убрать метку</button>' : '');
+    $('picker').classList.remove('hidden');
+    $('rule-btns').querySelectorAll('.rule-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        chosen[i] = b.getAttribute('data-rule');
+        activeWord = null;
+        $('picker').classList.add('hidden');
+        renderAyah();
+      });
+    });
+    const clr = $('clear');
+    if (clr) clr.addEventListener('click', () => {
+      delete chosen[i]; activeWord = null;
+      $('picker').classList.add('hidden'); renderAyah();
+    });
+  }
+
+  $('btn-check').addEventListener('click', () => {
+    // простая проверка для прототипа: сравнить с разметкой
+    const correct = {};
+    marks.forEach(m => { correct[m.w] = m.rule; });
+    let right = 0, wrong = 0, missed = 0;
+    Object.keys(correct).forEach(w => {
+      if (chosen[w] === correct[w]) right++;
+      else missed++;
+    });
+    Object.keys(chosen).forEach(w => {
+      if (correct[w] !== chosen[w]) wrong++;
+    });
+    alert('Верно: ' + right + '\nПропущено/неверно: ' + missed + '\nЛишних/ошибочных: ' + wrong);
+  });
+
+  renderAyah();
+})();
+</script>
+</body>
+</html>
