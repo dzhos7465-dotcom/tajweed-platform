@@ -379,6 +379,7 @@
       return;
     }
     // Сессия открыта — собрать экзамен ПО АКТИВНОСТИ этой сессии.
+    window.SESSION_ID = sessionId;              // ← для связки теста и чтения
     window.SESSION_ACTIVITY_ID = session.activityId || null;
     window.SESSION_GROUP = session.group || '';
 

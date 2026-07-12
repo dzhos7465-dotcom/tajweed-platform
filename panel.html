@@ -176,6 +176,8 @@ body { margin: 0; }
 .detail-num { font-size: var(--text-xs); color: var(--ink-faint); width: 22px; }
 .detail-theme { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink); }
 .detail-status { font-weight: var(--weight-bold); font-size: var(--text-base); }
+
+.detail-score-box { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
 </style>
 </head>
 <body>
@@ -572,13 +574,62 @@ body { margin: 0; }
     return dt ? dt.getTime() : 0;
   }
 
+  // Вес общего балла: тест 70%, чтение 30% (решение преподавателя)
+  const WEIGHT_TEST = 0.7, WEIGHT_READING = 0.3;
+
   function loadResults() {
-    StorageAPI.results.list().then(function (res) {
+    // Грузим и результаты (тест), и записи (чтение) — чтобы свести общий балл
+    Promise.all([
+      StorageAPI.results.list(),
+      StorageAPI.recordings.list().catch(function () { return []; })
+    ]).then(function (both) {
+      const res = both[0] || [];
+      const recs = both[1] || [];
       if (!res.length) { $('results-list').innerHTML = '<div class="status-line">Пока нет результатов.</div>'; return; }
       window._resultsCache = res;   // для детального просмотра
+
+      // Средний балл за чтение по (сессия + ученик): у ученика может быть
+      // несколько записей (несколько аятов) — берём среднее оценённых.
+      function readingScoreFor(r) {
+        var key = (r.sessionId || '') + '|' + (r.fullName || '');
+        var mine = recs.filter(function (rec) {
+          return ((rec.sessionId || '') + '|' + (rec.fullName || '')) === key;
+        });
+        if (!mine.length) return { grade: null, hasRec: false, allGraded: false };
+        var graded = mine.map(function (m) { return m.grade; })
+          .filter(function (g) { return g != null && g !== ''; })
+          .map(Number).filter(function (n) { return !isNaN(n); });
+        var allGraded = graded.length === mine.length;
+        var avg = graded.length ? (graded.reduce(function (a, b) { return a + b; }, 0) / graded.length) : null;
+        return { grade: avg, hasRec: true, allGraded: allGraded };
+      }
+
+      // посчитать общий балл для каждого результата
+      res.forEach(function (x, idx) {
+        x._idx = idx; x._key = whenKey(x);
+        var test = (x.autoScore != null && x.autoScore !== '') ? Number(x.autoScore) : null;
+        var rd = readingScoreFor(x);
+        x._test = test;
+        x._reading = rd.grade;
+        x._hasRec = rd.hasRec;
+        // общий балл: если чтение есть и оценено — считаем; если записи нет —
+        // общий = тест (нечего добавлять); если запись есть, но не оценена — ждёт
+        if (!rd.hasRec) {
+          x._total = test;                 // чтения не было в этой работе
+          x._waiting = false;
+        } else if (rd.grade != null && rd.allGraded) {
+          x._total = (test != null ? test : 0) * WEIGHT_TEST + rd.grade * WEIGHT_READING;
+          x._total = Math.round(x._total);
+          x._waiting = false;
+        } else {
+          x._total = null;                 // чтение ещё не оценено
+          x._waiting = true;
+        }
+      });
+
       // группировка по группе
       const byGroup = {};
-      res.forEach(function (x, idx) { x._idx = idx; x._key = whenKey(x); const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
+      res.forEach(function (x) { const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
 
       // группы по свежести (у которой самая свежая запись — выше)
       const groupsSorted = Object.keys(byGroup).sort(function (a, b) {
@@ -590,17 +641,16 @@ body { margin: 0; }
       $('results-list').innerHTML = groupsSorted.map(function (g) {
         // внутри группы — свежие сверху
         const students = byGroup[g].slice().sort(function (a, b) { return b._key - a._key; });
-        // средний балл по группе (по авто-баллу)
-        const scores = students.map(function (s) { return Number(s.autoScore); }).filter(function (n) { return !isNaN(n); });
+        // средний общий балл по группе (по посчитанным)
+        const scores = students.map(function (s) { return s._total; }).filter(function (n) { return n != null; });
         const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
 
         const rows = students.map(function (x) {
-          const score = (x.autoScore != null && x.autoScore !== '') ? Number(x.autoScore) : null;
+          const score = x._total;
           // цвет балла: зелёный ≥70, янтарный 40-69, красный <40
           let scoreColor = 'var(--ink-faint)';
           if (score != null) scoreColor = score >= 70 ? 'var(--ok)' : (score >= 40 ? 'var(--amber, #b8860b)' : 'var(--err)');
-          const pending = (String(x.pending).toLowerCase() === 'да');
-          const pendingTag = pending
+          const pendingTag = x._waiting
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
             : '<span class="res-tag res-tag-done">проверено</span>';
           return '<div class="res-row" data-idx="' + x._idx + '" style="cursor:pointer">' +
@@ -683,7 +733,21 @@ body { margin: 0; }
     $('detail-title').textContent = r.fullName || 'Работа ученика';
     $('detail-sub').textContent = 'Группа ' + (r.group || '—') + ' · ' + shortWhen(r.date, r.time) +
       (total ? ' · верно ' + correct + ' из ' + (total - pending) : '');
-    $('detail-body').innerHTML = rows;
+
+    // Разбор общего балла: тест 70% + чтение 30%
+    var breakdown = '';
+    if (r._test != null || r._reading != null) {
+      var parts = [];
+      if (r._test != null) parts.push('тест ' + Math.round(r._test) + ' × 70%');
+      if (r._reading != null) parts.push('чтение ' + Math.round(r._reading) + ' × 30%');
+      else if (r._hasRec) parts.push('чтение ждёт оценки');
+      var totalLine = (r._total != null)
+        ? '<b style="color:var(--ink)">Общий балл: ' + r._total + '</b>'
+        : '<b style="color:var(--amber,#b8860b)">Общий балл появится после оценки чтения</b>';
+      breakdown = '<div class="detail-score-box">' + totalLine +
+        '<div style="font-size:var(--text-xs); color:var(--ink-faint); margin-top:4px;">' + parts.join(' · ') + '</div></div>';
+    }
+    $('detail-body').innerHTML = breakdown + rows;
     $('detail-overlay').classList.add('open');
   }
 

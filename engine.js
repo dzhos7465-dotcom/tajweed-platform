@@ -388,6 +388,7 @@ function sendRecording(student, ayahId, ayahText, blob, examMeta) {
       audioBase64: b64,
       exam: examMeta ? examMeta.id : '',
       examTitle: examMeta ? examMeta.title : '',
+      sessionId: (typeof window !== 'undefined' && window.SESSION_ID) ? window.SESSION_ID : '',
     };
     return fetch(endpoint, {
       method: 'POST',
@@ -415,6 +416,7 @@ function buildResultPayload(result) {
     kind: 'result',                // ← скрипт поймёт, что это результат теста
     exam: (session.config || EXAM_CONFIG).id,
     examTitle: (session.config || EXAM_CONFIG).title,
+    sessionId: (typeof window !== 'undefined' && window.SESSION_ID) ? window.SESSION_ID : '',
     fullName: result.student.name,
     group: result.student.group,
     date: dateStr,
