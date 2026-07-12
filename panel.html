@@ -574,8 +574,10 @@ body { margin: 0; }
     return dt ? dt.getTime() : 0;
   }
 
-  // Вес общего балла: тест 70%, чтение 30% (решение преподавателя)
-  const WEIGHT_TEST = 0.7, WEIGHT_READING = 0.3;
+  // Вес общего балла: тест 80%, чтение 20% (решение преподавателя).
+  // Балл за чтение ставится ИЗ 10 (10 = отлично) — приводим к 100 (×10).
+  const WEIGHT_TEST = 0.8, WEIGHT_READING = 0.2;
+  const READING_MAX = 10;   // из скольки преподаватель ставит балл за чтение
 
   function loadResults() {
     // Грузим и результаты (тест), и записи (чтение) — чтобы свести общий балл
@@ -601,6 +603,8 @@ body { margin: 0; }
           .map(Number).filter(function (n) { return !isNaN(n); });
         var allGraded = graded.length === mine.length;
         var avg = graded.length ? (graded.reduce(function (a, b) { return a + b; }, 0) / graded.length) : null;
+        // балл ставится из 10 → приводим к 100 для смешивания
+        if (avg != null) avg = Math.min(100, (avg / READING_MAX) * 100);
         return { grade: avg, hasRec: true, allGraded: allGraded };
       }
 
@@ -734,12 +738,12 @@ body { margin: 0; }
     $('detail-sub').textContent = 'Группа ' + (r.group || '—') + ' · ' + shortWhen(r.date, r.time) +
       (total ? ' · верно ' + correct + ' из ' + (total - pending) : '');
 
-    // Разбор общего балла: тест 70% + чтение 30%
+    // Разбор общего балла: тест 80% + чтение 20%
     var breakdown = '';
     if (r._test != null || r._reading != null) {
       var parts = [];
-      if (r._test != null) parts.push('тест ' + Math.round(r._test) + ' × 70%');
-      if (r._reading != null) parts.push('чтение ' + Math.round(r._reading) + ' × 30%');
+      if (r._test != null) parts.push('тест ' + Math.round(r._test) + ' × 80%');
+      if (r._reading != null) parts.push('чтение ' + Math.round(r._reading / 10) + '/10 × 20%');
       else if (r._hasRec) parts.push('чтение ждёт оценки');
       var totalLine = (r._total != null)
         ? '<b style="color:var(--ink)">Общий балл: ' + r._total + '</b>'
@@ -1121,8 +1125,8 @@ body { margin: 0; }
       (ayahText ? '<div class="rec-card-ayah">' + ayahText + '</div>' : '') +
       '<iframe class="rec-frame" src="' + drivePreviewUrl(r.url) + '" allow="autoplay"></iframe>' +
       '<div class="rec-grade-row">' +
-        '<label>Балл за чтение:</label>' +
-        '<input type="number" class="rec-grade-input" min="0" max="100" value="' + (graded ? r.grade : '') + '" placeholder="—">' +
+        '<label>Балл за чтение <span style="color:var(--ink-faint)">(из 10)</span>:</label>' +
+        '<input type="number" class="rec-grade-input" min="0" max="10" step="0.5" value="' + (graded ? r.grade : '') + '" placeholder="—">' +
         '<button class="btn btn-primary rec-save-btn" style="padding:6px 16px;">Сохранить</button>' +
         '<span class="rec-grade-saved" style="display:none;">Сохранено ✓</span>' +
         '<span style="flex:1"></span>' +
