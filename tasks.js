@@ -61,6 +61,43 @@ const RULE_OPTIONS = [
   { id: 'shadda_nun', label: 'Нун с шаддой' },
 ];
 
+/* Семейства правил — чтобы отвлекающие варианты были ПОХОЖИМИ (того же
+   раздела), а не очевидно чужими. По теме задания определяем семейство,
+   и три неправильных варианта берём в первую очередь из него. */
+const OPTION_FAMILY = {
+  mim: ['izhar', 'idgham', 'ikhfa', 'shadda_mim'],
+  nun: ['izhar', 'idgham', 'ikhfa', 'iqlab', 'shadda_nun'],
+};
+function familyOfTheme(themeId) {
+  return (themeId.indexOf('mim') !== -1) ? 'mim' : 'nun';
+}
+
+/* Построить 4 варианта для вопроса: правильный + 3 похожих отвлекающих.
+   Похожие берём из того же семейства; если не хватает — добираем из общего
+   списка. Порядок вариантов перемешиваем детерминированно (через rng). */
+function buildFourOptions(correctId, themeId, rng) {
+  const byId = {};
+  RULE_OPTIONS.forEach(o => { byId[o.id] = o; });
+
+  const fam = OPTION_FAMILY[familyOfTheme(themeId)] || [];
+  // отвлекающие из того же семейства (кроме правильного), перемешанные
+  let famDistract = shuffleWith(fam.filter(id => id !== correctId), rng);
+
+  let distractors = famDistract.slice(0, 3);
+  // если в семействе меньше 3 — добрать из общего списка (тоже перемешав)
+  if (distractors.length < 3) {
+    const rest = shuffleWith(
+      RULE_OPTIONS.map(o => o.id).filter(id => id !== correctId && distractors.indexOf(id) === -1),
+      rng
+    );
+    distractors = distractors.concat(rest).slice(0, 3);
+  }
+
+  // собрать 4 варианта (верный + 3) и перемешать порядок
+  const four = [correctId].concat(distractors).map(id => byId[id]).filter(Boolean);
+  return shuffleWith(four, rng);
+}
+
 /* ──────────────────────────────────────────────────────────────────────
    ШАБЛОНЫ ЗАДАНИЙ  (templates)
    ──────────────────────────────────────────────────────────────────────
@@ -203,6 +240,11 @@ function pickWith(arr, n, rng) {
   return a.slice(0, Math.min(n, a.length));
 }
 
+// Перемешать весь массив детерминированно (тем же rng)
+function shuffleWith(arr, rng) {
+  return pickWith(arr, arr.length, rng);
+}
+
 function examplesOfTheme(themeId) {
   return EXAMPLES.filter(e => e.themes.indexOf(themeId) !== -1);
 }
@@ -243,7 +285,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
         type: TASK_TYPES.SINGLE,
         exampleRefs: [ex.id],
         prompt: 'Какое правило в этом примере?',
-        options: RULE_OPTIONS,
+        options: buildFourOptions(tpl.answer, tpl.theme, rng),  // 4 варианта: верный + 3 похожих
         answer: tpl.answer,          // правильный ответ принадлежит заданию
         check: CHECK.AUTO,
         weight: 1,
