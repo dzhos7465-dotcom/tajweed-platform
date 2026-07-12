@@ -229,12 +229,25 @@ function computeResult() {
       perTheme[task.theme].max += result.max;
     }
 
+    // Разбор для детального просмотра — «самое необходимое»:
+    // что спрашивали, что ответил ученик, верно ли.
+    var studentAns = '', correctAns = '';
+    if (task.type === 'single') {
+      // подставить читаемые названия правил
+      var opt = (task.options || []).filter(function (o) { return o.id === answer; })[0];
+      studentAns = opt ? opt.label : (answer || '—');
+      var copt = (task.options || []).filter(function (o) { return o.id === task.answer; })[0];
+      correctAns = copt ? copt.label : task.answer;
+    }
     details.push({
-      taskId,
+      taskId: taskId,
       theme: task.theme,
+      type: task.type,
       answered: answer !== undefined,
       correct: result.correct,
       pending: result.pending,
+      studentAnswer: studentAns,   // что выбрал ученик
+      correctAnswer: correctAns,   // правильный ответ
     });
   });
 
@@ -412,6 +425,11 @@ function buildResultPayload(result) {
     answered: result.answeredCount,
     totalQuestions: result.totalCount,
     hasPendingManual: result.hasPendingManual,
+    // Компактный разбор для детального просмотра (самое необходимое):
+    // тема, тип, ответ ученика, правильный ответ, верно ли.
+    review: JSON.stringify((result.details || []).map(function (d) {
+      return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer, ok: d.correct, p: d.pending };
+    })),
   };
 }
 
