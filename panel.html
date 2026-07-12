@@ -140,7 +140,10 @@ body { margin: 0; }
 
 /* Результаты — аккуратные карточки групп */
 .res-group { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); }
-.res-group-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.res-group-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.res-group-stat { margin-left: auto; }
+.res-shot-btn { background: transparent; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); padding: 4px 10px; line-height: 1; }
+.res-shot-btn:hover { background: var(--paper-sunken); }
 .res-group-name { font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); }
 .res-group-stat { font-size: var(--text-xs); color: var(--ink-faint); }
 .res-row { display: grid; grid-template-columns: 1fr auto auto 56px; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
@@ -548,16 +551,45 @@ body { margin: 0; }
     try { document.execCommand('copy'); $('ses-copy').textContent = 'Скопировано'; setTimeout(function(){ $('ses-copy').textContent = 'Копировать'; }, 1500); } catch (e) {}
   });
 
+  // Сортировочный ключ из даты+времени (любой формат Sheets)
+  function whenKey(x) {
+    var d = x.date, t = x.time;
+    // попробуем собрать дату
+    var dt = null;
+    if (d instanceof Date) dt = d;
+    else {
+      var s = String(d || '');
+      var m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+      if (m) {
+        var tm = String(t || '').match(/(\d{1,2}):(\d{2})/);
+        dt = new Date(+m[3] < 100 ? 2000 + +m[3] : +m[3], +m[2] - 1, +m[1],
+                      tm ? +tm[1] : 0, tm ? +tm[2] : 0);
+      } else {
+        var tryd = new Date(s);
+        if (!isNaN(tryd)) dt = tryd;
+      }
+    }
+    return dt ? dt.getTime() : 0;
+  }
+
   function loadResults() {
     StorageAPI.results.list().then(function (res) {
       if (!res.length) { $('results-list').innerHTML = '<div class="status-line">Пока нет результатов.</div>'; return; }
       window._resultsCache = res;   // для детального просмотра
       // группировка по группе
       const byGroup = {};
-      res.forEach(function (x, idx) { x._idx = idx; const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
+      res.forEach(function (x, idx) { x._idx = idx; x._key = whenKey(x); const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
 
-      $('results-list').innerHTML = Object.keys(byGroup).sort().map(function (g) {
-        const students = byGroup[g];
+      // группы по свежести (у которой самая свежая запись — выше)
+      const groupsSorted = Object.keys(byGroup).sort(function (a, b) {
+        var maxA = Math.max.apply(null, byGroup[a].map(function (s) { return s._key; }));
+        var maxB = Math.max.apply(null, byGroup[b].map(function (s) { return s._key; }));
+        return maxB - maxA;
+      });
+
+      $('results-list').innerHTML = groupsSorted.map(function (g) {
+        // внутри группы — свежие сверху
+        const students = byGroup[g].slice().sort(function (a, b) { return b._key - a._key; });
         // средний балл по группе (по авто-баллу)
         const scores = students.map(function (s) { return Number(s.autoScore); }).filter(function (n) { return !isNaN(n); });
         const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
@@ -579,11 +611,12 @@ body { margin: 0; }
             '</div>';
         }).join('');
 
-        return '<div class="res-group">' +
+        return '<div class="res-group" data-group="' + g + '">' +
             '<div class="res-group-head">' +
               '<span class="res-group-name">Группа ' + g + '</span>' +
               '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
                 (avg != null ? ' · средний ' + avg : '') + '</span>' +
+              '<button class="res-shot-btn" data-group="' + g + '" title="Сохранить картинкой">📷</button>' +
             '</div>' +
             rows +
           '</div>';
@@ -592,6 +625,13 @@ body { margin: 0; }
       $('results-list').querySelectorAll('.res-row').forEach(function (row) {
         row.addEventListener('click', function () {
           openResultDetail(parseInt(row.getAttribute('data-idx'), 10));
+        });
+      });
+      // кнопки «сохранить картинкой» для группы
+      $('results-list').querySelectorAll('.res-shot-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          screenshotGroup(btn.getAttribute('data-group'), btn);
         });
       });
     }).catch(function () { $('results-list').innerHTML = '<div class="status-line">Ошибка загрузки.</div>'; });
@@ -653,6 +693,34 @@ body { margin: 0; }
     if (e.target === $('detail-overlay')) closeResultDetail();
   });
 
+  // Сохранить карточку группы картинкой
+  function screenshotGroup(group, btn) {
+    var card = $('results-list').querySelector('.res-group[data-group="' + group + '"]');
+    if (!card) return;
+    var shotBtn = card.querySelector('.res-shot-btn');
+    if (shotBtn) shotBtn.style.visibility = 'hidden';  // не снимать саму кнопку
+    var done = function () { if (shotBtn) shotBtn.style.visibility = ''; };
+
+    function run() {
+      html2canvas(card, { backgroundColor: getComputedStyle(document.body).backgroundColor, scale: 2 })
+        .then(function (canvas) {
+          done();
+          var a = document.createElement('a');
+          a.download = 'группа-' + group + '.png';
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+        }).catch(function () { done(); alert('Не удалось сохранить картинку.'); });
+    }
+
+    if (typeof html2canvas === 'undefined') {
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = run;
+      s.onerror = function () { done(); alert('Не удалось загрузить инструмент скриншота.'); };
+      document.head.appendChild(s);
+    } else run();
+  }
+
   // склонение существительного после числа
   function plural(n, one, few, many) {
     var n10 = n % 10, n100 = n % 100;
@@ -662,22 +730,45 @@ body { margin: 0; }
   }
 
   // короткая дата: «10.07.2026» → «10.07»
-  function shortDate(d) {
-    if (!d) return '';
-    var s = String(d);
+  // Google Sheets часто возвращает дату/время как ISO-строку или объект Date
+  // (напр. «2026-07-10T12:34:56.000Z» или «Sat Jul 10 2026 …»). Приводим к
+  // короткому виду независимо от формата.
+  function toDateObj(v) {
+    if (v == null || v === '') return null;
+    if (v instanceof Date) return isNaN(v) ? null : v;
+    var s = String(v);
+    // уже короткий «10.07» или «10.07.2026»
     var m = s.match(/^(\d{1,2})[.\/](\d{1,2})/);
-    return m ? (m[1] + '.' + m[2]) : s;
+    if (m) return { d: +m[1], mo: +m[2] };
+    // ISO или разбираемая Date
+    var dt = new Date(s);
+    return isNaN(dt) ? null : dt;
   }
 
-  // короткое время: «12:34:56.789» → «12:34» (убираем секунды и миллисекунды)
-  function shortTime(t) {
-    if (!t) return '';
-    var s = String(t);
-    var m = s.match(/(\d{1,2}):(\d{2})/);
-    return m ? (m[1] + ':' + m[2]) : s;
+  function shortDate(v) {
+    var o = toDateObj(v);
+    if (!o) return '';
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    if (o instanceof Date) return pad(o.getDate()) + '.' + pad(o.getMonth() + 1);
+    return pad(o.d) + '.' + pad(o.mo);
   }
 
-  // дата и время вместе, аккуратно: «10.07 · 12:34»
+  // короткое время «HH:MM» из строки/ISO/Date
+  function shortTime(v) {
+    if (v == null || v === '') return '';
+    if (v instanceof Date && !isNaN(v)) {
+      var p = function (n) { return n < 10 ? '0' + n : '' + n; };
+      return p(v.getHours()) + ':' + p(v.getMinutes());
+    }
+    var s = String(v);
+    var m = s.match(/(\d{1,2}):(\d{2})/);   // берём первые ЧЧ:ММ, отбрасываем секунды/мс
+    if (m) return m[1].padStart(2, '0') + ':' + m[2];
+    var dt = new Date(s);
+    if (!isNaN(dt)) { var q = function (n) { return n < 10 ? '0' + n : '' + n; }; return q(dt.getHours()) + ':' + q(dt.getMinutes()); }
+    return '';
+  }
+
+  // дата и время вместе: «10.07 · 12:34»
   function shortWhen(d, t) {
     var dd = shortDate(d), tt = shortTime(t);
     if (dd && tt) return dd + ' · ' + tt;
@@ -933,15 +1024,23 @@ body { margin: 0; }
 
     // группировка по группе
     var byGroup = {};
-    items.forEach(function (r) { var g = r.group || 'без группы'; (byGroup[g] = byGroup[g] || []).push(r); });
+    items.forEach(function (r) { r._key = whenKey(r); var g = r.group || 'без группы'; (byGroup[g] = byGroup[g] || []).push(r); });
+
+    // группы по свежести, внутри — свежие сверху
+    var recGroups = Object.keys(byGroup).sort(function (a, b) {
+      var maxA = Math.max.apply(null, byGroup[a].map(function (r) { return r._key; }));
+      var maxB = Math.max.apply(null, byGroup[b].map(function (r) { return r._key; }));
+      return maxB - maxA;
+    });
 
     $('rec-list').innerHTML = '';
-    Object.keys(byGroup).sort().forEach(function (g) {
+    recGroups.forEach(function (g) {
       var title = document.createElement('div');
       title.className = 'rec-group-title';
       title.textContent = 'Группа ' + g + ' · ' + byGroup[g].length;
       $('rec-list').appendChild(title);
-      byGroup[g].forEach(function (r) { $('rec-list').appendChild(recCard(r)); });
+      byGroup[g].slice().sort(function (a, b) { return b._key - a._key; })
+        .forEach(function (r) { $('rec-list').appendChild(recCard(r)); });
     });
   }
 
