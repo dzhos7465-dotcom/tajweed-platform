@@ -55,37 +55,39 @@
   }
 
   // ── Отрисовка задания ──
+  // Выделить цветом раздел («нуна»/«мима») в тексте задания
+  function highlightGroupWord(prompt) {
+    var text = String(prompt || '');
+    var map = { 'нуна': '#009c8e', 'мима': '#2563eb' };
+    Object.keys(map).forEach(function (w) {
+      text = text.replace(new RegExp('(' + w + ')', 'g'),
+        '<span style="color:' + map[w] + '; font-weight:var(--weight-bold);">$1</span>');
+    });
+    return text;
+  }
+
   function renderTask() {
     const task = currentTask();
     const total = session.taskOrder.length;
     const idx = session.currentIndex;
 
-    // ВАЖНО: для вопросов «какое правило?» (SINGLE) нельзя показывать само
-    // правило — это выдало бы ответ. Поэтому у таких заданий НЕТ ни названия
-    // темы в шапке, ни цветовой подсветки, ни метки правила на карточке.
-    // Для sort/recite показывать тему можно — они не спрашивают «какое правило».
-    // Скрываем правило и для вопросов «какое правило», и для «найди в аяте» —
-    // в обоих ученик должен сам определить правило, подсказка выдала бы ответ.
-    const revealsRule = (task.type === TASK_TYPES.SINGLE || task.type === TASK_TYPES.FIND);
-
-    if (revealsRule) {
-      $('screen-exam').style.setProperty('--theme-accent', 'var(--seal)');  // нейтральный цвет
-      $('q-theme').textContent = '';                                        // без названия правила
-    } else {
-      applyThemeAccent(task.theme);
-      $('q-theme').textContent = THEMES[task.theme] ? THEMES[task.theme].name : '';
-    }
+    // Название темы в шапке НЕ показываем НИКОГДА — ни на вопросах «какое
+    // правило», ни на «найди в аяте», ни на распределении: везде это подсказка.
+    $('screen-exam').style.setProperty('--theme-accent', 'var(--seal)');
+    $('q-theme').textContent = '';
 
     $('q-cur').textContent = idx + 1;
     $('q-total').textContent = total;
     $('track-fill').parentElement.style.setProperty('--pct', ((idx + 1) / total * 100) + '%');
 
     $('q-no').textContent = 'Задание ' + (idx + 1);
-    $('q-prompt').textContent = task.prompt;
+    // В тексте задания выделяем цветом раздел («нуна»/«мима»), чтобы дети
+    // сразу видели, что искать. Это не подсказка: раздел назван в самом вопросе.
+    $('q-prompt').innerHTML = highlightGroupWord(task.prompt);
 
-    // Метка правила на карточке — только для НЕ-вопросов о правиле
+    // Метка правила на карточке примера — не показываем (это был бы ответ)
     const tag = document.getElementById('q-rule-tag');
-    if (tag) tag.textContent = revealsRule ? '' : (THEMES[task.theme] ? THEMES[task.theme].name : '');
+    if (tag) tag.textContent = '';
 
     const wrap = $('q-options');
     wrap.innerHTML = '';
