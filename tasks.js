@@ -252,7 +252,51 @@ function examplesOfTheme(themeId) {
 /* Построить задания из шаблонов.
    randomize=false (контрольная): фиксированный seed → у всех одинаковый набор.
    randomize=true (тренировка): настоящая случайность → каждый раз разное. */
-function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort) {
+/* ──────────────────────────────────────────────────────────────────────
+   ВЕСА ЗАДАНИЙ (решение преподавателя)
+   ──────────────────────────────────────────────────────────────────────
+   Это ОТНОСИТЕЛЬНЫЕ числа, а не «баллы из 100». Они говорят, во сколько
+   раз одно задание весомее другого: «найди в аяте» весит как 3 вопроса.
+   Итоговый процент считается как (заработано / максимум) — поэтому работы
+   РАЗНОГО размера сравнимы: и на 15 вопросов, и на 35 итог приводится к 100.
+   Поменять баланс — поменять числа здесь, в одном месте.
+────────────────────────────────────────────────────────────────────── */
+const TASK_WEIGHTS = {
+  single: 3,    // вопрос «какое правило»
+  sort:   5,    // распределение по правилам
+  find:  10,    // найди в аяте (сложнее: место + правило + без лишних)
+  recite: 5,    // чтение вслух (ручная часть, в общий балл входит отдельно — 20%)
+};
+
+/* Группы правил для задания «Найди в аяте» (без шадды — решение
+   преподавателя): нун = 4 правила, мим = 3. */
+const FIND_GROUPS = {
+  nun: { id:'nun', name:'нуна', rules:['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'] },
+  mim: { id:'mim', name:'мима', rules:['izhar_mim','idgham_mim','ikhfa_mim'] },
+};
+
+/* Цели задания: из разметки аята берём только правила нужной группы.
+   Возвращает {индекс слова: правило} или null, если в аяте таких правил нет. */
+function findTargetsFor(ayahId, groupId) {
+  if (typeof AYAH_MARKS === 'undefined') return null;
+  const marks = AYAH_MARKS[ayahId] || [];
+  const grp = FIND_GROUPS[groupId];
+  if (!grp) return null;
+  const targets = {};
+  let any = false;
+  marks.forEach(m => {
+    if (grp.rules.indexOf(m.rule) !== -1) { targets[m.w] = m.rule; any = true; }
+  });
+  return any ? targets : null;
+}
+
+/* Аяты, где есть правила данной группы — чтобы задание было осмысленным. */
+function ayahsWithGroup(groupId) {
+  if (typeof AYAHS === 'undefined') return [];
+  return AYAHS.filter(a => findTargetsFor(a.id, groupId) !== null);
+}
+
+function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort, activityFind) {
   // Для контрольной seed постоянный — «билет» стабилен для всей группы.
   // Для тренировки seed из времени — каждый запуск свежий.
   const rng = randomize ? makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0)
@@ -288,7 +332,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
         options: buildFourOptions(tpl.answer, tpl.theme, rng),  // 4 варианта: верный + 3 похожих
         answer: tpl.answer,          // правильный ответ принадлежит заданию
         check: CHECK.AUTO,
-        weight: 1,
+        weight: TASK_WEIGHTS.single,
       });
     });
   });
@@ -324,9 +368,37 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
       items,
       answer,
       check: CHECK.AUTO,
-      weight: tpl.weight,
+      weight: TASK_WEIGHTS.sort,     // общий вес распределения (см. TASK_WEIGHTS)
     });
   });
+
+  // 2.5 Задания «Найди в аяте» — по галочкам активности (найди правила нуна/мима)
+  if (activityFind && (activityFind.nun || activityFind.mim)) {
+    ['nun', 'mim'].forEach(function (gid) {
+      if (!activityFind[gid]) return;
+      var grp = FIND_GROUPS[gid];
+      // аяты, где эти правила есть; выбор — тем же seeded rng
+      var pool = ayahsWithGroup(gid);
+      if (!pool.length) return;
+      var count = activityFind[gid + 'Count'] || 1;
+      var chosen = pick(pool, count);
+      chosen.forEach(function (ayah) {
+        var targets = findTargetsFor(ayah.id, gid);
+        built.push({
+          id: nextId('t_find_' + gid),
+          theme: grp.rules[0],              // для окраски/группировки
+          type: TASK_TYPES.FIND,
+          prompt: 'Подчеркни места правил ' + grp.name,
+          ayahRef: ayah.id,
+          findGroup: gid,                   // какая группа правил
+          options: grp.rules,               // варианты при выборе правила
+          answer: targets,                  // {индекс слова: правило}
+          check: CHECK.AUTO,
+          weight: TASK_WEIGHTS.find,
+        });
+      });
+    });
+  }
 
   // 3. Задания чтения вслух (recite, ручная проверка)
   //    Если преподаватель выбрал аяты в конструкторе (?ayahs=…) — читаем их.
@@ -351,7 +423,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
           prompt: 'Прочитайте аят вслух с соблюдением правил',
           ayahRef: ayah.id,          // ссылка в библиотеку аятов
           check: CHECK.MANUAL,       // оценивает преподаватель
-          weight: 5,
+          weight: TASK_WEIGHTS.recite,
         });
       });
     } else {
@@ -367,7 +439,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
             prompt: 'Прочитайте аят вслух с соблюдением правил',
             ayahRef: chosen[0].id,
             check: CHECK.MANUAL,
-            weight: tpl.weight,
+            weight: TASK_WEIGHTS.recite,
           });
         }
       });
@@ -382,8 +454,8 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize, activityThemes, activityRecite, activitySort) {
-  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null, activitySort || null);
+function rebuildTasks(randomize, activityThemes, activityRecite, activitySort, activityFind) {
+  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null, activitySort || null, activityFind || null);
   return TASKS;
 }
 

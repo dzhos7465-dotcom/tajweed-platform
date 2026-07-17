@@ -95,7 +95,7 @@ function startExam(student, config) {
   // Если конфиг несёт темы из активности (activityThemes) — собираем по ним,
   // иначе по встроенным шаблонам. Движок не знает, откуда темы.
   if (typeof rebuildTasks === 'function') {
-    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null, activeConfig.activityRecite || null, activeConfig.activitySort || null);
+    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null, activeConfig.activityRecite || null, activeConfig.activitySort || null, activeConfig.activityFind || null);
   }
   session.student = student;
   session.startTime = Date.now();
@@ -183,6 +183,39 @@ function checkTask(task, answer) {
         max: task.weight,
         pending: false,
         partial: { right, total },         // для возможного показа «5 из 6»
+      };
+    }
+
+    case TASK_TYPES.FIND: {
+      // Найди в аяте: ученик подчёркивает места и называет правило.
+      // task.answer — карта {индекс слова: правило} (только правила группы задания).
+      // answer ученика — массив черт [{words:[индексы], rule}].
+      const targets = task.answer || {};
+      const strokes = Array.isArray(answer) ? answer : [];
+      const targetIds = Object.keys(targets);
+      const total = targetIds.length || 1;
+
+      const found = {};      // какие цели найдены верно
+      let wrongStrokes = 0;  // черты, не попавшие ни в одну цель с верным правилом
+      strokes.forEach(s => {
+        if (!s || !s.rule || !Array.isArray(s.words)) return;
+        // черта верна, если накрыла слово-цель И правило совпало
+        const hits = s.words.filter(w => targets[w] === s.rule);
+        if (hits.length) hits.forEach(w => { found[w] = true; });
+        else wrongStrokes++;
+      });
+
+      const right = Object.keys(found).length;
+      // балл: доля найденных минус штраф за лишние черты (не ниже нуля)
+      const ratio = Math.max(0, (right - wrongStrokes) / total);
+      const earned = task.weight * ratio;
+      return {
+        auto: true,
+        correct: right === total && wrongStrokes === 0,
+        earned,
+        max: task.weight,
+        pending: false,
+        partial: { right, total, wrong: wrongStrokes },
       };
     }
 

@@ -228,6 +228,36 @@
 .playback-actions { display: flex; gap: var(--space-3); }
 .playback-actions .btn { flex: 1; }
 
+
+/* ── Найди в аяте ── */
+.find-hint { font-size: var(--text-sm); color: var(--ink-soft); margin-bottom: var(--space-3); text-align: center; }
+.mushaf { position: relative; background: #fdfbf4; border: 1px solid #e0d6bf; border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(80,60,20,0.06), inset 0 0 0 6px #fdfbf4, inset 0 0 0 7px #ece0c6;
+  padding: var(--space-6) var(--space-4); margin-bottom: var(--space-4); overflow: hidden; touch-action: none;
+  -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+.mushaf::before, .mushaf::after { content: ''; position: absolute; width: 16px; height: 16px; border: 2px solid #d9c9a3; opacity: 0.8; }
+.mushaf::before { top: 8px; right: 8px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+.mushaf::after { bottom: 8px; left: 8px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+.ayah-find { direction: rtl; text-align: center; font-family: var(--font-arabic); font-size: 2.2rem;
+  line-height: 2.5; color: #1e1b16; position: relative; z-index: 2; pointer-events: none; }
+.ayah-find .fw { padding: 0 2px; }
+#find-strokes { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 3; pointer-events: none; }
+.find-count { font-size: var(--text-sm); color: var(--ink-soft); text-align: center; margin-bottom: var(--space-3); }
+.find-picker { position: fixed; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto;
+  background: var(--paper-raised); border-top: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: var(--space-5) var(--space-4) var(--space-6);
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.12); transform: translateY(110%);
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 50; }
+.find-picker.up { transform: translateY(0); }
+.find-picker-title { font-size: var(--text-sm); color: var(--ink-soft); text-align: center; margin-bottom: var(--space-4); }
+.find-btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.find-btn { display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  font-family: var(--font-ui); font-size: var(--text-base); font-weight: var(--weight-semi);
+  border: 2px solid var(--bc); background: var(--paper); color: var(--ink);
+  border-radius: var(--radius); padding: var(--space-4); cursor: pointer; }
+.find-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bc); }
+.find-cancel { width: 100%; margin-top: var(--space-3); background: transparent; border: none;
+  color: var(--ink-faint); font-size: var(--text-sm); padding: var(--space-2); cursor: pointer; }
 </style>
 </head>
 <body>
@@ -330,6 +360,7 @@
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
+<script src="ayah-marks.js"></script>
 <script src="storage.js"></script>
 <script src="tasks.js"></script>
 <script src="engine.js"></script>
@@ -400,6 +431,10 @@
           cfg.activityThemes = activity.themes;      // ← рецепт преподавателя
           cfg.activityRecite = (activity.recite && activity.recite.length) ? activity.recite : null;
           cfg.activitySort = { mim: !!activity.sortMim, nun: !!activity.sortNun };
+          cfg.activityFind = {
+            mim: !!activity.findMim, nun: !!activity.findNun,
+            mimCount: activity.findMimCount || 1, nunCount: activity.findNunCount || 1
+          };
           cfg.mode = (activity.type === 'training') ? 'training' : 'exam';
           if (activity.timeLimit != null) {
             cfg.settings = cfg.settings || {};

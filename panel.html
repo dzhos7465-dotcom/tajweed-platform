@@ -263,6 +263,18 @@ body { margin: 0; }
           </div>
         </div>
 
+        <div class="collapse" data-collapse>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Найди правила в аяте <span class="collapse-hint" id="cnt-find"></span></div>
+          <div class="collapse-body">
+            <div class="sort-picker">
+              <label class="sort-opt"><input type="checkbox" id="af-find-mim"> Найди правила <b>мима</b> в аяте
+                <input type="number" id="af-find-mim-count" class="tp-count" min="1" max="3" value="1" style="margin-left:auto;" disabled></label>
+              <label class="sort-opt"><input type="checkbox" id="af-find-nun"> Найди правила <b>нуна</b> в аяте
+                <input type="number" id="af-find-nun-count" class="tp-count" min="1" max="3" value="1" style="margin-left:auto;" disabled></label>
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button class="btn btn-quiet" id="af-cancel">Отмена</button>
           <button class="btn btn-primary" id="af-save">Сохранить</button>
@@ -919,6 +931,8 @@ body { margin: 0; }
     var nThemes = $('af-themes') ? $('af-themes').querySelectorAll('.tp-check:checked').length : 0;
     var nAyahs = $('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0;
     var nSort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) + (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0);
+    var nFind = (($('af-find-mim') && $('af-find-mim').checked) ? 1 : 0) + (($('af-find-nun') && $('af-find-nun').checked) ? 1 : 0);
+    if ($('cnt-find')) $('cnt-find').textContent = nFind ? 'включено: ' + nFind : '';
     if ($('cnt-themes')) $('cnt-themes').textContent = nThemes ? 'выбрано: ' + nThemes : '';
     if ($('cnt-ayahs')) $('cnt-ayahs').textContent = nAyahs ? 'выбрано: ' + nAyahs : '';
     if ($('cnt-sort')) $('cnt-sort').textContent = nSort ? 'включено: ' + nSort : '';
@@ -932,6 +946,14 @@ body { margin: 0; }
     var el = $(id);
     if (el) el.addEventListener('change', updateCollapseHints);
   });
+  // «Найди в аяте»: галочка включает поле количества
+  [['af-find-mim','af-find-mim-count'], ['af-find-nun','af-find-nun-count']].forEach(function (pair) {
+    var chk = $(pair[0]), cnt = $(pair[1]);
+    if (chk && cnt) chk.addEventListener('change', function () {
+      cnt.disabled = !chk.checked;
+      updateCollapseHints();
+    });
+  });
 
   function showForm() {
     editingActivity = null;
@@ -943,6 +965,10 @@ body { margin: 0; }
     $('af-time').value = '20';
     $('af-sort-mim').checked = false;
     $('af-sort-nun').checked = false;
+    $('af-find-mim').checked = false;
+    $('af-find-nun').checked = false;
+    $('af-find-mim-count').value = 1; $('af-find-mim-count').disabled = true;
+    $('af-find-nun-count').value = 1; $('af-find-nun-count').disabled = true;
     buildThemePicker();
     buildAyahPicker();
     // Свернуть все блоки, кроме первого (Вопросы) — он основной
@@ -985,6 +1011,13 @@ body { margin: 0; }
     // Галочки распределения
     $('af-sort-mim').checked = !!act.sortMim;
     $('af-sort-nun').checked = !!act.sortNun;
+    // Галочки «найди в аяте»
+    $('af-find-mim').checked = !!act.findMim;
+    $('af-find-nun').checked = !!act.findNun;
+    $('af-find-mim-count').value = act.findMimCount || 1;
+    $('af-find-mim-count').disabled = !act.findMim;
+    $('af-find-nun-count').value = act.findNunCount || 1;
+    $('af-find-nun-count').disabled = !act.findNun;
     // Открыть блоки, где что-то выбрано (чтобы сразу видеть настройки)
     var blocks = document.querySelectorAll('.collapse[data-collapse]');
     if (blocks[0]) blocks[0].classList.add('open');  // вопросы всегда
@@ -1036,6 +1069,10 @@ body { margin: 0; }
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
       sortMim: $('af-sort-mim').checked,   // распределение по миму
       sortNun: $('af-sort-nun').checked,   // распределение по нуну
+      findMim: $('af-find-mim').checked,   // найди правила мима в аяте
+      findNun: $('af-find-nun').checked,
+      findMimCount: parseInt($('af-find-mim-count').value, 10) || 1,
+      findNunCount: parseInt($('af-find-nun-count').value, 10) || 1,
     };
     // Если редактируем — сохранить тот же id и дату создания (backend обновит строку)
     if (editingActivity) {

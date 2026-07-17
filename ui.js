@@ -64,7 +64,9 @@
     // правило — это выдало бы ответ. Поэтому у таких заданий НЕТ ни названия
     // темы в шапке, ни цветовой подсветки, ни метки правила на карточке.
     // Для sort/recite показывать тему можно — они не спрашивают «какое правило».
-    const revealsRule = (task.type === TASK_TYPES.SINGLE);
+    // Скрываем правило и для вопросов «какое правило», и для «найди в аяте» —
+    // в обоих ученик должен сам определить правило, подсказка выдала бы ответ.
+    const revealsRule = (task.type === TASK_TYPES.SINGLE || task.type === TASK_TYPES.FIND);
 
     if (revealsRule) {
       $('screen-exam').style.setProperty('--theme-accent', 'var(--seal)');  // нейтральный цвет
@@ -103,6 +105,10 @@
       // Чтение вслух: аят — герой, ниже запись голоса
       exampleCard.style.display = 'none';
       renderRecite(task, wrap);
+    } else if (task.type === TASK_TYPES.FIND) {
+      // Найди в аяте: аят в обрамлении, ученик подчёркивает места
+      exampleCard.style.display = 'none';
+      renderFind(task, wrap);
     } else {
       exampleCard.style.display = 'none';
       const note = document.createElement('div');
@@ -258,6 +264,151 @@
      Аят — герой. Ниже: надпись-предупреждение, кнопка записи, прослушивание,
      удалить-перезаписать. Запись хранится в ответе (пока локально; отправка
      на Google Drive — следующий шаг). Оценивает преподаватель (manual). */
+  /* ── Найди в аяте: ученик подчёркивает места правил ── */
+  var FIND_GROUP_NAMES = { nun: 'нуна', mim: 'мима' };
+  var FIND_RULE_LABELS = {
+    izhar_nun:'Изхар', idgham_nun:'Идгам', iqlab_nun:'Икляб', ikhfa_nun:'Ихфа',
+    izhar_mim:'Изхар', idgham_mim:'Идгам', ikhfa_mim:'Ихфа'
+  };
+
+  function renderFind(task, wrap) {
+    var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[task.ayahRef] : null;
+    var words = ayah ? ayah.text.split(' ') : [];
+    var groupColor = (typeof ruleAccent === 'function') ? ruleAccent(task.options[0]) : 'var(--seal)';
+
+    wrap.innerHTML =
+      '<div class="find-hint">Проведи пальцем черту под местом правила. Нажми на черту, чтобы убрать.</div>' +
+      '<div class="mushaf" id="find-box">' +
+        '<div class="ayah-find" id="find-ayah">' +
+          words.map(function (w, i) { return '<span class="fw" data-i="' + i + '">' + w + '</span>'; }).join(' ') +
+        '</div>' +
+        '<svg id="find-strokes"></svg>' +
+      '</div>' +
+      '<div class="find-count">Подчёркнуто: <b id="find-cnt" style="color:' + groupColor + '">0</b></div>' +
+      '<div class="find-picker" id="find-picker">' +
+        '<div class="find-picker-title">Какое это правило?</div>' +
+        '<div class="find-btns" id="find-btns"></div>' +
+        '<button class="find-cancel" id="find-cancel" type="button">Отмена</button>' +
+      '</div>';
+
+    setupFind(task, words, groupColor);
+  }
+
+  function setupFind(task, words, groupColor) {
+    var box = document.getElementById('find-box');
+    var svg = document.getElementById('find-strokes');
+    var picker = document.getElementById('find-picker');
+    // ответ ученика восстанавливаем, если возвращается к заданию
+    var strokes = Array.isArray(session.answers[task.id]) ? session.answers[task.id].slice() : [];
+    var drawing = null, pendingRemove = null;
+
+    function syncSvg() {
+      var r = box.getBoundingClientRect();
+      svg.setAttribute('viewBox', '0 0 ' + r.width + ' ' + r.height);
+      svg.setAttribute('width', r.width);
+      svg.setAttribute('height', r.height);
+    }
+
+    function save() { recordAnswer(task.id, strokes.filter(function (s) { return s.rule; })); }
+
+    function render() {
+      svg.innerHTML = strokes.map(function (s) {
+        var col = s.rule ? ruleAccent(s.rule) : groupColor;
+        return '<line x1="' + s.x1 + '" y1="' + s.y + '" x2="' + s.x2 + '" y2="' + s.y +
+               '" stroke="transparent" stroke-width="26" stroke-linecap="round"/>' +
+               '<line x1="' + s.x1 + '" y1="' + s.y + '" x2="' + s.x2 + '" y2="' + s.y +
+               '" stroke="' + col + '" stroke-width="4" stroke-linecap="round" opacity="' + (s.rule ? 1 : 0.5) + '"/>';
+      }).join('') + (drawing ? '<line x1="' + drawing.x1 + '" y1="' + drawing.y + '" x2="' + drawing.x2 +
+               '" y2="' + drawing.y + '" stroke="' + groupColor + '" stroke-width="4" stroke-linecap="round" opacity="0.4"/>' : '');
+      var c = document.getElementById('find-cnt');
+      if (c) c.textContent = strokes.filter(function (s) { return s.rule; }).length;
+    }
+
+    function pt(e) {
+      var r = box.getBoundingClientRect();
+      var t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+
+    function strokeAt(p) {
+      for (var i = strokes.length - 1; i >= 0; i--) {
+        var s = strokes[i];
+        var lo = Math.min(s.x1, s.x2) - 8, hi = Math.max(s.x1, s.x2) + 8;
+        if (p.x >= lo && p.x <= hi && Math.abs(p.y - s.y) < 14) return i;
+      }
+      return -1;
+    }
+
+    function wordsUnder(x1, x2, y) {
+      var r = box.getBoundingClientRect();
+      var lo = Math.min(x1, x2), hi = Math.max(x1, x2), hits = [];
+      box.querySelectorAll('.fw').forEach(function (el) {
+        var b = el.getBoundingClientRect();
+        var ex1 = b.left - r.left, ex2 = b.right - r.left, ey = b.bottom - r.top;
+        if (Math.abs(ey - y) < 46 && ex2 > lo && ex1 < hi) hits.push(parseInt(el.getAttribute('data-i'), 10));
+      });
+      return hits.sort(function (a, b) { return a - b; });
+    }
+
+    function openPicker(idx) {
+      var btns = document.getElementById('find-btns');
+      btns.innerHTML = task.options.map(function (r) {
+        return '<button type="button" class="find-btn" data-r="' + r + '" style="--bc:' + ruleAccent(r) + '">' +
+               '<span class="find-dot"></span>' + (FIND_RULE_LABELS[r] || r) + '</button>';
+      }).join('');
+      btns.querySelectorAll('.find-btn').forEach(function (b) {
+        b.addEventListener('click', function () {
+          strokes[idx].rule = b.getAttribute('data-r');
+          picker.classList.remove('up'); render(); save(); updateNav();
+        });
+      });
+      picker.classList.add('up');
+    }
+
+    document.getElementById('find-cancel').addEventListener('click', function () {
+      strokes.pop(); picker.classList.remove('up'); render();
+    });
+
+    function start(e) {
+      var p = pt(e);
+      var hit = strokeAt(p);
+      if (hit !== -1) { drawing = null; pendingRemove = { i: hit, p: p }; return; }
+      pendingRemove = null;
+      drawing = { x1: p.x, x2: p.x, y: p.y };
+    }
+    function move(e) {
+      if (pendingRemove) {
+        var q = pt(e);
+        if (Math.abs(q.x - pendingRemove.p.x) > 10 || Math.abs(q.y - pendingRemove.p.y) > 10) {
+          drawing = { x1: pendingRemove.p.x, x2: q.x, y: pendingRemove.p.y }; pendingRemove = null;
+        } else return;
+      }
+      if (!drawing) return;
+      e.preventDefault();
+      var p = pt(e); drawing.x2 = p.x; drawing.y = p.y; render();
+    }
+    function end() {
+      if (pendingRemove) { strokes.splice(pendingRemove.i, 1); pendingRemove = null; render(); save(); updateNav(); return; }
+      if (!drawing) return;
+      var d = drawing; drawing = null;
+      if (Math.abs(d.x2 - d.x1) < 12) { render(); return; }
+      var hit = wordsUnder(d.x1, d.x2, d.y);
+      if (!hit.length) { render(); return; }
+      strokes.push({ x1: d.x1, x2: d.x2, y: d.y, words: hit, rule: null });
+      render(); openPicker(strokes.length - 1);
+    }
+
+    box.addEventListener('mousedown', start);
+    box.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    box.addEventListener('touchstart', start, { passive: false });
+    box.addEventListener('touchmove', move, { passive: false });
+    box.addEventListener('touchend', end);
+
+    syncSvg(); render();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { syncSvg(); render(); });
+  }
+
   function renderRecite(task, wrap) {
     var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[task.ayahRef] : null;
     var ayahText = ayah ? ayah.text : '—';
