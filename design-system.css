@@ -30,15 +30,19 @@
   --ink-soft:     #55586a;   /* вторичный текст */
   --ink-faint:    #8f8f9c;   /* подписи, служебное */
 
-  /* Акцент — глубокий индиго / чернила */
-  --seal:         #2b3161;   /* основной акцент: кнопки, выделения */
-  --seal-hover:   #363d78;   /* наведение */
-  --seal-press:   #232850;   /* нажатие */
-  --seal-tint:    #ecedf4;   /* очень светлый фон акцента (выбранное) */
+  /* Акцент — тиловая бирюза (главный цвет платформы) */
+  --seal:         #0f7d74;   /* основной акцент: кнопки, выделения */
+  --seal-hover:   #0c6a62;   /* наведение */
+  --seal-press:   #0a5c56;   /* нажатие */
+  --seal-tint:    #e3efed;   /* очень светлый фон акцента (выбранное) */
+  --seal-deep:    #0a5c56;   /* глубокий тиловый для заголовков */
 
-  /* Тёплый вторичный акцент (20% тепла) — используется точечно */
-  --amber:        #b0842a;
-  --amber-tint:   #f7efdd;
+  /* Золото — благородный тонкий акцент (детали, орнамент, линии) */
+  --amber:        #b8912f;
+  --amber-tint:   #f5eeda;
+  --gold:         #b8912f;
+  --gold-soft:    #d4b978;
+  --gold-tint:    #f5eeda;
 
   /* Семантика состояний */
   --ok:           #2f6b46;
@@ -132,7 +136,13 @@ html { color-scheme: light; }
 
 body {
   font-family: var(--font-ui);
-  background: var(--paper);
+  background-color: var(--paper);
+  /* Едва заметный геометрический узор — благородная текстура (из референсов) */
+  background-image:
+    radial-gradient(circle at 20% 12%, rgba(15,125,116,0.07) 0, transparent 42%),
+    radial-gradient(circle at 85% 88%, rgba(184,145,47,0.07) 0, transparent 42%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%230f7d74' stroke-opacity='0.11' stroke-width='1'%3E%3Cpath d='M30 0l8 8-8 8-8-8zM30 44l8 8-8 8-8-8zM0 30l8 8-8 8-8-8zM60 30l8 8-8 8-8-8z'/%3E%3Cpath d='M30 12l18 18-18 18-18-18z'/%3E%3C/g%3E%3C/svg%3E");
+  background-attachment: fixed;
   color: var(--ink);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
