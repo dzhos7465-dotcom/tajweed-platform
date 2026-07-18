@@ -329,6 +329,11 @@ body { margin: 0; }
     <section class="section" id="s-results">
       <div class="page-title">Результаты</div>
       <div class="page-sub">Прохождения по группам</div>
+      <div class="panel-box" style="display:flex; gap:var(--space-3); align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-quiet" id="res-select-toggle">Выбрать для удаления</button>
+        <button class="btn btn-quiet" id="res-delete" style="display:none; color:var(--err); border-color:var(--err-tint);">Удалить выбранные (<span id="res-sel-count">0</span>)</button>
+        <button class="btn btn-quiet" id="res-select-cancel" style="display:none;">Отмена</button>
+      </div>
       <div class="panel-box">
         <div id="results-list" class="status-line">Загрузка…</div>
       </div>
@@ -591,6 +596,45 @@ body { margin: 0; }
   const WEIGHT_TEST = 0.8, WEIGHT_READING = 0.2;
   const READING_MAX = 10;   // из скольки преподаватель ставит балл за чтение
 
+  var resSelectMode = false;
+  var resSelected = {};   // idx → true
+
+  function updateResDeleteBtn() {
+    var n = Object.keys(resSelected).length;
+    $('res-sel-count').textContent = n;
+    $('res-delete').style.display = resSelectMode ? '' : 'none';
+    $('res-delete').disabled = n === 0;
+  }
+
+  $('res-select-toggle').addEventListener('click', function () {
+    resSelectMode = true; resSelected = {};
+    $('res-select-toggle').style.display = 'none';
+    $('res-select-cancel').style.display = '';
+    updateResDeleteBtn();
+    loadResults();
+  });
+  $('res-select-cancel').addEventListener('click', function () {
+    resSelectMode = false; resSelected = {};
+    $('res-select-toggle').style.display = '';
+    $('res-select-cancel').style.display = 'none';
+    $('res-delete').style.display = 'none';
+    loadResults();
+  });
+  $('res-delete').addEventListener('click', function () {
+    var picked = Object.keys(resSelected).map(function (i) { return (window._resultsCache || [])[+i]; }).filter(Boolean);
+    if (!picked.length) return;
+    if (!confirm('Удалить выбранные результаты (' + picked.length + ')? Это нельзя отменить.')) return;
+    $('res-delete').textContent = 'Удаляю…'; $('res-delete').disabled = true;
+    Promise.all(picked.map(function (r) { return StorageAPI.results.remove(r); })).then(function () {
+      resSelectMode = false; resSelected = {};
+      $('res-select-toggle').style.display = '';
+      $('res-select-cancel').style.display = 'none';
+      $('res-delete').style.display = 'none';
+      $('res-delete').innerHTML = 'Удалить выбранные (<span id="res-sel-count">0</span>)';
+      setTimeout(loadResults, 600);   // дать таблице обновиться
+    });
+  });
+
   function loadResults() {
     // Грузим и результаты (тест), и записи (чтение) — чтобы свести общий балл
     Promise.all([
@@ -655,8 +699,8 @@ body { margin: 0; }
       });
 
       $('results-list').innerHTML = groupsSorted.map(function (g) {
-        // внутри группы — свежие сверху
-        const students = byGroup[g].slice().sort(function (a, b) { return b._key - a._key; });
+        // внутри группы — последний отправивший СНИЗУ (по возрастанию времени)
+        const students = byGroup[g].slice().sort(function (a, b) { return a._key - b._key; });
         // средний общий балл по группе (по посчитанным)
         const scores = students.map(function (s) { return s._total; }).filter(function (n) { return n != null; });
         const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
@@ -669,7 +713,11 @@ body { margin: 0; }
           const pendingTag = x._waiting
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
             : '<span class="res-tag res-tag-done">проверено</span>';
+          const checkbox = resSelectMode
+            ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + ' style="margin-right:var(--space-2);">'
+            : '';
           return '<div class="res-row" data-idx="' + x._idx + '" style="cursor:pointer">' +
+              checkbox +
               '<div class="res-name">' + (x.fullName || '—') + '</div>' +
               '<div class="res-meta">' + shortWhen(x.date, x.time) + '</div>' +
               pendingTag +
@@ -687,10 +735,18 @@ body { margin: 0; }
             rows +
           '</div>';
       }).join('');
-      // клики по строкам — открыть детальный просмотр
+      // клики по строкам
       $('results-list').querySelectorAll('.res-row').forEach(function (row) {
-        row.addEventListener('click', function () {
-          openResultDetail(parseInt(row.getAttribute('data-idx'), 10));
+        row.addEventListener('click', function (e) {
+          var idx = parseInt(row.getAttribute('data-idx'), 10);
+          if (resSelectMode) {
+            if (resSelected[idx]) delete resSelected[idx]; else resSelected[idx] = true;
+            var chk = row.querySelector('.res-check');
+            if (chk) chk.checked = !!resSelected[idx];
+            updateResDeleteBtn();
+          } else {
+            openResultDetail(idx);
+          }
         });
       });
       // кнопки «сохранить картинкой» для группы

@@ -115,6 +115,13 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('results').then(r => (r && r.ok ? r.results || [] : []));
       },
+      // Удалить результат. Строки не имеют id — определяем по совокупности
+      // полей (дата+время+имя+группа), этого достаточно для уникальности.
+      remove: function (r) {
+        return backendPost('result_delete', {
+          date: r.date, time: r.time, fullName: r.fullName, group: r.group
+        });
+      },
     },
     recordings: {
       list: function () {
