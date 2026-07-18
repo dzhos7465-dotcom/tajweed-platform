@@ -278,12 +278,36 @@
     var words = ayah ? ayah.text.split(' ') : [];
     var groupColor = (typeof ruleAccent === 'function') ? ruleAccent(task.options[0]) : 'var(--seal)';
 
+    // Умный перенос: слова, где есть правило, склеиваем со следующим словом
+    // в неразрывную группу — чтобы правило на стыке не разорвалось переносом
+    // строки (тогда черту всегда можно провести на одной строке).
+    var targets = task.answer || {};
+    var glueNext = {};   // индекс слова → приклеить к следующему
+    Object.keys(targets).forEach(function (w) {
+      var i = parseInt(w, 10);
+      if (i < words.length - 1) glueNext[i] = true;   // не для последнего слова
+    });
+
+    // Собираем HTML. Каждое слово — span.fw. Чтобы правило на стыке не
+    // разорвалось переносом, слово-цель и следующее слово соединяем
+    // «неразрывным пробелом» вместо обычного: браузер не перенесёт между ними.
+    // Обычные пробелы (где нет правила) остаются местами возможного переноса.
+    var parts = words.map(function (w, idx) {
+      return '<span class="fw" data-i="' + idx + '">' + w + '</span>';
+    });
+    var html = '';
+    for (var k = 0; k < parts.length; k++) {
+      html += parts[k];
+      if (k < parts.length - 1) {
+        // между словом-целью и следующим — неразрывный пробел (правило не рвётся)
+        html += glueNext[k] ? '\u00A0' : ' ';
+      }
+    }
+
     wrap.innerHTML =
       '<div class="find-hint">Проведи пальцем черту под местом правила. Нажми на черту, чтобы убрать.</div>' +
       '<div class="mushaf" id="find-box">' +
-        '<div class="ayah-find" id="find-ayah">' +
-          words.map(function (w, i) { return '<span class="fw" data-i="' + i + '">' + w + '</span>'; }).join(' ') +
-        '</div>' +
+        '<div class="ayah-find" id="find-ayah">' + html + '</div>' +
         '<svg id="find-strokes"></svg>' +
       '</div>' +
       '<div class="find-count">Подчёркнуто: <b id="find-cnt" style="color:' + groupColor + '">0</b></div>' +
