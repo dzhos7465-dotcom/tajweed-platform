@@ -451,7 +451,7 @@
           cfg.activitySort = { mim: !!activity.sortMim, nun: !!activity.sortNun };
           cfg.activityFind = {
             mim: !!activity.findMim, nun: !!activity.findNun,
-            mimCount: activity.findMimCount || 1, nunCount: activity.findNunCount || 1
+            mimAyahs: activity.findMimAyahs || [], nunAyahs: activity.findNunAyahs || []
           };
           cfg.mode = (activity.type === 'training') ? 'training' : 'exam';
           if (activity.timeLimit != null) {

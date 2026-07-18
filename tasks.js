@@ -377,11 +377,18 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
     ['nun', 'mim'].forEach(function (gid) {
       if (!activityFind[gid]) return;
       var grp = FIND_GROUPS[gid];
-      // аяты, где эти правила есть; выбор — тем же seeded rng
-      var pool = ayahsWithGroup(gid);
-      if (!pool.length) return;
-      var count = activityFind[gid + 'Count'] || 1;
-      var chosen = pick(pool, count);
+      // аяты, выбранные преподавателем; если не выбрал — берём все подходящие
+      var selectedIds = activityFind[gid + 'Ayahs'] || [];
+      var chosen;
+      if (selectedIds.length) {
+        chosen = selectedIds
+          .map(function (id) { return AYAH_BY_ID[id]; })
+          .filter(function (a) { return a && findTargetsFor(a.id, gid); });
+      } else {
+        var pool = ayahsWithGroup(gid);
+        if (!pool.length) return;
+        chosen = pick(pool, 1);   // не выбрал — один случайный
+      }
       chosen.forEach(function (ayah) {
         var targets = findTargetsFor(ayah.id, gid);
         built.push({

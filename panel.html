@@ -178,6 +178,8 @@ body { margin: 0; }
 .detail-status { font-weight: var(--weight-bold); font-size: var(--text-base); }
 
 .detail-score-box { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
+.find-hint-line { font-size: var(--text-xs); color: var(--ink-faint); margin: var(--space-2) 0 var(--space-2) 28px; }
+.find-ayahs { max-height: 240px; margin-left: 28px; margin-top: var(--space-2); }
 </style>
 </head>
 <body>
@@ -266,11 +268,15 @@ body { margin: 0; }
         <div class="collapse" data-collapse>
           <div class="collapse-head"><span class="collapse-arrow">▸</span> Найди правила в аяте <span class="collapse-hint" id="cnt-find"></span></div>
           <div class="collapse-body">
-            <div class="sort-picker">
-              <label class="sort-opt"><input type="checkbox" id="af-find-mim"> Найди правила <b>мима</b> в аяте
-                <input type="number" id="af-find-mim-count" class="tp-count" min="1" max="3" value="1" style="margin-left:auto;" disabled></label>
-              <label class="sort-opt"><input type="checkbox" id="af-find-nun"> Найди правила <b>нуна</b> в аяте
-                <input type="number" id="af-find-nun-count" class="tp-count" min="1" max="3" value="1" style="margin-left:auto;" disabled></label>
+            <div class="find-group-block">
+              <label class="sort-opt"><input type="checkbox" id="af-find-nun"> Найди правила <b>нуна</b> в аяте</label>
+              <div class="find-hint-line">Отметь аяты, где ученик будет искать правила нуна:</div>
+              <div id="af-find-nun-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
+            </div>
+            <div class="find-group-block" style="margin-top:var(--space-4);">
+              <label class="sort-opt"><input type="checkbox" id="af-find-mim"> Найди правила <b>мима</b> в аяте</label>
+              <div class="find-hint-line">Отметь аяты, где ученик будет искать правила мима:</div>
+              <div id="af-find-mim-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -387,6 +393,7 @@ body { margin: 0; }
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
+<script src="ayah-marks.js"></script>
 <script src="storage.js"></script>
 <script>
 (function () {
@@ -974,6 +981,59 @@ body { margin: 0; }
     return out;
   }
 
+  // Группы правил для «найди в аяте» (те же, что в движке): нун=4, мим=3
+  var FIND_GROUP_RULES = {
+    nun: ['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'],
+    mim: ['izhar_mim','idgham_mim','ikhfa_mim']
+  };
+
+  // Есть ли в аяте правила данной группы (по разметке AYAH_MARKS)
+  function ayahHasGroup(ayahId, groupId) {
+    if (typeof AYAH_MARKS === 'undefined') return false;
+    var marks = AYAH_MARKS[ayahId] || [];
+    var rules = FIND_GROUP_RULES[groupId] || [];
+    return marks.some(function (m) { return rules.indexOf(m.rule) !== -1; });
+  }
+  function countGroupInAyah(ayahId, groupId) {
+    if (typeof AYAH_MARKS === 'undefined') return 0;
+    var marks = AYAH_MARKS[ayahId] || [];
+    var rules = FIND_GROUP_RULES[groupId] || [];
+    return marks.filter(function (m) { return rules.indexOf(m.rule) !== -1; }).length;
+  }
+
+  // Построить список аятов для «найди правила <группы>» — только те, где эти правила ЕСТЬ
+  function buildFindPicker(groupId) {
+    var wrap = $('af-find-' + groupId + '-ayahs');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (typeof AYAHS === 'undefined') { wrap.innerHTML = '<div style="color:var(--ink-faint);font-size:var(--text-sm)">Аяты недоступны.</div>'; return; }
+    var list = AYAHS.filter(function (a) { return ayahHasGroup(a.id, groupId); });
+    if (!list.length) { wrap.innerHTML = '<div style="color:var(--ink-faint);font-size:var(--text-sm)">Нет аятов с этими правилами.</div>'; return; }
+    list.forEach(function (a) {
+      var n = countGroupInAyah(a.id, groupId);
+      var row = document.createElement('div');
+      row.className = 'ayah-pick';
+      row.innerHTML = '<input type="checkbox" class="fap-check" data-group="' + groupId + '" data-ayah="' + a.id + '">' +
+                      '<span class="ap-ar">' + a.text + ' <span style="color:var(--ink-faint);font-size:var(--text-xs);font-family:var(--font-ui)">· ' + n + ' ' + (n === 1 ? 'правило' : 'правил') + '</span></span>';
+      var check = row.querySelector('.fap-check');
+      row.addEventListener('click', function (e) {
+        if (e.target !== check) check.checked = !check.checked;
+        row.classList.toggle('on', check.checked);
+        updateCollapseHints();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function collectFindAyahs(groupId) {
+    var out = [];
+    var wrap = $('af-find-' + groupId + '-ayahs');
+    if (wrap) wrap.querySelectorAll('.fap-check').forEach(function (c) {
+      if (c.checked) out.push(c.getAttribute('data-ayah'));
+    });
+    return out;
+  }
+
   // Сворачивание блоков видов заданий
   var editingActivity = null;  // какую активность редактируем (null = новая)
   document.querySelectorAll('.collapse[data-collapse] .collapse-head').forEach(function (head) {
@@ -987,8 +1047,10 @@ body { margin: 0; }
     var nThemes = $('af-themes') ? $('af-themes').querySelectorAll('.tp-check:checked').length : 0;
     var nAyahs = $('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0;
     var nSort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) + (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0);
-    var nFind = (($('af-find-mim') && $('af-find-mim').checked) ? 1 : 0) + (($('af-find-nun') && $('af-find-nun').checked) ? 1 : 0);
-    if ($('cnt-find')) $('cnt-find').textContent = nFind ? 'включено: ' + nFind : '';
+    var nFindNun = $('af-find-nun-ayahs') ? $('af-find-nun-ayahs').querySelectorAll('.fap-check:checked').length : 0;
+    var nFindMim = $('af-find-mim-ayahs') ? $('af-find-mim-ayahs').querySelectorAll('.fap-check:checked').length : 0;
+    var nFind = nFindNun + nFindMim;
+    if ($('cnt-find')) $('cnt-find').textContent = nFind ? 'аятов: ' + nFind : '';
     if ($('cnt-themes')) $('cnt-themes').textContent = nThemes ? 'выбрано: ' + nThemes : '';
     if ($('cnt-ayahs')) $('cnt-ayahs').textContent = nAyahs ? 'выбрано: ' + nAyahs : '';
     if ($('cnt-sort')) $('cnt-sort').textContent = nSort ? 'включено: ' + nSort : '';
@@ -1003,10 +1065,12 @@ body { margin: 0; }
     if (el) el.addEventListener('change', updateCollapseHints);
   });
   // «Найди в аяте»: галочка включает поле количества
-  [['af-find-mim','af-find-mim-count'], ['af-find-nun','af-find-nun-count']].forEach(function (pair) {
-    var chk = $(pair[0]), cnt = $(pair[1]);
-    if (chk && cnt) chk.addEventListener('change', function () {
-      cnt.disabled = !chk.checked;
+  ['nun', 'mim'].forEach(function (gid) {
+    var chk = $('af-find-' + gid);
+    var picker = $('af-find-' + gid + '-ayahs');
+    if (chk && picker) chk.addEventListener('change', function () {
+      picker.style.display = chk.checked ? '' : 'none';
+      if (chk.checked && !picker.hasChildNodes()) buildFindPicker(gid);
       updateCollapseHints();
     });
   });
@@ -1023,8 +1087,10 @@ body { margin: 0; }
     $('af-sort-nun').checked = false;
     $('af-find-mim').checked = false;
     $('af-find-nun').checked = false;
-    $('af-find-mim-count').value = 1; $('af-find-mim-count').disabled = true;
-    $('af-find-nun-count').value = 1; $('af-find-nun-count').disabled = true;
+    ['nun', 'mim'].forEach(function (gid) {
+      var picker = $('af-find-' + gid + '-ayahs');
+      if (picker) { picker.innerHTML = ''; picker.style.display = 'none'; }
+    });
     buildThemePicker();
     buildAyahPicker();
     // Свернуть все блоки, кроме первого (Вопросы) — он основной
@@ -1067,13 +1133,24 @@ body { margin: 0; }
     // Галочки распределения
     $('af-sort-mim').checked = !!act.sortMim;
     $('af-sort-nun').checked = !!act.sortNun;
-    // Галочки «найди в аяте»
-    $('af-find-mim').checked = !!act.findMim;
-    $('af-find-nun').checked = !!act.findNun;
-    $('af-find-mim-count').value = act.findMimCount || 1;
-    $('af-find-mim-count').disabled = !act.findMim;
-    $('af-find-nun-count').value = act.findNunCount || 1;
-    $('af-find-nun-count').disabled = !act.findNun;
+    // Галочки «найди в аяте» + выбранные аяты
+    ['nun', 'mim'].forEach(function (gid) {
+      var on = !!act['find' + (gid === 'nun' ? 'Nun' : 'Mim')];
+      var chk = $('af-find-' + gid);
+      var picker = $('af-find-' + gid + '-ayahs');
+      chk.checked = on;
+      if (picker) {
+        picker.style.display = on ? '' : 'none';
+        if (on) {
+          buildFindPicker(gid);
+          var chosen = act['find' + (gid === 'nun' ? 'Nun' : 'Mim') + 'Ayahs'] || [];
+          chosen.forEach(function (ayId) {
+            var c = picker.querySelector('.fap-check[data-ayah="' + ayId + '"]');
+            if (c) { c.checked = true; c.closest('.ayah-pick').classList.add('on'); }
+          });
+        }
+      }
+    });
     // Открыть блоки, где что-то выбрано (чтобы сразу видеть настройки)
     var blocks = document.querySelectorAll('.collapse[data-collapse]');
     if (blocks[0]) blocks[0].classList.add('open');  // вопросы всегда
@@ -1127,8 +1204,8 @@ body { margin: 0; }
       sortNun: $('af-sort-nun').checked,   // распределение по нуну
       findMim: $('af-find-mim').checked,   // найди правила мима в аяте
       findNun: $('af-find-nun').checked,
-      findMimCount: parseInt($('af-find-mim-count').value, 10) || 1,
-      findNunCount: parseInt($('af-find-nun-count').value, 10) || 1,
+      findMimAyahs: collectFindAyahs('mim'),   // выбранные аяты для мима
+      findNunAyahs: collectFindAyahs('nun'),   // выбранные аяты для нуна
     };
     // Если редактируем — сохранить тот же id и дату создания (backend обновит строку)
     if (editingActivity) {
