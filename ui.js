@@ -416,9 +416,9 @@
     var ayahText = ayah ? ayah.text : '—';
 
     wrap.innerHTML =
-      '<div class="recite-card">' +
+      '<div class="mushaf recite-mushaf">' +
         '<div class="recite-label">Прочитайте с соблюдением правил</div>' +
-        '<div class="arabic recite-ar">' + ayahText + '</div>' +
+        '<div class="ayah-find recite-ar-framed">' + ayahText + '</div>' +
       '</div>' +
       '<div class="rec-note">🎙️ Вашу запись услышит преподаватель. Перед отправкой убедитесь, ' +
         'что вас хорошо слышно. Если чтение не получилось — можно перезаписать.</div>' +

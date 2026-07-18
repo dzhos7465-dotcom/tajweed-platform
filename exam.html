@@ -11,6 +11,17 @@
 <style>
 /* КОМПОНЕНТЫ ЭКРАНА ЭКЗАМЕНА — собраны из токенов дизайн-системы */
 .sheet { max-width: var(--measure); margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); min-height: 100vh; }
+
+/* Подложка-поверхность: контент сидит на карточке, а не на голом фоне.
+   Узор остаётся красивым фоном, но текст читается чётко. */
+.screen.active {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-6) var(--space-5);
+  margin-top: var(--space-3);
+}
 .screen { display: none; }
 .screen.active { display: block; animation: ds-rise var(--motion-slow) var(--ease); }
 
@@ -40,8 +51,8 @@
 .btn-primary { background: var(--seal); color: #fff; box-shadow: var(--shadow-sm); }
 .btn-primary:hover { background: var(--seal-hover); }
 .btn-primary:disabled { opacity: 0.4; cursor: default; }
-.btn-quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
-.btn-quiet:hover:not(:disabled) { border-color: var(--ink-soft); color: var(--ink); }
+.btn-quiet { background: var(--paper-sunken); color: var(--ink-soft); border: 1.5px solid var(--line-strong); }
+.btn-quiet:hover:not(:disabled) { border-color: var(--seal); color: var(--seal); background: var(--seal-tint); }
 .btn-quiet:disabled { opacity: 0.35; cursor: default; }
 .btn-block { width: 100%; }
 
@@ -139,8 +150,9 @@
 .sort-pool-label { font-size: var(--text-sm); color: var(--ink-faint); margin-bottom: var(--space-3); text-align: center; }
 .sort-chips { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: center; min-height: 20px; }
 .sort-chip {
-  border: 1.5px solid var(--line-strong); background: var(--paper-raised);
+  border: 1.5px solid var(--gold-soft); background: var(--paper-raised);
   border-radius: var(--radius); padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
   cursor: pointer; transition: border-color var(--motion-base) var(--ease), background var(--motion-base) var(--ease), transform var(--motion-fast) var(--ease);
 }
 .sort-chip:active { transform: translateY(1px); }
@@ -229,7 +241,11 @@
 .playback-actions .btn { flex: 1; }
 
 
-/* ── Найди в аяте ── */
+/* Чтение вслух — аят в той же рамке-мусхафе, что и «найди в аяте» */
+.recite-mushaf { padding-top: var(--space-5); }
+.recite-label { font-size: var(--text-sm); color: var(--ink-faint); text-align: center; margin-bottom: var(--space-4); position: relative; z-index: 2; }
+.recite-ar-framed { font-size: 2.2rem; }
+
 .find-hint { font-size: var(--text-sm); color: var(--ink-soft); margin-bottom: var(--space-3); text-align: center; }
 .mushaf { position: relative; background: #fdfbf4; border: 1px solid #e0d6bf; border-radius: var(--radius-lg);
   box-shadow: 0 1px 3px rgba(80,60,20,0.06), inset 0 0 0 6px #fdfbf4, inset 0 0 0 7px #ece0c6;
