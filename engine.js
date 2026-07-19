@@ -33,10 +33,24 @@ const session = {
 /* ──────────────────────────────────────────────────────────────────────
    УТИЛИТЫ
 ────────────────────────────────────────────────────────────────────── */
-function shuffle(arr) {
+// Детерминированный генератор для порядка заданий: тот же seed → тот же
+// порядок у ВСЕХ устройств. Для контрольной seed фиксирован, поэтому
+// телефон и ноутбук получают идентичный экзамен.
+function orderRng(seed) {
+  let s = (seed >>> 0) || 20260101;
+  return function () {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(arr, rng) {
+  const rand = rng || Math.random;
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -60,21 +74,32 @@ function resolveExamples(task) {
    Здесь нет ни одного упоминания конкретной темы — только правила.
 ────────────────────────────────────────────────────────────────────── */
 function buildTaskOrder(config) {
+  // Детерминированный порядок: у контрольной seed фиксирован → у всех устройств
+  // одинаковый экзамен. У тренировки — свежая случайность каждый раз.
+  var randomize = (MODES[config.mode] || MODES.exam).randomizeExamples;
+  var rng = randomize ? Math.random : orderRng(20260101);
+
   // 1. Определяем порядок тем
   let themeSequence = [...config.themeOrder];
   if (config.settings.shuffleThemes) {
-    themeSequence = shuffle(themeSequence);
+    themeSequence = shuffle(themeSequence, rng);
   }
 
   // 2. Для каждой темы собираем её задания, при необходимости перемешивая
   const order = [];
+  const placed = {};
   themeSequence.forEach(themeId => {
     let themeTasks = TASKS.filter(t => t.theme === themeId);
     if (config.settings.shuffleWithinTheme) {
-      themeTasks = shuffle(themeTasks);
+      themeTasks = shuffle(themeTasks, rng);
     }
-    themeTasks.forEach(t => order.push(t.id));
+    themeTasks.forEach(t => { order.push(t.id); placed[t.id] = true; });
   });
+
+  // 3. ЗАЩИТА: ни одно построенное задание не должно потеряться. Если у задания
+  // тема не попала в themeOrder (например, редкое правило) — добавляем в конец,
+  // чтобы число заданий было одинаковым у всех и ничего не пропало.
+  TASKS.forEach(t => { if (!placed[t.id]) order.push(t.id); });
 
   return order;
 }
