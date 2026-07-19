@@ -837,29 +837,89 @@ body { margin: 0; }
   });
 
   // Сохранить карточку группы картинкой
+  // Имя преподавателя для подписи на постере (можно поменять здесь).
+  var TEACHER_SIGNATURE = 'Преподаватель таджвида';
+
   function screenshotGroup(group, btn) {
-    var card = $('results-list').querySelector('.res-group[data-group="' + group + '"]');
-    if (!card) return;
-    var shotBtn = card.querySelector('.res-shot-btn');
-    if (shotBtn) shotBtn.style.visibility = 'hidden';  // не снимать саму кнопку
-    var done = function () { if (shotBtn) shotBtn.style.visibility = ''; };
+    // Собираем данные группы из кэша результатов
+    var all = (window._resultsCache || []).filter(function (r) { return (r.group || '—') === group; });
+    if (!all.length) { alert('Нет данных для этой группы.'); return; }
+    // свежие снизу (как в разделе)
+    all = all.slice().sort(function (a, b) { return whenKey(a) - whenKey(b); });
+
+    // средний общий балл
+    var scores = all.map(function (r) { return r._total; }).filter(function (n) { return n != null; });
+    var avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
+
+    // название работы и дата (берём из самой свежей записи)
+    var last = all[all.length - 1];
+    var workTitle = (last && last.exam) ? last.exam : 'Контрольная работа';
+    var workDate = last ? shortDate(last.date) : '';
+
+    // строки таблицы
+    var rowsHtml = all.map(function (r) {
+      var s = r._total;
+      var col = s == null ? '#9b9b9b' : (s >= 70 ? '#2f6b46' : (s >= 40 ? '#b8912f' : '#a53a3a'));
+      var scoreText = (s != null) ? s : (r._waiting ? '—' : '—');
+      return '<div style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid #ece3cf;">' +
+        '<div style="flex:1;font-size:17px;color:#23252e;font-weight:500;">' + (r.fullName || '—') + '</div>' +
+        (r._waiting ? '<div style="font-size:12px;color:#b8912f;margin-right:14px;">ждёт чтения</div>' : '') +
+        '<div style="font-size:22px;font-weight:700;color:' + col + ';min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">' + scoreText + '</div>' +
+      '</div>';
+    }).join('');
+
+    // Постер — самостоятельный оформленный блок (строим за экраном)
+    var poster = document.createElement('div');
+    poster.style.cssText = 'position:fixed;left:-9999px;top:0;width:560px;font-family:Inter,system-ui,sans-serif;' +
+      'background:#fdfbf4;box-sizing:border-box;';
+    poster.innerHTML =
+      // рамка с золотом
+      '<div style="border:1px solid #d9c9a3;box-shadow:inset 0 0 0 5px #fdfbf4, inset 0 0 0 6px #f0e6cd;padding:34px 30px 26px;position:relative;">' +
+        // уголки-орнамент
+        '<div style="position:absolute;top:14px;right:14px;width:20px;height:20px;border-top:2px solid #b8912f;border-right:2px solid #b8912f;border-radius:0 6px 0 0;opacity:.7;"></div>' +
+        '<div style="position:absolute;bottom:14px;left:14px;width:20px;height:20px;border-bottom:2px solid #b8912f;border-left:2px solid #b8912f;border-radius:0 0 0 6px;opacity:.7;"></div>' +
+        // шапка
+        '<div style="text-align:center;margin-bottom:6px;">' +
+          '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#0f7d74;font-weight:600;">Результаты · Группа ' + group + '</div>' +
+          '<div style="font-size:25px;font-weight:700;color:#23252e;margin-top:8px;line-height:1.25;">' + workTitle + '</div>' +
+          (workDate ? '<div style="font-size:13px;color:#8f8f9c;margin-top:5px;">' + workDate + '</div>' : '') +
+        '</div>' +
+        // золотой разделитель с розеткой
+        '<div style="display:flex;align-items:center;gap:12px;color:#b8912f;margin:18px 4px 8px;">' +
+          '<div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,#d4b978,transparent);"></div>' +
+          '<div style="font-size:16px;">۞</div>' +
+          '<div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,#d4b978,transparent);"></div>' +
+        '</div>' +
+        // таблица
+        '<div style="background:#fffdf8;border:1px solid #ece3cf;border-radius:12px;overflow:hidden;margin-top:10px;">' +
+          rowsHtml +
+        '</div>' +
+        // средний балл
+        (avg != null ? '<div style="text-align:center;margin-top:16px;font-size:15px;color:#55586a;">Средний балл группы: <b style="color:#0f7d74;font-size:18px;">' + avg + '</b></div>' : '') +
+        // подпись
+        '<div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #ece3cf;font-size:13px;color:#8f8f9c;">' + TEACHER_SIGNATURE + '</div>' +
+      '</div>';
+    document.body.appendChild(poster);
 
     function run() {
-      html2canvas(card, { backgroundColor: getComputedStyle(document.body).backgroundColor, scale: 2 })
+      html2canvas(poster, { backgroundColor: '#fdfbf4', scale: 2 })
         .then(function (canvas) {
-          done();
+          document.body.removeChild(poster);
           var a = document.createElement('a');
           a.download = 'группа-' + group + '.png';
           a.href = canvas.toDataURL('image/png');
           a.click();
-        }).catch(function () { done(); alert('Не удалось сохранить картинку.'); });
+        }).catch(function () {
+          if (poster.parentNode) document.body.removeChild(poster);
+          alert('Не удалось сохранить картинку.');
+        });
     }
 
     if (typeof html2canvas === 'undefined') {
       var s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
       s.onload = run;
-      s.onerror = function () { done(); alert('Не удалось загрузить инструмент скриншота.'); };
+      s.onerror = function () { if (poster.parentNode) document.body.removeChild(poster); alert('Не удалось загрузить инструмент скриншота.'); };
       document.head.appendChild(s);
     } else run();
   }
