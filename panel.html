@@ -180,6 +180,9 @@ body { margin: 0; }
 .detail-score-box { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); }
 .find-hint-line { font-size: var(--text-xs); color: var(--ink-faint); margin: var(--space-2) 0 var(--space-2) 28px; }
 .find-ayahs { max-height: 240px; margin-left: 28px; margin-top: var(--space-2); }
+.sort-rules { margin: var(--space-2) 0 0 26px; padding-left: var(--space-3); border-left: 2px solid var(--line); }
+.sort-rules-hint { font-size: var(--text-xs); color: var(--ink-faint); margin-bottom: var(--space-2); }
+.sort-rule-opt { display: flex; align-items: center; gap: var(--space-2); padding: 4px 0; font-size: var(--text-sm); cursor: pointer; }
 </style>
 </head>
 <body>
@@ -258,9 +261,17 @@ body { margin: 0; }
         <div class="collapse" data-collapse>
           <div class="collapse-head"><span class="collapse-arrow">▸</span> Задания на распределение <span class="collapse-hint" id="cnt-sort"></span></div>
           <div class="collapse-body">
-            <div class="sort-picker">
+            <div class="sort-block">
               <label class="sort-opt"><input type="checkbox" id="af-sort-mim"> Распределение по правилам <b>мима</b></label>
+              <div class="sort-rules" id="af-sort-mim-rules" style="display:none;"></div>
+            </div>
+            <div class="sort-block" style="margin-top:var(--space-3);">
               <label class="sort-opt"><input type="checkbox" id="af-sort-nun"> Распределение по правилам <b>нуна</b></label>
+              <div class="sort-rules" id="af-sort-nun-rules" style="display:none;"></div>
+            </div>
+            <div class="sort-block" style="margin-top:var(--space-3);">
+              <label class="sort-opt"><input type="checkbox" id="af-sort-madd"> Распределение по правилам <b>мадда</b></label>
+              <div class="sort-rules" id="af-sort-madd-rules" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -894,8 +905,6 @@ body { margin: 0; }
         '<div style="background:#fffdf8;border:1px solid #ece3cf;border-radius:12px;overflow:hidden;margin-top:10px;">' +
           rowsHtml +
         '</div>' +
-        // средний балл
-        (avg != null ? '<div style="text-align:center;margin-top:16px;font-size:15px;color:#55586a;">Средний балл группы: <b style="color:#0f7d74;font-size:18px;">' + avg + '</b></div>' : '') +
         // подпись
         '<div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #ece3cf;font-size:13px;color:#8f8f9c;">' + TEACHER_SIGNATURE + '</div>' +
       '</div>';
@@ -982,6 +991,38 @@ body { margin: 0; }
   const THEME_LIST = (typeof THEMES !== 'undefined') ? Object.values(THEMES) : [];
 
   function themeColor(id) { return (typeof ruleAccent === 'function') ? ruleAccent(id) : 'var(--seal)'; }
+
+  // Правила каждого раздела для выбора в распределении
+  var SORT_GROUP_RULES = {
+    mim: ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim'],
+    nun: ['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun','shadda_nun'],
+    madd: ['madd_tabii','madd_iwad','madd_muttasil','madd_munfasil','madd_lazim'],
+  };
+
+  function buildSortRules(groupId) {
+    var wrap = $('af-sort-' + groupId + '-rules');
+    if (!wrap || wrap.hasChildNodes()) return;
+    var rules = SORT_GROUP_RULES[groupId] || [];
+    wrap.innerHTML = '<div class="sort-rules-hint">Выбери правила (минимум 2):</div>';
+    rules.forEach(function (rid) {
+      var row = document.createElement('label');
+      row.className = 'sort-rule-opt';
+      row.innerHTML = '<input type="checkbox" class="srule-check" data-group="' + groupId + '" data-rule="' + rid + '" checked>' +
+                      '<span class="tp-dot" style="background:' + themeColor(rid) + '"></span>' +
+                      '<span>' + ruleName(rid) + '</span>';
+      row.querySelector('.srule-check').addEventListener('change', updateCollapseHints);
+      wrap.appendChild(row);
+    });
+  }
+
+  function collectSortRules(groupId) {
+    var out = [];
+    var wrap = $('af-sort-' + groupId + '-rules');
+    if (wrap) wrap.querySelectorAll('.srule-check').forEach(function (c) {
+      if (c.checked) out.push(c.getAttribute('data-rule'));
+    });
+    return out;
+  }
 
   function buildThemePicker() {
     const wrap = $('af-themes');
@@ -1106,7 +1147,7 @@ body { margin: 0; }
   function updateCollapseHints() {
     var nThemes = $('af-themes') ? $('af-themes').querySelectorAll('.tp-check:checked').length : 0;
     var nAyahs = $('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0;
-    var nSort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) + (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0);
+    var nSort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) + (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0) + (($('af-sort-madd') && $('af-sort-madd').checked) ? 1 : 0);
     var nFindNun = $('af-find-nun-ayahs') ? $('af-find-nun-ayahs').querySelectorAll('.fap-check:checked').length : 0;
     var nFindMim = $('af-find-mim-ayahs') ? $('af-find-mim-ayahs').querySelectorAll('.fap-check:checked').length : 0;
     var nFind = nFindNun + nFindMim;
@@ -1120,9 +1161,14 @@ body { margin: 0; }
     var el = $(id);
     if (el) el.addEventListener('change', updateCollapseHints);
   });
-  ['af-sort-mim','af-sort-nun'].forEach(function (id) {
-    var el = $(id);
-    if (el) el.addEventListener('change', updateCollapseHints);
+  ['mim','nun','madd'].forEach(function (gid) {
+    var chk = $('af-sort-' + gid);
+    var rules = $('af-sort-' + gid + '-rules');
+    if (chk && rules) chk.addEventListener('change', function () {
+      rules.style.display = chk.checked ? '' : 'none';
+      if (chk.checked) buildSortRules(gid);
+      updateCollapseHints();
+    });
   });
   // «Найди в аяте»: галочка включает поле количества
   ['nun', 'mim'].forEach(function (gid) {
@@ -1145,6 +1191,11 @@ body { margin: 0; }
     $('af-time').value = '20';
     $('af-sort-mim').checked = false;
     $('af-sort-nun').checked = false;
+    if($('af-sort-madd')) $('af-sort-madd').checked = false;
+    ['mim','nun','madd'].forEach(function (gid) {
+      var r = $('af-sort-' + gid + '-rules');
+      if (r) { r.innerHTML = ''; r.style.display = 'none'; }
+    });
     $('af-find-mim').checked = false;
     $('af-find-nun').checked = false;
     ['nun', 'mim'].forEach(function (gid) {
@@ -1191,8 +1242,25 @@ body { margin: 0; }
       if (c) { c.checked = true; c.closest('.ayah-pick').classList.add('on'); }
     });
     // Галочки распределения
-    $('af-sort-mim').checked = !!act.sortMim;
-    $('af-sort-nun').checked = !!act.sortNun;
+    // Распределение — галочки разделов + выбранные правила
+    [['mim','sortMim','sortMimRules'], ['nun','sortNun','sortNunRules'], ['madd','sortMadd','sortMaddRules']].forEach(function (g) {
+      var gid = g[0], on = !!act[g[1]];
+      var chk = $('af-sort-' + gid), rules = $('af-sort-' + gid + '-rules');
+      if (chk) chk.checked = on;
+      if (rules) {
+        rules.style.display = on ? '' : 'none';
+        if (on) {
+          buildSortRules(gid);
+          var chosen = act[g[2]];
+          // если в активности сохранён список — отметить именно его
+          if (chosen && chosen.length) {
+            rules.querySelectorAll('.srule-check').forEach(function (c) {
+              c.checked = chosen.indexOf(c.getAttribute('data-rule')) !== -1;
+            });
+          }
+        }
+      }
+    });
     // Галочки «найди в аяте» + выбранные аяты
     ['nun', 'mim'].forEach(function (gid) {
       var on = !!act['find' + (gid === 'nun' ? 'Nun' : 'Mim')];
@@ -1262,6 +1330,10 @@ body { margin: 0; }
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
       sortMim: $('af-sort-mim').checked,   // распределение по миму
       sortNun: $('af-sort-nun').checked,   // распределение по нуну
+      sortMadd: $('af-sort-madd').checked,   // распределение по мадду
+      sortMimRules: collectSortRules('mim'),   // какие правила мима в коробках
+      sortNunRules: collectSortRules('nun'),
+      sortMaddRules: collectSortRules('madd'),
       findMim: $('af-find-mim').checked,   // найди правила мима в аяте
       findNun: $('af-find-nun').checked,
       findMimAyahs: collectFindAyahs('mim'),   // выбранные аяты для мима
@@ -1412,6 +1484,7 @@ body { margin: 0; }
     var SECTIONS = [
       { title: 'Правила мима', rules: ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim'] },
       { title: 'Правила нуна', rules: ['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun','shadda_nun'] },
+      { title: 'Правила мадда', rules: ['madd_tabii','madd_iwad','madd_muttasil','madd_munfasil','madd_lazim'] },
     ];
 
     function ruleCard(id) {

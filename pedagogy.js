@@ -46,6 +46,13 @@ const RULE_COLORS = {
   iqlab_nun:  { accent: '#7c3aed', letter: '#f97316' },
   ikhfa_nun:  { accent: '#009c8e', letter: '#7f1d1d' },
   shadda_nun: { accent: '#b08428', letter: '#b08428' },
+
+  // Правила мадда (удлинение) — свои оттенки, отличные от мим/нун
+  madd_tabii:    { accent: '#0891b2', letter: '#0e7490' },   // светлая бирюза
+  madd_iwad:     { accent: '#0d9488', letter: '#0f766e' },   // тил
+  madd_muttasil: { accent: '#7c3aed', letter: '#6d28d9' },   // фиолетовый
+  madd_munfasil: { accent: '#c026d3', letter: '#a21caf' },   // пурпурный
+  madd_lazim:    { accent: '#b91c1c', letter: '#991b1b' },   // тёмно-красный (самый длинный)
 };
 
 /* Безопасный доступ к цвету темы. Если методика не задала цвет для темы —

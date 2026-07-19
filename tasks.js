@@ -59,6 +59,12 @@ const RULE_OPTIONS = [
   { id: 'iqlab',      label: 'Икляб' },
   { id: 'shadda_mim', label: 'Мим с шаддой' },
   { id: 'shadda_nun', label: 'Нун с шаддой' },
+  // варианты мадда
+  { id: 'madd_tabii',    label: 'Естественный' },
+  { id: 'madd_iwad',     label: '‘Ивад' },
+  { id: 'madd_muttasil', label: 'Муттасиль' },
+  { id: 'madd_munfasil', label: 'Мунфасыль' },
+  { id: 'madd_lazim',    label: 'Лазим' },
 ];
 
 /* Семейства правил — чтобы отвлекающие варианты были ПОХОЖИМИ (того же
@@ -67,8 +73,10 @@ const RULE_OPTIONS = [
 const OPTION_FAMILY = {
   mim: ['izhar', 'idgham', 'ikhfa', 'shadda_mim'],
   nun: ['izhar', 'idgham', 'ikhfa', 'iqlab', 'shadda_nun'],
+  madd: ['madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil', 'madd_lazim'],
 };
 function familyOfTheme(themeId) {
+  if (themeId.indexOf('madd') !== -1) return 'madd';
   return (themeId.indexOf('mim') !== -1) ? 'mim' : 'nun';
 }
 
@@ -137,6 +145,12 @@ const RULE_TEMPLATES = [
   { theme: 'iqlab_nun',  answer: 'iqlab',      count: 2 },
   { theme: 'ikhfa_nun',  answer: 'ikhfa',      count: 3 },
   { theme: 'shadda_nun', answer: 'shadda_nun', count: 2 },
+  // Мадд — правильный ответ совпадает с id темы
+  { theme: 'madd_tabii',    answer: 'madd_tabii',    count: 2 },
+  { theme: 'madd_iwad',     answer: 'madd_iwad',     count: 2 },
+  { theme: 'madd_muttasil', answer: 'madd_muttasil', count: 2 },
+  { theme: 'madd_munfasil', answer: 'madd_munfasil', count: 2 },
+  { theme: 'madd_lazim',    answer: 'madd_lazim',    count: 2 },
 ];
 
 /* Карта «тема → правильный ответ». Нужна, когда шаблоны приходят из
@@ -180,6 +194,20 @@ const SORT_TEMPLATES = [
       { id: 'ikhfa_nun',  label: 'Ихфа нуна' },
     ],
     weight: 4,
+  },
+  {
+    id: 'sort_madd',
+    theme: 'madd_muttasil',             // sort мадда встанет среди тем мадда
+    prompt: 'Распределите слова по правилам мадда',
+    perGroup: 2,
+    groups: [
+      { id: 'madd_tabii',    label: 'Естественный' },
+      { id: 'madd_iwad',     label: '‘Ивад' },
+      { id: 'madd_muttasil', label: 'Муттасиль' },
+      { id: 'madd_munfasil', label: 'Мунфасыль' },
+      { id: 'madd_lazim',    label: 'Лазим' },
+    ],
+    weight: 5,
   },
 ];
 
@@ -343,15 +371,30 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
   //      (sortMim → sort_mim, sortNun → sort_nun).
   const byActivity = !!(activityThemes && activityThemes.length);
   SORT_TEMPLATES.forEach(tpl => {
+    // какой набор выбранных правил у этого распределения (из активности)
+    var selKey = tpl.id === 'sort_mim' ? 'mimRules' : (tpl.id === 'sort_nun' ? 'nunRules' : 'maddRules');
     if (byActivity) {
       const want = (tpl.id === 'sort_mim' && activitySort && activitySort.mim) ||
-                   (tpl.id === 'sort_nun' && activitySort && activitySort.nun);
+                   (tpl.id === 'sort_nun' && activitySort && activitySort.nun) ||
+                   (tpl.id === 'sort_madd' && activitySort && activitySort.madd);
       if (!want) return;   // галочка не стоит — пропускаем это распределение
     }
+    // Коробки — только выбранные преподавателем правила.
+    // Не выбрал ничего (0) — берём все правила раздела.
+    // Выбрал 1 — распределять не во что, пропускаем (минимум 2 коробки).
+    // Выбрал 2+ — берём именно их.
+    var selectedRules = (byActivity && activitySort && activitySort[selKey]) ? activitySort[selKey] : [];
+    var groups = tpl.groups;
+    if (byActivity && selectedRules.length > 0) {
+      if (selectedRules.length < 2) return;   // только 1 правило — распределение бессмысленно
+      groups = tpl.groups.filter(function (g) { return selectedRules.indexOf(g.id) !== -1; });
+    }
+    if (groups.length < 2) return;   // на всякий случай
+
     const items = [];
     const answer = {};
     let k = 0;
-    tpl.groups.forEach(g => {
+    groups.forEach(g => {
       const chosen = pick(examplesOfTheme(g.id), tpl.perGroup);
       chosen.forEach(ex => {
         const itemId = 'i' + (k++);
@@ -364,7 +407,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
       theme: tpl.theme,
       type: TASK_TYPES.SORT,
       prompt: tpl.prompt,
-      groups: tpl.groups,
+      groups: groups,
       items,
       answer,
       check: CHECK.AUTO,
@@ -548,6 +591,7 @@ const EXAM_CONFIG = {
   themeOrder: [
     'izhar_mim', 'idgham_mim', 'ikhfa_mim', 'shadda_mim',
     'izhar_nun', 'idgham_nun', 'iqlab_nun', 'ikhfa_nun', 'shadda_nun',
+    'madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil', 'madd_lazim',
   ],
   settings: {
     shuffleThemes: false,

@@ -40,6 +40,13 @@ const THEMES = {
   iqlab_nun:  { id: 'iqlab_nun',  name: 'Икляб нуна',   group: 'nun', order: 7 },
   ikhfa_nun:  { id: 'ikhfa_nun',  name: 'Ихфа нуна',    group: 'nun', order: 8 },
   shadda_nun: { id: 'shadda_nun', name: 'Нун с шаддой', group: 'nun', order: 9 },
+
+  // ── Правила мадда (удлинение) — новая тема ──
+  madd_tabii:     { id: 'madd_tabii',     name: 'Естественный мадд',  group: 'madd', order: 10 },
+  madd_iwad:      { id: 'madd_iwad',      name: 'Мадд ‘ивад',         group: 'madd', order: 11 },
+  madd_muttasil:  { id: 'madd_muttasil',  name: 'Мадд муттасиль',     group: 'madd', order: 12 },
+  madd_munfasil:  { id: 'madd_munfasil',  name: 'Мадд мунфасыль',     group: 'madd', order: 13 },
+  madd_lazim:     { id: 'madd_lazim',     name: 'Мадд лазим',         group: 'madd', order: 14 },
 };
 
 
@@ -147,6 +154,43 @@ const EXAMPLES = [
   { id: 'ex_shn_4', text: 'جَنَّةٌ',               themes: ['shadda_nun'] },
   { id: 'ex_shn_5', text: 'ٱلنَّاسِ',              themes: ['shadda_nun'] },
   { id: 'ex_shn_6', text: 'ظَنَّ',                 themes: ['shadda_nun'] },
+
+  // ── Примеры мадда (ровно из материала преподавателя) ──
+  // Естественный мадд (табиий) — 2 хараката
+  { id: 'ex_mdt_1', text: 'كَاتِبٌ',   themes: ['madd_tabii'] },
+  { id: 'ex_mdt_2', text: 'خَالِدٌ',   themes: ['madd_tabii'] },
+  { id: 'ex_mdt_3', text: 'يُوسُفُ',   themes: ['madd_tabii'] },
+  { id: 'ex_mdt_4', text: 'سُورَةٌ',   themes: ['madd_tabii'] },
+  { id: 'ex_mdt_5', text: 'فِيهَا',    themes: ['madd_tabii'] },
+  { id: 'ex_mdt_6', text: 'دِينَهُ',   themes: ['madd_tabii'] },
+
+  // Мадд ‘ивад — 2 хараката (при остановке на танвине фатха; показываем форму «при остановке»)
+  { id: 'ex_mdi_1', text: 'عَلِيمَا',  themes: ['madd_iwad'] },
+  { id: 'ex_mdi_2', text: 'حَكِيمَا',  themes: ['madd_iwad'] },
+  { id: 'ex_mdi_3', text: 'غَفُورَا',  themes: ['madd_iwad'] },
+
+  // Мадд муттасиль (соединённый) — хамза в том же слове, 4–5
+  { id: 'ex_mdt2_1', text: 'يَشَآءُ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_3', text: 'جَآءَتۡهُمُ', themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',   themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_6', text: 'سِيٓئَتۡ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',    themes: ['madd_muttasil'] },
+
+  // Мадд мунфасыль (разделённый) — хамза в следующем слове, 4–5
+  { id: 'ex_mdm_1', text: 'لَآ أُضِيعُ',      themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_2', text: 'إِنَّآ أَنزَلۡنَٰهُ', themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_3', text: 'رَبِّيٓ أَعۡلَمُ',   themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_4', text: 'قَالُوٓا۟ إِنَّمَا',  themes: ['madd_munfasil'] },
+
+  // Мадд лазим — сукун в шадде, 6 харакатов
+  { id: 'ex_mdl_1', text: 'ضَآلًّا',      themes: ['madd_lazim'] },
+  { id: 'ex_mdl_2', text: 'كَآفَّةً',     themes: ['madd_lazim'] },
+  { id: 'ex_mdl_3', text: 'دَآبَّةٍ',     themes: ['madd_lazim'] },
+  { id: 'ex_mdl_4', text: 'حَآدَّ',       themes: ['madd_lazim'] },
+  { id: 'ex_mdl_5', text: 'صَوَآفَّ',     themes: ['madd_lazim'] },
+  { id: 'ex_mdl_6', text: 'ٱلضَّآلِّينَ', themes: ['madd_lazim'] },
 ];
 
 // Индекс для быстрого доступа к примеру по id (строится один раз)

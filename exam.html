@@ -448,7 +448,10 @@
           cfg.title = activity.title || cfg.title;
           cfg.activityThemes = activity.themes;      // ← рецепт преподавателя
           cfg.activityRecite = (activity.recite && activity.recite.length) ? activity.recite : null;
-          cfg.activitySort = { mim: !!activity.sortMim, nun: !!activity.sortNun };
+          cfg.activitySort = {
+            mim: !!activity.sortMim, nun: !!activity.sortNun, madd: !!activity.sortMadd,
+            mimRules: activity.sortMimRules || [], nunRules: activity.sortNunRules || [], maddRules: activity.sortMaddRules || []
+          };
           cfg.activityFind = {
             mim: !!activity.findMim, nun: !!activity.findNun,
             mimAyahs: activity.findMimAyahs || [], nunAyahs: activity.findNunAyahs || []
