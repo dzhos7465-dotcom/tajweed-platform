@@ -168,6 +168,29 @@ function answerForTheme(themeId) {
   return themeId;
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+   ОСОБЫЙ ТЕКСТ ВОПРОСА ДЛЯ ТЕМЫ
+   ──────────────────────────────────────────────────────────────────────
+   По умолчанию вопрос один на все темы: «Какое правило в этом примере?».
+   Но некоторые правила так спрашивать НЕЛЬЗЯ — вопрос будет методически
+   неверным. Первый такой случай — мадд ‘ивад: он существует только при
+   ОСТАНОВКЕ (вакфе). Пока чтение продолжается, ‘ивада нет вовсе, и слово
+   с танвином — это просто слово с танвином.
+
+   Поэтому тема может задать свой текст вопроса. Одна строка на тему;
+   темы без записи берут общий вопрос. Сюда же лягут будущие исключения
+   (харакаты, буквы нулевого курса).
+────────────────────────────────────────────────────────────────────── */
+const DEFAULT_PROMPT = 'Какое правило в этом примере?';
+
+const THEME_PROMPTS = {
+  madd_iwad: 'Какой мадд появится, если остановиться на этом слове?',
+};
+
+function promptForTheme(themeId) {
+  return THEME_PROMPTS[themeId] || DEFAULT_PROMPT;
+}
+
 /* Шаблоны sort. groups.id = тема библиотеки (откуда брать примеры). */
 const SORT_TEMPLATES = [
   {
@@ -356,7 +379,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
         theme: tpl.theme,
         type: TASK_TYPES.SINGLE,
         exampleRefs: [ex.id],
-        prompt: 'Какое правило в этом примере?',
+        prompt: promptForTheme(tpl.theme),
         options: buildFourOptions(tpl.answer, tpl.theme, rng),  // 4 варианта: верный + 3 похожих
         answer: tpl.answer,          // правильный ответ принадлежит заданию
         check: CHECK.AUTO,
@@ -402,11 +425,20 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
         answer[itemId] = g.id;       // правильное размещение — в задании
       });
     });
+    // Если среди коробок есть ‘ивад — добавляем рамку «при остановке».
+    // Без неё задание некорректно: слово с танвином при продолжении чтения
+    // не даёт мадда вообще. Это не подсказка (какое правило — не сказано),
+    // а условие задачи. Убрать — удалить эти три строки.
+    var promptText = tpl.prompt;
+    if (groups.some(function (g) { return g.id === 'madd_iwad'; })) {
+      promptText += ' (на каждом слове — остановка)';
+    }
+
     built.push({
       id: tpl.id,
       theme: tpl.theme,
       type: TASK_TYPES.SORT,
-      prompt: tpl.prompt,
+      prompt: promptText,
       groups: groups,
       items,
       answer,

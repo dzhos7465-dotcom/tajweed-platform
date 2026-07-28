@@ -164,10 +164,26 @@ const EXAMPLES = [
   { id: 'ex_mdt_5', text: 'فِيهَا',    themes: ['madd_tabii'] },
   { id: 'ex_mdt_6', text: 'دِينَهُ',   themes: ['madd_tabii'] },
 
-  // Мадд ‘ивад — 2 хараката (при остановке на танвине фатха; показываем форму «при остановке»)
-  { id: 'ex_mdi_1', text: 'عَلِيمَا',  themes: ['madd_iwad'] },
-  { id: 'ex_mdi_2', text: 'حَكِيمَا',  themes: ['madd_iwad'] },
-  { id: 'ex_mdi_3', text: 'غَفُورَا',  themes: ['madd_iwad'] },
+  // Мадд ‘ивад — 2 хараката.
+  // Слово показывается в ИСХОДНОЙ форме (с танвином фатха) — так ученик видит
+  // его в Коране. Правило появляется только при ОСТАНОВКЕ на этом слове,
+  // поэтому у темы свой текст вопроса (THEME_PROMPTS в tasks.js).
+  // Отбор слов: танвин фатха, не на та-марбуте, и БЕЗ других букв мадда внутри —
+  // иначе слово честно подходило бы сразу в две коробки распределения
+  // («Естественный» и «‘Ивад»). Выверено преподавателем.
+  { id: 'ex_mdi_1',  text: 'أَبَدًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_2',  text: 'أَحَدًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_3',  text: 'وَلَدًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_4',  text: 'عَجَبًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_5',  text: 'نَفۡسًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_6',  text: 'ظُلۡمًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_7',  text: 'رَشَدًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_8',  text: 'مُّرۡشِدًا',   themes: ['madd_iwad'] },
+  { id: 'ex_mdi_9',  text: 'مَّسۡجِدًا',   themes: ['madd_iwad'] },
+  { id: 'ex_mdi_10', text: 'مَوۡعِدًا',    themes: ['madd_iwad'] },
+  { id: 'ex_mdi_11', text: 'سَبۡحًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_12', text: 'غَرۡقًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_13', text: 'مُنقَلَبًا',   themes: ['madd_iwad'] },
 
   // Мадд муттасиль (соединённый) — хамза в том же слове, 4–5
   { id: 'ex_mdt2_1', text: 'يَشَآءُ',    themes: ['madd_muttasil'] },
