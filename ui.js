@@ -677,7 +677,7 @@
     // В тренировке чтение никто не проверяет — не обещаем итоговый балл.
     var isTraining = !!(session.mode && session.mode.sendResult === false);
     if (isTraining) {
-      $('r-cap').textContent = 'результат тренировки';
+      $('r-cap').textContent = 'результат тренировки';   // домашка сюда не попадает: она отправляется
       if (r.hasPendingManual) {
         $('r-pending').textContent = 'Чтение вслух в тренировке не оценивается — ' +
           'запись нужна, чтобы послушать себя. Балл за него ставится только на экзамене.';
@@ -853,7 +853,8 @@
     if (eyebrow && typeof getOpenActivity === 'function') {
       var act = getOpenActivity();
       var m = MODES[act.mode] ? MODES[act.mode].id : 'exam';
-      eyebrow.textContent = (m === 'training') ? 'Тренировка' : 'Контрольная работа';
+      eyebrow.textContent = { training: 'Тренировка', homework: 'Домашнее задание' }[m]
+        || 'Контрольная работа';
     }
 
     // Число заданий на обложке — считаем реально, чтобы не расходилось

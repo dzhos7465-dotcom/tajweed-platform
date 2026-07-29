@@ -457,7 +457,20 @@
             mim: !!activity.findMim, nun: !!activity.findNun,
             mimAyahs: activity.findMimAyahs || [], nunAyahs: activity.findNunAyahs || []
           };
-          cfg.mode = (activity.type === 'training') ? 'training' : 'exam';
+          /* Тип активности → режим. Раньше здесь стояло «тренировка или
+             экзамен», и «Домашнее задание» с «Повторением» молча
+             становились экзаменом: преподаватель выбирал домашку, а
+             ученики не видели ответов. Теперь у каждого пункта списка
+             есть настоящее поведение.
+             Повторение ведёт себя как тренировка: цель — прогнать
+             материал, оценка не нужна. */
+          var MODE_BY_TYPE = {
+            exam:     'exam',
+            homework: 'homework',
+            training: 'training',
+            review:   'training',
+          };
+          cfg.mode = MODE_BY_TYPE[activity.type] || 'exam';
           if (activity.timeLimit != null) {
             cfg.settings = cfg.settings || {};
             cfg.settings.timeLimitMinutes = activity.timeLimit > 0 ? activity.timeLimit : null;
@@ -465,7 +478,12 @@
           window.SESSION_EXAM_CONFIG = cfg;
           // Обновить подпись обложки
           var eb = document.getElementById('cover-eyebrow');
-          if (eb) eb.textContent = (cfg.mode === 'training') ? 'Тренировка' : 'Контрольная работа';
+          var COVER_LABEL = {
+            exam: 'Контрольная работа', homework: 'Домашнее задание',
+            training: 'Тренировка',
+          };
+          if (eb) eb.textContent = COVER_LABEL[cfg.mode] ||
+            (activity.type === 'review' ? 'Повторение' : 'Контрольная работа');
           var h1 = document.querySelector('#screen-start h1');
           if (h1 && activity.title) h1.textContent = activity.title;
         }
