@@ -105,38 +105,38 @@ const EXAMPLES = [
   { id: 'ex_izm_5', text: 'هُمۡ عَن',              themes: ['izhar_mim'] },
   { id: 'ex_izm_6', text: 'لَمۡ يَعۡلَمۡ',         themes: ['izhar_mim'] },
   { id: 'ex_izm_7', text: 'كُلُّ أَمۡرٍ',          themes: ['izhar_mim'] },
-  { id: 'ex_izm_8', text: 'سَمۡعَهُمۡ',            themes: ['izhar_mim'] },
-  { id: 'ex_izm_9', text: 'مَمۡنُونٍ',             themes: ['izhar_mim'] },
+  { id: 'ex_izm_8', text: 'سَـمۡعَهُمۡ',            themes: ['izhar_mim'] },
+  { id: 'ex_izm_9', text: 'مَـمۡنُونٍ',             themes: ['izhar_mim'] },
 
   // ── Идгам мими ──
   { id: 'ex_idm_1', text: 'لَهُم مَّا',            themes: ['idgham_mim'] },
-  { id: 'ex_idm_2', text: 'كَم مِّن',              themes: ['idgham_mim'] },
+  { id: 'ex_idm_2', text: 'كَـم مِّن',              themes: ['idgham_mim'] },
   { id: 'ex_idm_3', text: 'عَلَيۡهِم مُّؤۡصَدَةٌ',  themes: ['idgham_mim'] },
   { id: 'ex_idm_4', text: 'رَبِّهِم مِّن',         themes: ['idgham_mim'] },
   { id: 'ex_idm_5', text: 'وَلَهُم مَّا',          themes: ['idgham_mim'] },
-  { id: 'ex_idm_6', text: 'مِنكُم مَّن',           themes: ['idgham_mim'] },
+  { id: 'ex_idm_6', text: 'مِنكُـم مَّن',           themes: ['idgham_mim'] },
   { id: 'ex_idm_7', text: 'وَءَامَنَهُم مِّنۡ',    themes: ['idgham_mim'] },
   { id: 'ex_idm_8', text: 'أَطۡعَمَهُم مِّن',      themes: ['idgham_mim'] },
 
   // ── Ихфа мими ──
   { id: 'ex_ikm_1', text: 'هُمۡ بِهَا',            themes: ['ikhfa_mim'] },
-  { id: 'ex_ikm_2', text: 'تَرۡمِيهِم بِحِجَارَةٍ', themes: ['ikhfa_mim'] },
+  { id: 'ex_ikm_2', text: 'تَرۡمِيهِم بِـحِـجَارَةٍ', themes: ['ikhfa_mim'] },
   { id: 'ex_ikm_3', text: 'رَبَّهُم بِهِمۡ',       themes: ['ikhfa_mim'] },
-  { id: 'ex_ikm_4', text: 'كُنتُم بِهِ',           themes: ['ikhfa_mim'] },
-  { id: 'ex_ikm_5', text: 'كَذَّبۡتُم بِهِ',       themes: ['ikhfa_mim'] },
-  { id: 'ex_ikm_6', text: 'بَيۡنَهُم بِمَا',       themes: ['ikhfa_mim'] },
+  { id: 'ex_ikm_4', text: 'كُنتُـم بِهِ',           themes: ['ikhfa_mim'] },
+  { id: 'ex_ikm_5', text: 'كَذَّبۡتُـم بِهِ',       themes: ['ikhfa_mim'] },
+  { id: 'ex_ikm_6', text: 'بَيۡنَهُم بِـمَا',       themes: ['ikhfa_mim'] },
   { id: 'ex_ikm_7', text: 'بَعۡضُهُم بِبَعۡضٍ',    themes: ['ikhfa_mim'] },
 
   // ── Мим с шаддой: мّ читается с гунной две огласовки ──
-  { id: 'ex_shm_1', text: 'ثُمَّ',                 themes: ['shadda_mim'] },
+  { id: 'ex_shm_1', text: 'ثُـمَّ',                 themes: ['shadda_mim'] },
   { id: 'ex_shm_2', text: 'عَمَّ',                 themes: ['shadda_mim'] },
-  { id: 'ex_shm_3', text: 'لَمَّا',                themes: ['shadda_mim'] },
-  { id: 'ex_shm_4', text: 'مِّمَّا',               themes: ['shadda_mim'] },
+  { id: 'ex_shm_3', text: 'لَـمَّا',                themes: ['shadda_mim'] },
+  { id: 'ex_shm_4', text: 'مِّـمَّا',               themes: ['shadda_mim'] },
   { id: 'ex_shm_5', text: 'أَمَّةٌ',               themes: ['shadda_mim'] },
 
   // ── Изхар нуна ──
   { id: 'ex_izn_1', text: 'مِنۡ هَادٍ',            themes: ['izhar_nun'] },
-  { id: 'ex_izn_2', text: 'مِنۡ عِلۡمٍ',            themes: ['izhar_nun'] },
+  { id: 'ex_izn_2', text: 'مِنۡ عِلۡـمٍ',            themes: ['izhar_nun'] },
   { id: 'ex_izn_3', text: 'غَفُورٌ حَلِيمٌ',        themes: ['izhar_nun'] },
   { id: 'ex_izn_4', text: 'مَنۡ أَعۡطَىٰ',          themes: ['izhar_nun'] },
   { id: 'ex_izn_5', text: 'مَنۡ هَاجَرَ',           themes: ['izhar_nun'] },
@@ -148,7 +148,7 @@ const EXAMPLES = [
   // ── Идгам нуна ──
   { id: 'ex_idn_1', text: 'مَن يَقُولُ',           themes: ['idgham_nun'] },
   { id: 'ex_idn_2', text: 'مِن رَّبِّهِمۡ',         themes: ['idgham_nun'] },
-  { id: 'ex_idn_3', text: 'هُدٗى لِّلۡمُتَّقِينَ',   themes: ['idgham_nun'] },
+  { id: 'ex_idn_3', text: 'هُدًى لِّلۡمُتَّقِينَ',   themes: ['idgham_nun'] },
   { id: 'ex_idn_4', text: 'مَن يَعۡمَلۡ',           themes: ['idgham_nun'] },
   { id: 'ex_idn_5', text: 'مِن نِّعۡمَةٍ',          themes: ['idgham_nun'] },
   { id: 'ex_idn_6', text: 'مِن مَّاءٍ',             themes: ['idgham_nun'] },
@@ -158,14 +158,14 @@ const EXAMPLES = [
 
   // ── Икляб нуна ──
   { id: 'ex_iqn_1', text: 'مِنۢ بَعۡدِ',           themes: ['iqlab_nun'] },
-  { id: 'ex_iqn_2', text: 'زَوۡجِۢ بَهِيجٍ',        themes: ['iqlab_nun'] },
+  { id: 'ex_iqn_2', text: 'زَوۡجِۢ بَـهِـيجٍ',        themes: ['iqlab_nun'] },
   { id: 'ex_iqn_3', text: 'مِنۢ بَيۡنِ',            themes: ['iqlab_nun'] },
   { id: 'ex_iqn_4', text: 'أَنۢ بُورِكَ',           themes: ['iqlab_nun'] },
 
   // ── Ихфа нуна ──
   { id: 'ex_ikn_1', text: 'مِنۡ قَبۡلُ',           themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_2', text: 'أَنفُسَكُمۡ',           themes: ['ikhfa_nun'] },
-  { id: 'ex_ikn_3', text: 'مِنۡ ثَمَرَاتٍ',         themes: ['ikhfa_nun'] },
+  { id: 'ex_ikn_3', text: 'مِنۡ ثَـمَرَاتٍ',         themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_4', text: 'شَيۡءٖ قَدِيرٌ',         themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_5',  text: 'أَن سَيَكُونَ',         themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_6',  text: 'مِن دَابَّةٍ',          themes: ['ikhfa_nun'] },
@@ -177,10 +177,10 @@ const EXAMPLES = [
   { id: 'ex_ikn_12', text: 'مِن ظَهِيرٍ',           themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_13', text: 'عَن صَلَاتِهِمۡ',       themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_14', text: 'مِن ذِكۡرٍ',            themes: ['ikhfa_nun'] },
-  { id: 'ex_ikn_15', text: 'فَمَن ثَقُلَتۡ',        themes: ['ikhfa_nun'] },
+  { id: 'ex_ikn_15', text: 'فَـمَن ثَقُلَتۡ',        themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_16', text: 'مِن كُلٍّ',             themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_17', text: 'مَن جَاءَ',             themes: ['ikhfa_nun'] },
-  { id: 'ex_ikn_18', text: 'مِن شَرٍّ',             themes: ['ikhfa_nun'] },
+  { id: 'ex_ikn_18', text: 'مِن شَرِّ',             themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_19', text: 'وَإِن قِيلَ',           themes: ['ikhfa_nun'] },
 
   // ── Нун с шаддой: نّ читается с гунной две огласовки ──
@@ -207,7 +207,7 @@ const EXAMPLES = [
   { id: 'ex_mdi_1',  text: 'أَبَدًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_2',  text: 'أَحَدًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_3',  text: 'وَلَدًا',      themes: ['madd_iwad'] },
-  { id: 'ex_mdi_4',  text: 'عَجَبًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_4',  text: 'عَـجَبًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_5',  text: 'نَفۡسًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_6',  text: 'ظُلۡمًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_7',  text: 'رَشَدًا',      themes: ['madd_iwad'] },
@@ -215,8 +215,8 @@ const EXAMPLES = [
   { id: 'ex_mdi_9',  text: 'مَّسۡجِدًا',   themes: ['madd_iwad'] },
   { id: 'ex_mdi_10', text: 'مَوۡعِدًا',    themes: ['madd_iwad'] },
   { id: 'ex_mdi_11', text: 'سَبۡحًا',      themes: ['madd_iwad'] },
-  { id: 'ex_mdi_12', text: 'غَرۡقًا',      themes: ['madd_iwad'] },
-  { id: 'ex_mdi_13', text: 'مُنقَلَبًا',   themes: ['madd_iwad'] },
+  { id: 'ex_mdi_12', text: 'غَـرۡقًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_13', text: 'مُنقَلَـبًا',   themes: ['madd_iwad'] },
   // Сура «Аль-‘Адият», 1–5 — эту суру дети проходили как домашнее задание.
   { id: 'ex_mdi_14', text: 'ضَبۡحًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_15', text: 'قَدۡحًا',      themes: ['madd_iwad'] },
@@ -234,28 +234,38 @@ const EXAMPLES = [
   // а перед ней буква мадда — рядом появляется ‘арид. Помечаем, чтобы
   // «‘Арид» не предлагался вариантом ответа: он там не ошибка.
   { id: 'ex_mdt2_1', text: 'يَشَآءُ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
-  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
+  { id: 'ex_mdt2_2', text: 'دُعَآءُ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_3', text: 'جَآءَتۡهُمُ',  themes: ['madd_muttasil'] },
   { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',    themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
-  { id: 'ex_mdt2_6', text: 'سِيٓئَتۡ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_6', text: 'سِـيٓـئَتۡ',     themes: ['madd_muttasil'] },
   { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_8', text: 'قُرُوٓءٍ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_9', text: 'وَجِيٓءَ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
 
   // Мадд мунфасыль (разделённый) — хамза в следующем слове, 4–5
   { id: 'ex_mdm_1', text: 'لَآ أُضِيعُ',        themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
-  { id: 'ex_mdm_2', text: 'إِنَّآ أَنزَلۡنَٰهُ',   themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
-  { id: 'ex_mdm_3', text: 'رَبِّيٓ أَعۡلَمُ',     themes: ['madd_munfasil'] },
-  { id: 'ex_mdm_4', text: 'قَالُوٓا۟ إِنَّمَا',    themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_2', text: 'إِنَّآ أَنزَلۡنَـٰهُ',   themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_3', text: 'رَبِّـيٓ أَعۡلَمُ',     themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_4', text: 'قَالُوٓا۟ إِنَّـمَا',    themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
   { id: 'ex_mdm_5', text: 'مُتَّخِذيٓ أَخۡدَانٍ', themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
-  { id: 'ex_mdm_6', text: 'قَالُوٓا۟ إِنۡ أَنتُمۡ', themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_6', text: 'قَالُوٓا۟ إِنۡ أَنتُـمۡ', themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  // Пары, где во втором слове НЕТ буквы мадда — они годятся и в вопрос,
+  // и в распределение рядом с коробкой «Естественный». Первые три —
+  // из сур, которые дети знают наизусть.
+  { id: 'ex_mdm_7',  text: 'لَآ أَعۡبُدُ',        themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_8',  text: 'وَلَآ أَنتُـمۡ',       themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_9',  text: 'لَآ أُقۡسِمُ',        themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_10', text: 'مَآ أَنتَ',          themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_11', text: 'بِمَآ أُنزِلَ',       themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_12', text: 'بِمَآ أَنزَلَ',       themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_13', text: 'فِىٓ أَنفُسِكُمۡ',    themes: ['madd_munfasil'] },
 
   // Мадд лазим СЛОВЕСНЫЙ — сукун в шадде, 6 харакатов
   { id: 'ex_mdl_1', text: 'ضَآلًّا',      themes: ['madd_lazim'], alsoShows: ['madd_iwad'] },
   { id: 'ex_mdl_2', text: 'كَآفَّةً',     themes: ['madd_lazim'] },   // та-марбута — ‘ивада нет
   { id: 'ex_mdl_3', text: 'دَآبَّةٍ',     themes: ['madd_lazim'] },
-  { id: 'ex_mdl_4', text: 'حَآدَّ',       themes: ['madd_lazim'] },
+  { id: 'ex_mdl_4', text: 'حَـآدَّ',       themes: ['madd_lazim'] },
   { id: 'ex_mdl_5', text: 'صَوَآفَّ',     themes: ['madd_lazim'] },
   { id: 'ex_mdl_6', text: 'ٱلضَّآلِّينَ', themes: ['madd_lazim'], alsoShows: ['madd_tabii', 'madd_arid'] },
 
@@ -280,10 +290,10 @@ const EXAMPLES = [
   // при продолжении чтения та же буква звучит как естественный мадд.
   { id: 'ex_mda_1', text: 'وَٱلنَّاسِ',    themes: ['madd_arid'] },
   { id: 'ex_mda_2', text: 'ٱلۡإِنسَانَ',   themes: ['madd_arid'] },
-  { id: 'ex_mda_3', text: 'ٱلرَّحۡمَانُ',   themes: ['madd_arid'] },
+  { id: 'ex_mda_3', text: 'ٱلرَّحۡمَـٰنُ',   themes: ['madd_arid'] },
   { id: 'ex_mda_4', text: 'تَعۡلَمُونَ',    themes: ['madd_arid'] },
   { id: 'ex_mda_5', text: 'يُنفِقُونَ',    themes: ['madd_arid'] },
-  { id: 'ex_mda_6', text: 'ٱلۡمُفۡلِحُونَ', themes: ['madd_arid'] },
+  { id: 'ex_mda_6', text: 'ٱلۡـمُفۡلِحُونَ', themes: ['madd_arid'] },
   { id: 'ex_mda_7', text: 'مُبِينٌ',       themes: ['madd_arid'] },
   { id: 'ex_mda_8', text: 'نَسۡتَعِينُ',    themes: ['madd_arid'] },
   { id: 'ex_mda_9', text: 'ٱلرَّحِيمِ',     themes: ['madd_arid'] },
