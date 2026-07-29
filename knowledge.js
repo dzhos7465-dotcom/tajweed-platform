@@ -29,24 +29,45 @@
    Поле order — лишь удобная подсказка «естественного» порядка, которую
    слой проверки может использовать или переопределить.
 ────────────────────────────────────────────────────────────────────── */
+/* Два поля вместо одного — они отвечают на РАЗНЫЕ вопросы:
+
+     group — «из чего собирать варианты ответа». Нельзя предложить мадд
+             в ответах на вопрос про нун, поэтому семья вариантов = раздел.
+     stage — «когда это изучается». Место в последовательности курса.
+
+   Пока разделы совпадали с этапами обучения, разницы не было видно. Но
+   раздел «знаки и соединение» — это начало первого курса, а мадд идёт
+   в том же курсе позже: одна координата этого уже не выражает.
+
+   ВАЖНО: stage пока НЕ используется ни одним экраном. Поле заложено под
+   промежуточные тесты по темам и порядок разделов в панели. Если окажется
+   лишним — удаляется без последствий.
+
+   ВАЖНО: id темы менять НЕЛЬЗЯ. Он записан внутри уже сохранённых
+   активностей в таблице; переименование осиротит их. Название меняется
+   свободно, id — нет. */
 const THEMES = {
-  izhar_mim:  { id: 'izhar_mim',  name: 'Изхар мими',   group: 'mim', order: 1 },
-  idgham_mim: { id: 'idgham_mim', name: 'Идгам мими',   group: 'mim', order: 2 },
-  ikhfa_mim:  { id: 'ikhfa_mim',  name: 'Ихфа мими',    group: 'mim', order: 3 },
-  shadda_mim: { id: 'shadda_mim', name: 'Мим с шаддой', group: 'mim', order: 4 },
+  izhar_mim:  { id: 'izhar_mim',  name: 'Изхар мими',   group: 'mim', stage: 'course1', order: 1 },
+  idgham_mim: { id: 'idgham_mim', name: 'Идгам мими',   group: 'mim', stage: 'course1', order: 2 },
+  ikhfa_mim:  { id: 'ikhfa_mim',  name: 'Ихфа мими',    group: 'mim', stage: 'course1', order: 3 },
+  shadda_mim: { id: 'shadda_mim', name: 'Мим с шаддой', group: 'mim', stage: 'course1', order: 4 },
 
-  izhar_nun:  { id: 'izhar_nun',  name: 'Изхар нуна',   group: 'nun', order: 5 },
-  idgham_nun: { id: 'idgham_nun', name: 'Идгам нуна',   group: 'nun', order: 6 },
-  iqlab_nun:  { id: 'iqlab_nun',  name: 'Икляб нуна',   group: 'nun', order: 7 },
-  ikhfa_nun:  { id: 'ikhfa_nun',  name: 'Ихфа нуна',    group: 'nun', order: 8 },
-  shadda_nun: { id: 'shadda_nun', name: 'Нун с шаддой', group: 'nun', order: 9 },
+  izhar_nun:  { id: 'izhar_nun',  name: 'Изхар нуна',   group: 'nun', stage: 'course1', order: 5 },
+  idgham_nun: { id: 'idgham_nun', name: 'Идгам нуна',   group: 'nun', stage: 'course1', order: 6 },
+  iqlab_nun:  { id: 'iqlab_nun',  name: 'Икляб нуна',   group: 'nun', stage: 'course1', order: 7 },
+  ikhfa_nun:  { id: 'ikhfa_nun',  name: 'Ихфа нуна',    group: 'nun', stage: 'course1', order: 8 },
+  shadda_nun: { id: 'shadda_nun', name: 'Нун с шаддой', group: 'nun', stage: 'course1', order: 9 },
 
-  // ── Правила мадда (удлинение) — новая тема ──
-  madd_tabii:     { id: 'madd_tabii',     name: 'Естественный мадд',  group: 'madd', order: 10 },
-  madd_iwad:      { id: 'madd_iwad',      name: 'Мадд ‘ивад',         group: 'madd', order: 11 },
-  madd_muttasil:  { id: 'madd_muttasil',  name: 'Мадд муттасиль',     group: 'madd', order: 12 },
-  madd_munfasil:  { id: 'madd_munfasil',  name: 'Мадд мунфасыль',     group: 'madd', order: 13 },
-  madd_lazim:     { id: 'madd_lazim',     name: 'Мадд лазим',         group: 'madd', order: 14 },
+  // ── Правила мадда (удлинение) ──
+  madd_tabii:      { id: 'madd_tabii',      name: 'Естественный мадд',        group: 'madd', stage: 'course1', order: 10 },
+  madd_iwad:       { id: 'madd_iwad',       name: 'Мадд ‘ивад',               group: 'madd', stage: 'course1', order: 11 },
+  madd_muttasil:   { id: 'madd_muttasil',   name: 'Мадд муттасиль',           group: 'madd', stage: 'course1', order: 12 },
+  madd_munfasil:   { id: 'madd_munfasil',   name: 'Мадд мунфасыль',           group: 'madd', stage: 'course1', order: 13 },
+  // id остаётся madd_lazim — тема уже живёт в сохранённых активностях.
+  // Уточнение «(словесный)» появилось, когда добавился буквенный.
+  madd_lazim:      { id: 'madd_lazim',      name: 'Мадд лазим (словесный)',   group: 'madd', stage: 'course1', order: 14 },
+  madd_lazim_harfi:{ id: 'madd_lazim_harfi',name: 'Мадд лазим (буквенный)',   group: 'madd', stage: 'course1', order: 15 },
+  madd_arid:       { id: 'madd_arid',       name: 'Мадд ‘арид',               group: 'madd', stage: 'course1', order: 16 },
 };
 
 
@@ -59,6 +80,21 @@ const THEMES = {
 
    Минимальная форма (Блок 1): id, text, themes[].
    Форма готова к росту без ломки: vowels, type, audio, image, note, source.
+
+   ── Поле alsoShows ──
+   В одном слове бывает видно сразу несколько правил. В لَآ أُضِيعُ мадд
+   двойной: разделённый между словами и естественный внутри أُضِيعُ.
+   Для вопроса «какое правило» это не мешает — спрашиваем про конкретное
+   место. Для распределения мешает: если коробка «Естественный» стоит рядом,
+   оба ответа верны, а платформа засчитает один.
+
+   Поэтому пример честно объявляет, что ещё в нём видно:
+       alsoShows: ['madd_tabii']
+   Он по-прежнему ничего не проверяет и не знает про задания — только
+   описывает себя. Решает ЗАДАНИЕ: вопрос берёт такой пример спокойно,
+   распределение пропускает его, если названное правило стоит коробкой.
+   Правила из ДРУГИХ разделов не указываем — мим и мадд по разным коробкам
+   не путаются.
 ────────────────────────────────────────────────────────────────────── */
 const EXAMPLES = [
   // ── Изхар мими ──
@@ -168,9 +204,6 @@ const EXAMPLES = [
   // Слово показывается в ИСХОДНОЙ форме (с танвином фатха) — так ученик видит
   // его в Коране. Правило появляется только при ОСТАНОВКЕ на этом слове,
   // поэтому у темы свой текст вопроса (THEME_PROMPTS в tasks.js).
-  // Отбор слов: танвин фатха, не на та-марбуте, и БЕЗ других букв мадда внутри —
-  // иначе слово честно подходило бы сразу в две коробки распределения
-  // («Естественный» и «‘Ивад»). Выверено преподавателем.
   { id: 'ex_mdi_1',  text: 'أَبَدًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_2',  text: 'أَحَدًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_3',  text: 'وَلَدًا',      themes: ['madd_iwad'] },
@@ -184,29 +217,66 @@ const EXAMPLES = [
   { id: 'ex_mdi_11', text: 'سَبۡحًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_12', text: 'غَرۡقًا',      themes: ['madd_iwad'] },
   { id: 'ex_mdi_13', text: 'مُنقَلَبًا',   themes: ['madd_iwad'] },
+  // Сура «Аль-‘Адият», 1–5 — эту суру дети проходили как домашнее задание.
+  { id: 'ex_mdi_14', text: 'ضَبۡحًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_15', text: 'قَدۡحًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_16', text: 'صُبۡحًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_17', text: 'نَقۡعًا',      themes: ['madd_iwad'] },
+  { id: 'ex_mdi_18', text: 'جَمۡعًا',      themes: ['madd_iwad'] },
+  // Слова из урока: внутри каждого есть ещё и естественный мадд, поэтому
+  // в вопрос они идут, а в распределение с коробкой «Естественный» — нет.
+  { id: 'ex_mdi_19', text: 'عَلِيمًا',     themes: ['madd_iwad'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdi_20', text: 'حَكِيمًا',     themes: ['madd_iwad'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdi_21', text: 'غَفُورًا',     themes: ['madd_iwad'], alsoShows: ['madd_tabii'] },
 
   // Мадд муттасиль (соединённый) — хамза в том же слове, 4–5
-  { id: 'ex_mdt2_1', text: 'يَشَآءُ',    themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',    themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_3', text: 'جَآءَتۡهُمُ', themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',    themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',   themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_6', text: 'سِيٓئَتۡ',    themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_1', text: 'يَشَآءُ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_3', text: 'جَآءَتۡهُمُ',  themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_6', text: 'سِيٓئَتۡ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_8', text: 'قُرُوٓءٍ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_9', text: 'وَجِيٓءَ',     themes: ['madd_muttasil'] },
 
   // Мадд мунфасыль (разделённый) — хамза в следующем слове, 4–5
-  { id: 'ex_mdm_1', text: 'لَآ أُضِيعُ',      themes: ['madd_munfasil'] },
-  { id: 'ex_mdm_2', text: 'إِنَّآ أَنزَلۡنَٰهُ', themes: ['madd_munfasil'] },
-  { id: 'ex_mdm_3', text: 'رَبِّيٓ أَعۡلَمُ',   themes: ['madd_munfasil'] },
-  { id: 'ex_mdm_4', text: 'قَالُوٓا۟ إِنَّمَا',  themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_1', text: 'لَآ أُضِيعُ',        themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_2', text: 'إِنَّآ أَنزَلۡنَٰهُ',   themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_3', text: 'رَبِّيٓ أَعۡلَمُ',     themes: ['madd_munfasil'] },
+  { id: 'ex_mdm_4', text: 'قَالُوٓا۟ إِنَّمَا',    themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_5', text: 'مُتَّخِذيٓ أَخۡدَانٍ', themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
+  { id: 'ex_mdm_6', text: 'قَالُوٓا۟ إِنۡ أَنتُمۡ', themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
 
-  // Мадд лазим — сукун в шадде, 6 харакатов
-  { id: 'ex_mdl_1', text: 'ضَآلًّا',      themes: ['madd_lazim'] },
-  { id: 'ex_mdl_2', text: 'كَآفَّةً',     themes: ['madd_lazim'] },
+  // Мадд лазим СЛОВЕСНЫЙ — сукун в шадде, 6 харакатов
+  { id: 'ex_mdl_1', text: 'ضَآلًّا',      themes: ['madd_lazim'], alsoShows: ['madd_iwad'] },
+  { id: 'ex_mdl_2', text: 'كَآفَّةً',     themes: ['madd_lazim'] },   // та-марбута — ‘ивада нет
   { id: 'ex_mdl_3', text: 'دَآبَّةٍ',     themes: ['madd_lazim'] },
   { id: 'ex_mdl_4', text: 'حَآدَّ',       themes: ['madd_lazim'] },
   { id: 'ex_mdl_5', text: 'صَوَآفَّ',     themes: ['madd_lazim'] },
-  { id: 'ex_mdl_6', text: 'ٱلضَّآلِّينَ', themes: ['madd_lazim'] },
+  { id: 'ex_mdl_6', text: 'ٱلضَّآلِّينَ', themes: ['madd_lazim'], alsoShows: ['madd_tabii', 'madd_arid'] },
+
+  // Мадд лазим БУКВЕННЫЙ — буквы в начале суры, 6 харакатов.
+  // Признак: волнистая линия (маддах) над буквой. Есть линия — тянем.
+  // الٓرٓ и يسٓ сюда пока не входят: в них рядом стоит удлинение на два
+  // хараката (رَا، يَا) — правила, которого в библиотеке ещё нет.
+  { id: 'ex_mdlh_1', text: 'الٓمٓ',  themes: ['madd_lazim_harfi'] },
+  { id: 'ex_mdlh_2', text: 'صٓ',     themes: ['madd_lazim_harfi'] },
+  { id: 'ex_mdlh_3', text: 'نٓ',     themes: ['madd_lazim_harfi'] },
+  { id: 'ex_mdlh_4', text: 'قٓ',     themes: ['madd_lazim_harfi'] },
+
+  // Мадд ‘арид — при остановке последняя буква получает сукун, а перед
+  // ним стоит буква мадда. Как и ‘ивад, существует только при остановке:
+  // при продолжении чтения та же буква звучит как естественный мадд.
+  { id: 'ex_mda_1', text: 'وَٱلنَّاسِ',    themes: ['madd_arid'] },
+  { id: 'ex_mda_2', text: 'ٱلۡإِنسَانَ',   themes: ['madd_arid'] },
+  { id: 'ex_mda_3', text: 'ٱلرَّحۡمَانُ',   themes: ['madd_arid'] },
+  { id: 'ex_mda_4', text: 'تَعۡلَمُونَ',    themes: ['madd_arid'] },
+  { id: 'ex_mda_5', text: 'يُنفِقُونَ',    themes: ['madd_arid'] },
+  { id: 'ex_mda_6', text: 'ٱلۡمُفۡلِحُونَ', themes: ['madd_arid'] },
+  { id: 'ex_mda_7', text: 'مُبِينٌ',       themes: ['madd_arid'] },
+  { id: 'ex_mda_8', text: 'نَسۡتَعِينُ',    themes: ['madd_arid'] },
+  { id: 'ex_mda_9', text: 'ٱلرَّحِيمِ',     themes: ['madd_arid'] },
 ];
 
 // Индекс для быстрого доступа к примеру по id (строится один раз)

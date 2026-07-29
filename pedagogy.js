@@ -52,7 +52,9 @@ const RULE_COLORS = {
   madd_iwad:     { accent: '#0d9488', letter: '#0f766e' },   // тил
   madd_muttasil: { accent: '#7c3aed', letter: '#6d28d9' },   // фиолетовый
   madd_munfasil: { accent: '#c026d3', letter: '#a21caf' },   // пурпурный
-  madd_lazim:    { accent: '#b91c1c', letter: '#991b1b' },   // тёмно-красный (самый длинный)
+  madd_lazim:       { accent: '#b91c1c', letter: '#991b1b' },   // тёмно-красный (самый длинный)
+  madd_lazim_harfi: { accent: '#7c2d12', letter: '#9a3412' },   // тёмно-коричневый — родня лазиму
+  madd_arid:        { accent: '#ca8a04', letter: '#a16207' },   // тёмно-золотой (правило остановки)
 };
 
 /* Безопасный доступ к цвету темы. Если методика не задала цвет для темы —

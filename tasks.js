@@ -64,7 +64,9 @@ const RULE_OPTIONS = [
   { id: 'madd_iwad',     label: '‘Ивад' },
   { id: 'madd_muttasil', label: 'Муттасиль' },
   { id: 'madd_munfasil', label: 'Мунфасыль' },
-  { id: 'madd_lazim',    label: 'Лазим' },
+  { id: 'madd_lazim',       label: 'Лазим (словесный)' },
+  { id: 'madd_lazim_harfi', label: 'Лазим (буквенный)' },
+  { id: 'madd_arid',        label: '‘Арид' },
 ];
 
 /* Семейства правил — чтобы отвлекающие варианты были ПОХОЖИМИ (того же
@@ -73,7 +75,8 @@ const RULE_OPTIONS = [
 const OPTION_FAMILY = {
   mim: ['izhar', 'idgham', 'ikhfa', 'shadda_mim'],
   nun: ['izhar', 'idgham', 'ikhfa', 'iqlab', 'shadda_nun'],
-  madd: ['madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil', 'madd_lazim'],
+  madd: ['madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil',
+         'madd_lazim', 'madd_lazim_harfi', 'madd_arid'],
 };
 function familyOfTheme(themeId) {
   if (themeId.indexOf('madd') !== -1) return 'madd';
@@ -150,7 +153,9 @@ const RULE_TEMPLATES = [
   { theme: 'madd_iwad',     answer: 'madd_iwad',     count: 2 },
   { theme: 'madd_muttasil', answer: 'madd_muttasil', count: 2 },
   { theme: 'madd_munfasil', answer: 'madd_munfasil', count: 2 },
-  { theme: 'madd_lazim',    answer: 'madd_lazim',    count: 2 },
+  { theme: 'madd_lazim',       answer: 'madd_lazim',       count: 2 },
+  { theme: 'madd_lazim_harfi', answer: 'madd_lazim_harfi', count: 2 },
+  { theme: 'madd_arid',        answer: 'madd_arid',        count: 2 },
 ];
 
 /* Карта «тема → правильный ответ». Нужна, когда шаблоны приходят из
@@ -185,11 +190,18 @@ const DEFAULT_PROMPT = 'Какое правило в этом примере?';
 
 const THEME_PROMPTS = {
   madd_iwad: 'Какой мадд появится, если остановиться на этом слове?',
+  madd_arid: 'Какой мадд появится, если остановиться на этом слове?',
 };
 
 function promptForTheme(themeId) {
   return THEME_PROMPTS[themeId] || DEFAULT_PROMPT;
 }
+
+/* Правила, которые существуют ТОЛЬКО при остановке. Если такое правило
+   стоит коробкой в распределении, всё задание идёт «при остановке» —
+   иначе оно противоречиво: при продолжении чтения этих правил нет вовсе.
+   Одно место, откуда об этом узнают все задания. */
+const STOP_ONLY_THEMES = ['madd_iwad', 'madd_arid'];
 
 /* Шаблоны sort. groups.id = тема библиотеки (откуда брать примеры). */
 const SORT_TEMPLATES = [
@@ -228,7 +240,9 @@ const SORT_TEMPLATES = [
       { id: 'madd_iwad',     label: '‘Ивад' },
       { id: 'madd_muttasil', label: 'Муттасиль' },
       { id: 'madd_munfasil', label: 'Мунфасыль' },
-      { id: 'madd_lazim',    label: 'Лазим' },
+      { id: 'madd_lazim',       label: 'Лазим (словесный)' },
+      { id: 'madd_lazim_harfi', label: 'Лазим (буквенный)' },
+      { id: 'madd_arid',        label: '‘Арид' },
     ],
     weight: 5,
   },
@@ -298,6 +312,23 @@ function shuffleWith(arr, rng) {
 
 function examplesOfTheme(themeId) {
   return EXAMPLES.filter(e => e.themes.indexOf(themeId) !== -1);
+}
+
+/* Примеры темы, ПРИГОДНЫЕ ДЛЯ РАСПРЕДЕЛЕНИЯ по заданным коробкам.
+   Отбрасываем те, в которых видно ещё одно правило, стоящее коробкой
+   рядом: у такого слова два верных места, а засчитается одно.
+   Знание об этом лежит в примере (alsoShows), решение — здесь, в задании.
+
+   Если после отбора не осталось ничего (у темы все примеры «двойные»),
+   возвращаем исходный список: лучше несовершенное задание, чем пустая
+   коробка. Такую тему видно в панели по счётчику примеров. */
+function examplesForSort(themeId, boxIds) {
+  const all = examplesOfTheme(themeId);
+  const fit = all.filter(function (e) {
+    if (!e.alsoShows || !e.alsoShows.length) return true;
+    return !e.alsoShows.some(function (r) { return boxIds.indexOf(r) !== -1; });
+  });
+  return fit.length ? fit : all;
 }
 
 /* Построить задания из шаблонов.
@@ -417,20 +448,19 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
     const items = [];
     const answer = {};
     let k = 0;
+    const boxIds = groups.map(function (g) { return g.id; });
     groups.forEach(g => {
-      const chosen = pick(examplesOfTheme(g.id), tpl.perGroup);
+      const chosen = pick(examplesForSort(g.id, boxIds), tpl.perGroup);
       chosen.forEach(ex => {
         const itemId = 'i' + (k++);
         items.push({ id: itemId, exampleRef: ex.id });
         answer[itemId] = g.id;       // правильное размещение — в задании
       });
     });
-    // Если среди коробок есть ‘ивад — добавляем рамку «при остановке».
-    // Без неё задание некорректно: слово с танвином при продолжении чтения
-    // не даёт мадда вообще. Это не подсказка (какое правило — не сказано),
-    // а условие задачи. Убрать — удалить эти три строки.
+    // Рамка «при остановке», если среди коробок есть правило паузы.
+    // Это не подсказка (какое правило — не сказано), а условие задачи.
     var promptText = tpl.prompt;
-    if (groups.some(function (g) { return g.id === 'madd_iwad'; })) {
+    if (groups.some(function (g) { return STOP_ONLY_THEMES.indexOf(g.id) !== -1; })) {
       promptText += ' (на каждом слове — остановка)';
     }
 
