@@ -64,13 +64,13 @@ const AYAHS = [
 
   // ── Идгам нуна ──
   { id: 'ay_idn_1', text: 'وَلَمۡ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ',          rules: ['idgham_nun'], usage: ['recite', 'find'] },
-  { id: 'ay_idn_2', text: 'فَـمَن يَعۡمَلۡ مِثۡقَالَ ذَرَّةٍ خَيۡرًا يَرَهُۥ', rules: ['idgham_nun'], usage: ['recite', 'find'] },
+  { id: 'ay_idn_2', text: 'فَـمَن يَعۡمَلۡ مِثۡقَالَ ذَرَّةٍ خَيۡرࣰا يَرَهُۥ', rules: ['idgham_nun'], usage: ['recite', 'find'] },
   { id: 'ay_idn_3', text: 'لَيۡلَةُ ٱلۡقَدۡرِ خَيۡرٌ مِّنۡ أَلۡفِ شَهۡرٍ', rules: ['idgham_nun'], usage: ['recite', 'find'] },
-  { id: 'ay_idn_4', text: 'وَجَعَلۡنَا سِرَاجًا وَهَّاجًا',              rules: ['idgham_nun'], usage: ['recite', 'find'] },
+  { id: 'ay_idn_4', text: 'وَجَعَلۡنَا سِرَاجࣰا وَهَّاجࣰا',              rules: ['idgham_nun'], usage: ['recite', 'find'] },
 
   // ── Икляб + Ихфа нуна (длинные аяты суры Аль-Баййина) ──
   { id: 'ay_ikn_1', text: 'لَمۡ يَكُنِ ٱلَّذِينَ كَفَرُوا۟ مِنۡ أَهۡلِ ٱلۡكِتَـٰبِ وَٱلۡمُشۡرِكِينَ مُنفَكِّينَ حَتَّىٰ تَأۡتِيَهُمُ ٱلۡبَيِّنَةُ', rules: ['ikhfa_nun'], usage: ['recite', 'find'] },
-  { id: 'ay_ikn_2', text: 'رَسُولٌ مِّنَ ٱللَّهِ يَتۡلُوا۟ صُحُفًا مُّطَهَّرَةً', rules: ['ikhfa_nun', 'idgham_nun'], usage: ['recite', 'find'] },
+  { id: 'ay_ikn_2', text: 'رَسُولٌ مِّنَ ٱللَّهِ يَتۡلُوا۟ صُحُفࣰا مُّطَهَّرَةࣰ', rules: ['ikhfa_nun', 'idgham_nun'], usage: ['recite', 'find'] },
   { id: 'ay_ikn_3', text: 'فِيهَا كُتُبٌ قَيِّمَةٌ',                       rules: ['ikhfa_nun'], usage: ['recite', 'find'] },
   { id: 'ay_iqn_1', text: 'وَمَا تَفَرَّقَ ٱلَّذِينَ أُوتُوا۟ ٱلۡكِتَٰبَ إِلَّا مِنۢ بَعۡدِ مَا جَآءَتۡهُمُ ٱلۡبَيِّنَةُ', rules: ['iqlab_nun'], usage: ['recite', 'find'] },
 ];

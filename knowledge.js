@@ -148,7 +148,7 @@ const EXAMPLES = [
   // ── Идгам нуна ──
   { id: 'ex_idn_1', text: 'مَن يَقُولُ',           themes: ['idgham_nun'] },
   { id: 'ex_idn_2', text: 'مِن رَّبِّهِمۡ',         themes: ['idgham_nun'] },
-  { id: 'ex_idn_3', text: 'هُدًى لِّلۡمُتَّقِينَ',   themes: ['idgham_nun'] },
+  { id: 'ex_idn_3', text: 'هُدࣰى لِّلۡمُتَّقِينَ',   themes: ['idgham_nun'] },
   { id: 'ex_idn_4', text: 'مَن يَعۡمَلۡ',           themes: ['idgham_nun'] },
   { id: 'ex_idn_5', text: 'مِن نِّعۡمَةٍ',          themes: ['idgham_nun'] },
   { id: 'ex_idn_6', text: 'مِن مَّاءٍ',             themes: ['idgham_nun'] },
