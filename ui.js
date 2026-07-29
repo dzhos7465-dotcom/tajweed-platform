@@ -63,6 +63,13 @@
       text = text.replace(new RegExp('(' + w + ')', 'g'),
         '<span style="color:' + map[w] + '; font-weight:var(--weight-bold);">$1</span>');
     });
+    // Условие задания, отмеченное **звёздочками**, выделяем красным
+    // с подчёркиванием. В потоке однотипных вопросов «при остановке»
+    // иначе проскакивает мимо глаз — и ученик отвечает про обычный мадд.
+    text = text.replace(/\*\*(.+?)\*\*/g,
+      '<span style="color:#a53a3a; font-weight:var(--weight-bold); ' +
+      'text-decoration:underline; text-decoration-color:#a53a3a; ' +
+      'text-underline-offset:3px;">$1</span>');
     return text;
   }
 
@@ -492,8 +499,10 @@
           audioEl.src = url;
           playback.classList.add('show');
           recState.stream.getTracks().forEach(function (t) { t.stop(); });
-          // Сохранить запись в ответ задания (пока локально)
+          // Сохранить запись в ответ задания
           recordAnswer(task.id, { blob: blob, url: url, size: blob.size });
+          // …и сразу отправить преподавателю, не дожидаясь конца работы.
+          sendOneRecording(task, status);
         };
         recState.mr.start();
         recBtn.classList.add('recording');
@@ -579,7 +588,49 @@
     }
   }
 
-  // Отправить все записи чтения, собранные за экзамен (по одной на аят).
+  /* Отправить ОДНУ запись сразу после того, как ученик её сделал.
+     ──────────────────────────────────────────────────────────────────
+     Почему сразу, а не в конце: аудио — единственное, что нельзя
+     восстановить. Ответ на вопрос ученик может дать заново, а пропавшую
+     запись придётся перезаписывать. Если телефон выключится или вкладка
+     закроется на середине работы — уже отправленное чтение не потеряется.
+
+     Отметка ans.sent нужна, чтобы финальная отправка не послала тот же
+     файл второй раз. */
+  function sendOneRecording(task, statusEl) {
+    var shouldSend = session.mode ? session.mode.sendResult : true;
+    if (!shouldSend || typeof sendRecording !== 'function') return;
+
+    var ans = session.answers[task.id];
+    if (!ans || !ans.blob) return;
+
+    var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[task.ayahRef] : null;
+    var meta = session.config ? { id: session.config.id, title: session.config.title } : null;
+
+    // Показываем ход дела, но только если ученик всё ещё на этом задании:
+    // он мог уйти вперёд, и тогда этой надписи на экране уже нет.
+    function say(text) {
+      if (statusEl && document.body.contains(statusEl)) statusEl.textContent = text;
+    }
+    say('Запись готова. Отправляю преподавателю…');
+
+    sendRecording(session.student, task.ayahRef, ayah ? ayah.text : '', ans.blob, meta)
+      .then(function (r) {
+        if (r && r.sent) {
+          ans.sent = true;
+          say('Запись отправлена. Можно идти дальше.');
+        } else {
+          say('Запись сохранена. Отправим её в конце работы.');
+        }
+      })
+      .catch(function () {
+        say('Запись сохранена. Отправим её в конце работы.');
+      });
+  }
+
+  // Добор в конце работы: отправляем только то, что ещё не ушло.
+  // Обычно здесь уже пусто — записи уходят сразу после записи. Это
+  // страховка на случай, если отправка тогда не удалась.
   function sendAllRecordings(result) {
     if (typeof sendRecording !== 'function') return;
     var meta = session.config ? { id: session.config.id, title: session.config.title } : null;
@@ -588,6 +639,7 @@
       if (!task || task.type !== TASK_TYPES.RECITE) return;
       var ans = session.answers[taskId];
       if (!ans || !ans.blob) return;   // нет записи — пропускаем
+      if (ans.sent) return;            // уже ушла сразу после записи
       var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[task.ayahRef] : null;
       sendRecording(
         session.student,
@@ -599,6 +651,13 @@
     });
   }
 
+  /* Балл в человеческом виде: 13.615384615384617 → «13,6».
+     Целое остаётся целым, дробное округляется до одного знака. */
+  function niceScore(n) {
+    var v = Math.round(Number(n) * 10) / 10;
+    return String(v).replace('.', ',');
+  }
+
   function renderResult(r) {
     $('r-who').textContent = r.student.name;
     const mins = Math.floor(r.durationMs / 60000);
@@ -607,8 +666,29 @@
       r.answeredCount + ' из ' + r.totalCount + ' · время ' + mins + ' мин ' + secs + ' сек';
     $('r-score').textContent = r.auto.percent;
 
-    if (r.hasPendingManual) {
+    // Откуда взялась сотня. Без этой строки крупное число выглядит
+    // взявшимся из воздуха — непонятно ни ученику, ни преподавателю.
+    var howEl = document.getElementById('r-how');
+    if (howEl) {
+      howEl.textContent = 'набрано ' + niceScore(r.auto.earned) +
+                          ' из ' + niceScore(r.auto.max) + ' возможных баллов';
+    }
+
+    // В тренировке чтение никто не проверяет — не обещаем итоговый балл.
+    var isTraining = !!(session.mode && session.mode.sendResult === false);
+    if (isTraining) {
+      $('r-cap').textContent = 'результат тренировки';
+      if (r.hasPendingManual) {
+        $('r-pending').textContent = 'Чтение вслух в тренировке не оценивается — ' +
+          'запись нужна, чтобы послушать себя. Балл за него ставится только на экзамене.';
+        $('r-pending').classList.add('show');
+      } else {
+        $('r-pending').classList.remove('show');
+      }
+    } else if (r.hasPendingManual) {
       $('r-cap').textContent = 'предварительный результат (автоматическая часть)';
+      $('r-pending').textContent = 'Часть заданий (чтение вслух) проверяется преподавателем. ' +
+        'Итоговый балл будет объявлен после проверки.';
       $('r-pending').classList.add('show');
     } else {
       $('r-cap').textContent = 'результат автоматической проверки';
@@ -617,16 +697,26 @@
 
     const tbody = $('r-themes');
     tbody.innerHTML = '';
-    EXAM_CONFIG.themeOrder.forEach(themeId => {
-      const t = r.perTheme[themeId];
+
+    function addRow(key) {
+      const t = r.perTheme[key];
       if (!t || t.max === 0) return;
-      const accent = (typeof ruleAccent === 'function') ? ruleAccent(themeId) : 'var(--ink-faint)';
+      const accent = (typeof ruleAccent === 'function') ? ruleAccent(key) : 'var(--ink-faint)';
+      const names = (typeof SCORE_GROUP_NAMES !== 'undefined') ? SCORE_GROUP_NAMES : {};
+      const name = (THEMES[key] && THEMES[key].name) || names[key] || key;
       const tr = document.createElement('tr');
-      const name = THEMES[themeId] ? THEMES[themeId].name : themeId;
       tr.innerHTML =
         '<td class="name" style="--row-accent:' + accent + '">' + name + '</td>' +
-        '<td class="val">' + t.earned + ' / ' + t.max + '</td>';
+        '<td class="val">' + niceScore(t.earned) + ' / ' + niceScore(t.max) + '</td>';
       tbody.appendChild(tr);
+    }
+
+    // Сначала темы в порядке экзамена…
+    EXAM_CONFIG.themeOrder.forEach(addRow);
+    // …потом строки, которые темами не являются (распределения) — они
+    // не стоят в порядке тем и иначе просто не попали бы в разбор.
+    Object.keys(r.perTheme).forEach(function (key) {
+      if (EXAM_CONFIG.themeOrder.indexOf(key) === -1) addRow(key);
     });
   }
 

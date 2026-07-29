@@ -379,6 +379,9 @@ body { margin: 0; }
           <button class="btn btn-primary" id="rec-load">Загрузить записи</button>
           <select id="rec-filter-group" style="font-family:var(--font-ui); font-size:var(--text-sm); border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); background:var(--paper-raised); color:var(--ink);"><option value="">Все группы</option></select>
           <input id="rec-filter-name" type="text" placeholder="Поиск по фамилии…" style="font-family:var(--font-ui); font-size:var(--text-sm); border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); background:var(--paper-raised); color:var(--ink);">
+          <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--text-sm); color:var(--ink-soft); cursor:pointer;">
+            <input type="checkbox" id="rec-show-old"> показывать перезаписи
+          </label>
         </div>
       </div>
       <div id="rec-status" class="status-line">Нажмите «Загрузить записи».</div>
@@ -1390,6 +1393,31 @@ body { margin: 0; }
     if (grp) items = items.filter(function (r) { return r.group === grp; });
     if (name) items = items.filter(function (r) { return String(r.fullName).toLowerCase().indexOf(name) !== -1; });
 
+    // Перезаписи. Ученик может вернуться к аяту и прочитать заново — тогда
+    // в хранилище лежат оба файла. По умолчанию показываем только последнюю
+    // попытку по каждому аяту, чтобы не ставить балл за черновик.
+    // Старые файлы никуда не деваются — галочка их возвращает.
+    var hiddenOld = 0;
+    if (!$('rec-show-old').checked) {
+      var latest = {};
+      items.forEach(function (r) {
+        var key = [r.fullName, r.group, r.ayahId, r.sessionId].join('|');
+        var prev = latest[key];
+        // свежесть: сначала по дате-времени, при равенстве — по строке
+        // в таблице (записи дописываются вниз, значит ниже = позже)
+        if (!prev ||
+            whenKey(r) > whenKey(prev) ||
+            (whenKey(r) === whenKey(prev) && (r.row || 0) > (prev.row || 0))) {
+          latest[key] = r;
+        }
+      });
+      var keep = Object.keys(latest).map(function (k) { return latest[k]; });
+      hiddenOld = items.length - keep.length;
+      items = keep;
+    }
+    $('rec-status').textContent = 'Записей: ' + items.length +
+      (hiddenOld ? ' · скрыто перезаписей: ' + hiddenOld : '');
+
     if (!items.length) { $('rec-list').innerHTML = '<div class="status-line">Ничего не найдено.</div>'; return; }
 
     // группировка по группе
@@ -1454,6 +1482,7 @@ body { margin: 0; }
   $('rec-load').addEventListener('click', loadRecordings);
   $('rec-filter-group').addEventListener('change', renderRecordings);
   $('rec-filter-name').addEventListener('input', renderRecordings);
+  $('rec-show-old').addEventListener('change', renderRecordings);
 
   // ── Материалы: витрина библиотеки ──
   var materialsBuilt = false;

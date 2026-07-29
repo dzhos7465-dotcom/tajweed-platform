@@ -229,16 +229,19 @@ const EXAMPLES = [
   { id: 'ex_mdi_20', text: 'حَكِيمًا',     themes: ['madd_iwad'], alsoShows: ['madd_tabii'] },
   { id: 'ex_mdi_21', text: 'غَفُورًا',     themes: ['madd_iwad'], alsoShows: ['madd_tabii'] },
 
-  // Мадд муттасиль (соединённый) — хамза в том же слове, 4–5
-  { id: 'ex_mdt2_1', text: 'يَشَآءُ',     themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',     themes: ['madd_muttasil'] },
+  // Мадд муттасиль (соединённый) — хамза в том же слове, 4–5.
+  // Где хамза стоит ПОСЛЕДНЕЙ буквой, при остановке она получает сукун,
+  // а перед ней буква мадда — рядом появляется ‘арид. Помечаем, чтобы
+  // «‘Арид» не предлагался вариантом ответа: он там не ошибка.
+  { id: 'ex_mdt2_1', text: 'يَشَآءُ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
+  { id: 'ex_mdt2_2', text: 'دُعَآءٌ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_3', text: 'جَآءَتۡهُمُ',  themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',     themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',    themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_4', text: 'تَبُوٓءَ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
+  { id: 'ex_mdt2_5', text: 'ٱلسُّوٓءِ',    themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
   { id: 'ex_mdt2_6', text: 'سِيٓئَتۡ',     themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',     themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_8', text: 'قُرُوٓءٍ',     themes: ['madd_muttasil'] },
-  { id: 'ex_mdt2_9', text: 'وَجِيٓءَ',     themes: ['madd_muttasil'] },
+  { id: 'ex_mdt2_7', text: 'يُضِيٓءُ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
+  { id: 'ex_mdt2_8', text: 'قُرُوٓءٍ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
+  { id: 'ex_mdt2_9', text: 'وَجِيٓءَ',     themes: ['madd_muttasil'], alsoShows: ['madd_arid'] },
 
   // Мадд мунфасыль (разделённый) — хамза в следующем слове, 4–5
   { id: 'ex_mdm_1', text: 'لَآ أُضِيعُ',        themes: ['madd_munfasil'], alsoShows: ['madd_tabii'] },
@@ -257,13 +260,20 @@ const EXAMPLES = [
   { id: 'ex_mdl_6', text: 'ٱلضَّآلِّينَ', themes: ['madd_lazim'], alsoShows: ['madd_tabii', 'madd_arid'] },
 
   // Мадд лазим БУКВЕННЫЙ — буквы в начале суры, 6 харакатов.
-  // Признак: волнистая линия (маддах) над буквой. Есть линия — тянем.
-  // الٓرٓ и يسٓ сюда пока не входят: в них рядом стоит удлинение на два
-  // хараката (رَا، يَا) — правила, которого в библиотеке ещё нет.
+  // Признак: волнистая линия (маддах) над буквой. Есть линия — тянем 6,
+  // нет линии — не тянем.
+  //
+  // РЕШЕНИЕ ПРЕПОДАВАТЕЛЯ (объём курса): в названиях отдельных букв
+  // естественный мадд НЕ рассматривается. Буквы без линии (رَا، يَا)
+  // просто не тянутся — двух харакатов в них мы не разбираем. Поэтому
+  // такие слова не «двойные» и alsoShows им не нужен.
   { id: 'ex_mdlh_1', text: 'الٓـمٓ',  themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_2', text: 'صٓ',     themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_3', text: 'نٓ',     themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_4', text: 'قٓ',     themes: ['madd_lazim_harfi'] },
+  // Линия только над одной буквой — над ر и над ي её нет.
+  { id: 'ex_mdlh_5', text: 'الٓـر',   themes: ['madd_lazim_harfi'] },
+  { id: 'ex_mdlh_6', text: 'يـسٓ',   themes: ['madd_lazim_harfi'] },
 
   // Мадд ‘арид — при остановке последняя буква получает сукун, а перед
   // ним стоит буква мадда. Как и ‘ивад, существует только при остановке:

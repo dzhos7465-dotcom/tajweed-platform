@@ -280,11 +280,14 @@ function computeResult() {
       pendingCount++;
     }
 
-    // Разбивка по темам (только авто-часть имеет мгновенный балл)
-    if (!perTheme[task.theme]) perTheme[task.theme] = { earned: 0, max: 0 };
+    // Разбивка по темам (только авто-часть имеет мгновенный балл).
+    // Распределение проверяет много правил сразу и потому идёт отдельной
+    // строкой (scoreGroup), а не вешается на одну тему.
+    var scoreKey = task.scoreGroup || task.theme;
+    if (!perTheme[scoreKey]) perTheme[scoreKey] = { earned: 0, max: 0 };
     if (result.auto) {
-      perTheme[task.theme].earned += result.earned;
-      perTheme[task.theme].max += result.max;
+      perTheme[scoreKey].earned += result.earned;
+      perTheme[scoreKey].max += result.max;
     }
 
     // Разбор для детального просмотра — «самое необходимое»:

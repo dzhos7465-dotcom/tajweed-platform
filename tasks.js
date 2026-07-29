@@ -86,19 +86,26 @@ function familyOfTheme(themeId) {
 /* Построить 4 варианта для вопроса: правильный + 3 похожих отвлекающих.
    Похожие берём из того же семейства; если не хватает — добираем из общего
    списка. Порядок вариантов перемешиваем детерминированно (через rng). */
-function buildFourOptions(correctId, themeId, rng) {
+function buildFourOptions(correctId, themeId, rng, exclude) {
   const byId = {};
   RULE_OPTIONS.forEach(o => { byId[o.id] = o; });
 
+  /* exclude — правила, которые в ЭТОМ слове тоже видно (пример объявил их
+     в alsoShows). Их нельзя ставить вариантом: ученик выберет такой ответ
+     и будет по-своему прав, а платформа засчитает ошибку. Убираем их из
+     отвлекающих — вопрос остаётся с четырьмя вариантами, но честный. */
+  const ban = Array.isArray(exclude) ? exclude : [];
+  const allowed = function (id) { return id !== correctId && ban.indexOf(id) === -1; };
+
   const fam = OPTION_FAMILY[familyOfTheme(themeId)] || [];
-  // отвлекающие из того же семейства (кроме правильного), перемешанные
-  let famDistract = shuffleWith(fam.filter(id => id !== correctId), rng);
+  // отвлекающие из того же семейства (кроме правильного и спорных), перемешанные
+  let famDistract = shuffleWith(fam.filter(allowed), rng);
 
   let distractors = famDistract.slice(0, 3);
   // если в семействе меньше 3 — добрать из общего списка (тоже перемешав)
   if (distractors.length < 3) {
     const rest = shuffleWith(
-      RULE_OPTIONS.map(o => o.id).filter(id => id !== correctId && distractors.indexOf(id) === -1),
+      RULE_OPTIONS.map(o => o.id).filter(id => allowed(id) && distractors.indexOf(id) === -1),
       rng
     );
     distractors = distractors.concat(rest).slice(0, 3);
@@ -189,13 +196,26 @@ function answerForTheme(themeId) {
 const DEFAULT_PROMPT = 'Какое правило в этом примере?';
 
 const THEME_PROMPTS = {
-  madd_iwad: 'Какой мадд появится, если остановиться на этом слове?',
-  madd_arid: 'Какой мадд появится, если остановиться на этом слове?',
+  // Звёздочками отмечено условие, которое интерфейс выделит цветом.
+  // Без выделения ученик в потоке однотипных вопросов читает его по
+  // диагонали и отвечает так, будто спрашивают про обычный мадд.
+  madd_iwad: 'Какой мадд появится, если **остановиться на этом слове**?',
+  madd_arid: 'Какой мадд появится, если **остановиться на этом слове**?',
 };
 
 function promptForTheme(themeId) {
   return THEME_PROMPTS[themeId] || DEFAULT_PROMPT;
 }
+
+/* Названия строк в разборе результата, которые НЕ являются темой.
+   Распределение проверяет сразу много правил, поэтому нечестно вешать
+   его баллы на одну тему: строка «Мадд муттасиль 13,6 / 14» врала бы.
+   Оно получает собственную строку. */
+const SCORE_GROUP_NAMES = {
+  sort_mim:  'Распределение (мим)',
+  sort_nun:  'Распределение (нун)',
+  sort_madd: 'Распределение (мадд)',
+};
 
 /* Правила, которые существуют ТОЛЬКО при остановке. Если такое правило
    стоит коробкой в распределении, всё задание идёт «при остановке» —
@@ -208,6 +228,7 @@ const SORT_TEMPLATES = [
   {
     id: 'sort_mim',
     theme: 'izhar_mim',                 // тема-«владелец» для порядка в экзамене
+    scoreGroup: 'sort_mim',             // в разборе по темам — своей строкой
     prompt: 'Распределите слова по правилам мима',
     perGroup: 2,
     groups: [
@@ -220,6 +241,7 @@ const SORT_TEMPLATES = [
   {
     id: 'sort_nun',
     theme: 'ikhfa_nun',                 // sort нуна встанет среди тем нуна
+    scoreGroup: 'sort_nun',             // в разборе по темам — своей строкой
     prompt: 'Распределите слова по правилам нуна',
     perGroup: 2,
     groups: [
@@ -232,7 +254,8 @@ const SORT_TEMPLATES = [
   },
   {
     id: 'sort_madd',
-    theme: 'madd_muttasil',             // sort мадда встанет среди тем мадда
+    theme: 'madd_muttasil',             // место в порядке заданий — среди тем мадда
+    scoreGroup: 'sort_madd',            // а в разборе по темам — своей строкой
     prompt: 'Распределите слова по правилам мадда',
     perGroup: 2,
     groups: [
@@ -411,7 +434,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
         type: TASK_TYPES.SINGLE,
         exampleRefs: [ex.id],
         prompt: promptForTheme(tpl.theme),
-        options: buildFourOptions(tpl.answer, tpl.theme, rng),  // 4 варианта: верный + 3 похожих
+        options: buildFourOptions(tpl.answer, tpl.theme, rng, ex.alsoShows),  // верный + 3 похожих, без спорных
         answer: tpl.answer,          // правильный ответ принадлежит заданию
         check: CHECK.AUTO,
         weight: TASK_WEIGHTS.single,
@@ -467,6 +490,7 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
     built.push({
       id: tpl.id,
       theme: tpl.theme,
+      scoreGroup: tpl.scoreGroup || null,
       type: TASK_TYPES.SORT,
       prompt: promptText,
       groups: groups,
