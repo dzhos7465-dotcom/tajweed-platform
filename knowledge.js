@@ -260,7 +260,7 @@ const EXAMPLES = [
   // Признак: волнистая линия (маддах) над буквой. Есть линия — тянем.
   // الٓرٓ и يسٓ сюда пока не входят: в них рядом стоит удлинение на два
   // хараката (رَا، يَا) — правила, которого в библиотеке ещё нет.
-  { id: 'ex_mdlh_1', text: 'الٓمٓ',  themes: ['madd_lazim_harfi'] },
+  { id: 'ex_mdlh_1', text: 'الٓـمٓ',  themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_2', text: 'صٓ',     themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_3', text: 'نٓ',     themes: ['madd_lazim_harfi'] },
   { id: 'ex_mdlh_4', text: 'قٓ',     themes: ['madd_lazim_harfi'] },
