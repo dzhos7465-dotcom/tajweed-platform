@@ -664,6 +664,17 @@ body { margin: 0; }
     ]).then(function (both) {
       const res = both[0] || [];
       const recs = both[1] || [];
+      if (res && res.failed) {
+        $('results-list').innerHTML =
+          '<div class="status-line">Не удалось связаться с таблицей.<br>' +
+          '<button class="btn" id="results-retry" style="margin-top:12px;">Попробовать снова</button></div>';
+        var again = document.getElementById('results-retry');
+        if (again) again.addEventListener('click', function () {
+          $('results-list').innerHTML = '<div class="status-line">Загрузка…</div>';
+          loadResults();
+        });
+        return;
+      }
       if (!res.length) { $('results-list').innerHTML = '<div class="status-line">Пока нет результатов.</div>'; return; }
       window._resultsCache = res;   // для детального просмотра
 
@@ -1376,6 +1387,11 @@ body { margin: 0; }
     $('rec-list').innerHTML = '';
     StorageAPI.recordings.list().then(function (recs) {
       allRecordings = recs || [];
+      if (recs && recs.failed) {
+        $('rec-status').textContent = 'Не удалось связаться с таблицей. ' +
+          'Проверьте интернет и нажмите «Загрузить записи» ещё раз.';
+        return;
+      }
       if (!allRecordings.length) { $('rec-status').textContent = 'Пока нет записей.'; return; }
       $('rec-status').textContent = 'Записей: ' + allRecordings.length;
       // заполнить фильтр групп
@@ -1442,6 +1458,15 @@ body { margin: 0; }
     });
   }
 
+  /* Значок состояния в шапке карточки: зелёный, когда балл уже стоит. */
+  function badgeStyle(graded) {
+    var base = 'font-size:var(--text-xs); padding:2px 10px; border-radius:var(--radius-pill); ' +
+               'margin-left:var(--space-2); white-space:nowrap; ';
+    return base + (graded
+      ? 'background:var(--ok-tint); color:var(--ok); border:1px solid var(--ok);'
+      : 'background:var(--paper-sunken); color:var(--ink-faint); border:1px solid var(--line);');
+  }
+
   function recCard(r) {
     var card = document.createElement('div');
     card.className = 'rec-card';
@@ -1450,6 +1475,8 @@ body { margin: 0; }
     card.innerHTML =
       '<div class="rec-card-top">' +
         '<span class="rec-card-name">' + (r.fullName || '—') + '</span>' +
+        '<span class="rec-grade-badge" style="' + badgeStyle(graded) + '">' +
+          (graded ? 'оценено · ' + r.grade : 'не оценено') + '</span>' +
         '<span class="rec-card-meta">' + shortWhen(r.date, r.time) + '</span>' +
       '</div>' +
       (ayahText ? '<div class="rec-card-ayah">' + ayahText + '</div>' : '') +
@@ -1457,23 +1484,37 @@ body { margin: 0; }
       '<div class="rec-grade-row">' +
         '<label>Балл за чтение <span style="color:var(--ink-faint)">(из 10)</span>:</label>' +
         '<input type="number" class="rec-grade-input" min="0" max="10" step="0.5" value="' + (graded ? r.grade : '') + '" placeholder="—">' +
-        '<button class="btn btn-primary rec-save-btn" style="padding:6px 16px;">Сохранить</button>' +
-        '<span class="rec-grade-saved" style="display:none;">Сохранено ✓</span>' +
+        '<button class="btn btn-primary rec-save-btn" style="padding:6px 16px;">' +
+          (graded ? 'Изменить балл' : 'Сохранить') + '</button>' +
+        '<span class="rec-grade-saved" style="display:' + (graded ? '' : 'none') +
+          '; color:var(--ok); font-size:var(--text-sm);">Сохранено ✓</span>' +
         '<span style="flex:1"></span>' +
         '<a href="' + r.url + '" target="_blank" style="font-size:var(--text-sm); color:var(--seal);">На Диске</a>' +
       '</div>';
     var input = card.querySelector('.rec-grade-input');
     var btn = card.querySelector('.rec-save-btn');
     var saved = card.querySelector('.rec-grade-saved');
+    var badge = card.querySelector('.rec-grade-badge');
+
+    /* Отметка о сохранении держится постоянно, а не мигает на две секунды:
+       записей много, и по одному взгляду на список должно быть видно,
+       какие уже оценены. Если преподаватель начал править балл — отметка
+       гаснет, потому что в поле уже не то, что лежит в таблице. */
+    input.addEventListener('input', function () {
+      saved.style.display = 'none';
+      btn.textContent = 'Сохранить';
+    });
+
     btn.addEventListener('click', function () {
       var val = input.value.trim();
       if (val === '') { alert('Введите балл'); return; }
       btn.textContent = 'Сохраняю…'; btn.disabled = true;
       StorageAPI.recordings.grade(r.url, val).then(function () {
-        btn.textContent = 'Сохранить'; btn.disabled = false;
+        r.grade = val;                       // обновить в памяти
+        btn.textContent = 'Изменить балл'; btn.disabled = false;
         saved.style.display = '';
-        setTimeout(function () { saved.style.display = 'none'; }, 2000);
-        r.grade = val;  // обновить в памяти
+        badge.textContent = 'оценено · ' + val;
+        badge.setAttribute('style', badgeStyle(true));
       });
     });
     return card;

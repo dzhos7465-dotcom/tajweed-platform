@@ -32,13 +32,39 @@ const StorageAPI = (function () {
 
   /* Низкоуровневые запросы к backend. Наружу не торчат — панель их не видит.
      Всё общение идёт через них, поэтому смена backend = правка только тут. */
+  /* Сколько ждём ответ, прежде чем считать, что связи нет.
+     Google Apps Script после простоя «просыпается» медленно, поэтому
+     запас большой. Но ждать бесконечно нельзя: без этого панель просто
+     висит на «Загрузка…» и преподаватель не понимает, что произошло. */
+  const REQUEST_TIMEOUT_MS = 25000;
+
   function backendGet(action, params) {
     const url = new URL(BACKEND_URL);
     url.searchParams.set('action', action);
     if (params) Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-    return fetch(url.toString())
+
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, REQUEST_TIMEOUT_MS);
+
+    return fetch(url.toString(), ctrl ? { signal: ctrl.signal } : undefined)
       .then(r => r.json())
-      .catch(err => ({ ok: false, error: String(err) }));
+      .then(function (r) { clearTimeout(timer); return r; })
+      .catch(function (err) {
+        clearTimeout(timer);
+        return { ok: false, error: String(err) };
+      });
+  }
+
+  /* Пустой список и «не смог получить» — разные вещи, и панель должна
+     их различать: в первом случае честное «пока пусто», во втором —
+     «попробуйте ещё раз». Помечаем массив свойством failed; для всех,
+     кто просто смотрит на длину, ничего не меняется. */
+  function listOrFail(r, key) {
+    if (r && r.ok) return r[key] || [];
+    const empty = [];
+    empty.failed = true;
+    empty.error = (r && r.error) || 'нет ответа';
+    return empty;
   }
 
   function backendPost(kind, payload) {
@@ -64,7 +90,7 @@ const StorageAPI = (function () {
     // Активности
     activities: {
       list: function () {
-        return backendGet('activities').then(r => (r && r.ok ? r.activities || [] : []));
+        return backendGet('activities').then(r => listOrFail(r, 'activities'));
       },
       get: function (id) {
         return backendGet('activities').then(function (r) {
@@ -84,7 +110,7 @@ const StorageAPI = (function () {
     // Сессии (запуск активности для группы)
     sessions: {
       list: function () {
-        return backendGet('sessions').then(r => (r && r.ok ? r.sessions || [] : []));
+        return backendGet('sessions').then(r => listOrFail(r, 'sessions'));
       },
       // Получить одну сессию по id (для проверки доступа на входе в экзамен).
       // Внутри — тот же список, отфильтрованный; когда backend научится
@@ -113,7 +139,7 @@ const StorageAPI = (function () {
     // Результаты и записи (уже существуют в таблице — только чтение)
     results: {
       list: function () {
-        return backendGet('results').then(r => (r && r.ok ? r.results || [] : []));
+        return backendGet('results').then(r => listOrFail(r, 'results'));
       },
       // Удалить результат. Строки не имеют id — определяем по совокупности
       // полей (дата+время+имя+группа), этого достаточно для уникальности.
@@ -125,7 +151,7 @@ const StorageAPI = (function () {
     },
     recordings: {
       list: function () {
-        return backendGet('recordings').then(r => (r && r.ok ? r.recordings || [] : []));
+        return backendGet('recordings').then(r => listOrFail(r, 'recordings'));
       },
       // Выставить балл за запись (обратная запись в хранилище).
       // Запись определяется по url — он уникален.
