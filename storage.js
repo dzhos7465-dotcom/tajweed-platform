@@ -28,7 +28,7 @@ const StorageAPI = (function () {
 
   // ── Адрес хранилища. Сейчас — Google Apps Script. Позже сюда встанет
   //    другой backend, и это ЕДИНСТВЕННОЕ, что изменится снаружи. ──
-  const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwNjWb6EkWQQksqlry0hFgecagXh5L4lb-e3EISN7YSvxtF34yJ0f7xAjsJQEPycxxD/exec';
+  const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwtHWLk-swTt4FeRlGSpPKGaCv7nV8KnRJ6PATj5hcHLINIl_OsDwGyui9Njfb3RjMd/exec';
 
   /* Низкоуровневые запросы к backend. Наружу не торчат — панель их не видит.
      Всё общение идёт через них, поэтому смена backend = правка только тут. */
