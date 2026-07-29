@@ -445,10 +445,19 @@ body { margin: 0; }
       StorageAPI.recordings.list(),
     ]).then(function (r) {
       const [sessions, activities, results, recordings] = r;
+      if (results.failed || sessions.failed || activities.failed || recordings.failed) {
+        $('dash-recent').textContent = 'Не удалось связаться с таблицей. Откройте раздел заново.';
+        return;
+      }
       $('c-sessions').textContent = sessions.filter(s => s.status === 'open').length;
       $('c-activities').textContent = activities.length;
       $('c-results').textContent = results.length;
-      $('c-recordings').textContent = recordings.length;
+      // Подпись под счётчиком — «ждут проверки», значит и считать надо
+      // только те, что действительно ждут: последние попытки без балла.
+      const waiting = latestAttempts(recordings).filter(function (x) {
+        return x.grade == null || x.grade === '';
+      });
+      $('c-recordings').textContent = waiting.length;
       // последние результаты
       const recent = results.slice(-5).reverse();
       if (!recent.length) { $('dash-recent').textContent = 'Пока нет результатов.'; return; }
@@ -505,7 +514,14 @@ body { margin: 0; }
     const name = act ? (act.title || 'эту активность') : 'эту активность';
     if (!confirm('Удалить «' + name + '»? Это действие нельзя отменить.')) return;
     if (btn) { btn.textContent = 'Удаляю…'; btn.disabled = true; }
-    StorageAPI.activities.remove(id).then(function () { loadActivities(); });
+    StorageAPI.activities.remove(id).then(function (res) {
+      if (!res || !res.ok) {
+        alert('Не удалось удалить — таблица не ответила. Попробуйте ещё раз.');
+        if (btn) { btn.textContent = 'Удалить'; btn.disabled = false; }
+        return;
+      }
+      loadActivities();
+    });
   }
 
   function loadSessions() {
@@ -521,8 +537,17 @@ body { margin: 0; }
       }
     });
 
-    // Показать существующие сессии
-    StorageAPI.sessions.list().then(function (ses) {
+    // Показать существующие сессии (вместе с названием активности:
+    // на одну группу можно открыть две разные, и без названия они
+    // выглядели одинаково)
+    Promise.all([
+      StorageAPI.sessions.list(),
+      StorageAPI.activities.list()
+    ]).then(function (both) {
+      var ses = both[0] || [], acts = both[1] || [];
+      var actTitle = {};
+      acts.forEach(function (a) { actTitle[a.id] = a.title || 'Без названия'; });
+      if (ses.failed) { $('sessions-list').textContent = 'Не удалось связаться с таблицей.'; return; }
       if (!ses.length) { $('sessions-list').textContent = 'Пока нет сессий.'; return; }
       // новые сверху
       const sorted = ses.slice().sort(function (a, b) { return (b.openedAt || 0) - (a.openedAt || 0); });
@@ -536,6 +561,8 @@ body { margin: 0; }
           : '';
         const delBtn = '<button class="btn btn-quiet ses-del-btn" data-id="' + s.id + '" data-group="' + (s.group || '') + '" style="padding:4px 12px; color:var(--err); border-color:var(--err-tint);">Удалить</button>';
         return '<div class="list-row"><b>Группа ' + (s.group || '?') + '</b>' +
+          '<span style="color:var(--ink-soft); font-size:var(--text-sm);">' +
+            (actTitle[s.activityId] || '—') + '</span>' +
           '<span class="pill ' + cls + '">' + label + '</span>' +
           '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + opened + closed + '</span>' +
           '<span style="flex:1"></span>' + closeBtn + delBtn + '</div>';
@@ -543,8 +570,13 @@ body { margin: 0; }
       // повесить закрытие
       $('sessions-list').querySelectorAll('.ses-close-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          btn.textContent = 'Закрываю…';
-          StorageAPI.sessions.close(btn.getAttribute('data-id')).then(function () {
+          btn.textContent = 'Закрываю…'; btn.disabled = true;
+          StorageAPI.sessions.close(btn.getAttribute('data-id')).then(function (res) {
+            if (!res || !res.ok) {
+              alert('Сессия не закрылась — таблица не ответила. Попробуйте ещё раз.');
+              btn.textContent = 'Закрыть'; btn.disabled = false;
+              return;
+            }
             loadSessions();
           });
         });
@@ -555,7 +587,12 @@ body { margin: 0; }
           const g = btn.getAttribute('data-group');
           if (!confirm('Удалить сессию группы ' + g + '? Это уберёт её из истории. Результаты учеников останутся.')) return;
           btn.textContent = 'Удаляю…'; btn.disabled = true;
-          StorageAPI.sessions.remove(btn.getAttribute('data-id')).then(function () {
+          StorageAPI.sessions.remove(btn.getAttribute('data-id')).then(function (res) {
+            if (!res || !res.ok) {
+              alert('Не удалось удалить — таблица не ответила. Попробуйте ещё раз.');
+              btn.textContent = 'Удалить'; btn.disabled = false;
+              return;
+            }
             loadSessions();
           });
         });
@@ -680,9 +717,11 @@ body { margin: 0; }
 
       // Средний балл за чтение по (сессия + ученик): у ученика может быть
       // несколько записей (несколько аятов) — берём среднее оценённых.
+      var recsLatest = latestAttempts(recs);   // перезаписи в счёт не идут
+
       function readingScoreFor(r) {
         var key = (r.sessionId || '') + '|' + (r.fullName || '');
-        var mine = recs.filter(function (rec) {
+        var mine = recsLatest.filter(function (rec) {
           return ((rec.sessionId || '') + '|' + (rec.fullName || '')) === key;
         });
         if (!mine.length) return { grade: null, hasRec: false, allGraded: false };
@@ -1382,6 +1421,25 @@ body { margin: 0; }
     return m ? 'https://drive.google.com/file/d/' + m[1] + '/preview' : url;
   }
 
+  /* Последняя попытка по каждому (ученик · группа · аят · сессия).
+     Нужен в двух местах сразу: и в списке записей, и при сведении общего
+     балла. Раньше сведение считало ВСЕ записи, включая перезаписанные —
+     а перезаписанные преподаватель уже не видит и оценить не может.
+     Из-за этого работа навсегда оставалась «ждёт чтения». */
+  function latestAttempts(list) {
+    var latest = {};
+    list.forEach(function (r) {
+      var key = [r.fullName, r.group, r.ayahId, r.sessionId].join('|');
+      var prev = latest[key];
+      if (!prev ||
+          whenKey(r) > whenKey(prev) ||
+          (whenKey(r) === whenKey(prev) && (r.row || 0) > (prev.row || 0))) {
+        latest[key] = r;
+      }
+    });
+    return Object.keys(latest).map(function (k) { return latest[k]; });
+  }
+
   function loadRecordings() {
     $('rec-status').textContent = 'Загружаю записи…';
     $('rec-list').innerHTML = '';
@@ -1415,19 +1473,7 @@ body { margin: 0; }
     // Старые файлы никуда не деваются — галочка их возвращает.
     var hiddenOld = 0;
     if (!$('rec-show-old').checked) {
-      var latest = {};
-      items.forEach(function (r) {
-        var key = [r.fullName, r.group, r.ayahId, r.sessionId].join('|');
-        var prev = latest[key];
-        // свежесть: сначала по дате-времени, при равенстве — по строке
-        // в таблице (записи дописываются вниз, значит ниже = позже)
-        if (!prev ||
-            whenKey(r) > whenKey(prev) ||
-            (whenKey(r) === whenKey(prev) && (r.row || 0) > (prev.row || 0))) {
-          latest[key] = r;
-        }
-      });
-      var keep = Object.keys(latest).map(function (k) { return latest[k]; });
+      var keep = latestAttempts(items);
       hiddenOld = items.length - keep.length;
       items = keep;
     }
@@ -1490,6 +1536,8 @@ body { margin: 0; }
           '; color:var(--ok); font-size:var(--text-sm);">Сохранено ✓</span>' +
         '<span style="flex:1"></span>' +
         '<a href="' + r.url + '" target="_blank" style="font-size:var(--text-sm); color:var(--seal);">На Диске</a>' +
+        '<button class="btn btn-quiet rec-del-btn" style="padding:6px 12px; margin-left:var(--space-3); ' +
+          'color:var(--err); border-color:var(--err-tint);">Удалить</button>' +
       '</div>';
     var input = card.querySelector('.rec-grade-input');
     var btn = card.querySelector('.rec-save-btn');
@@ -1505,14 +1553,42 @@ body { margin: 0; }
       btn.textContent = 'Сохранить';
     });
 
+    var delBtn = card.querySelector('.rec-del-btn');
+    delBtn.addEventListener('click', function () {
+      if (!confirm('Удалить запись «' + (r.fullName || '—') + '»?\n' +
+                   'Файл уйдёт в корзину Диска, строка — из таблицы.')) return;
+      delBtn.textContent = 'Удаляю…'; delBtn.disabled = true;
+      StorageAPI.recordings.remove(r.url).then(function (res) {
+        if (!res || !res.ok) {
+          alert('Не удалось удалить — таблица не ответила. Попробуйте ещё раз.');
+          delBtn.textContent = 'Удалить'; delBtn.disabled = false;
+          return;
+        }
+        allRecordings = allRecordings.filter(function (x) { return x.url !== r.url; });
+        renderRecordings();
+      });
+    });
+
     btn.addEventListener('click', function () {
       var val = input.value.trim();
       if (val === '') { alert('Введите балл'); return; }
       btn.textContent = 'Сохраняю…'; btn.disabled = true;
-      StorageAPI.recordings.grade(r.url, val).then(function () {
+      StorageAPI.recordings.grade(r.url, val).then(function (res) {
+        btn.disabled = false;
+        if (!res || !res.ok) {
+          // Честно говорим, что не получилось. Молчаливая «удача» здесь
+          // хуже ошибки: работа осталась бы непроверенной незаметно.
+          btn.textContent = 'Сохранить';
+          saved.style.display = '';
+          saved.style.color = 'var(--err)';
+          saved.textContent = 'Не сохранилось — нажмите ещё раз';
+          return;
+        }
         r.grade = val;                       // обновить в памяти
-        btn.textContent = 'Изменить балл'; btn.disabled = false;
+        btn.textContent = 'Изменить балл';
         saved.style.display = '';
+        saved.style.color = 'var(--ok)';
+        saved.textContent = 'Сохранено ✓';
         badge.textContent = 'оценено · ' + val;
         badge.setAttribute('style', badgeStyle(true));
       });

@@ -79,6 +79,28 @@ const StorageAPI = (function () {
       .catch(err => ({ ok: false, error: String(err) }));
   }
 
+  /* ПОДТВЕРЖДЕНИЕ ЗАПИСИ.
+     Отправка идёт в режиме no-cors: браузеру ответ backend'а недоступен,
+     поэтому «запрос ушёл» и «данные записаны» — разные вещи. Раньше панель
+     считала первое вторым: нажимаешь «Удалить», список перечитывается
+     раньше, чем Apps Script успел отработать, — и строка возвращается
+     на место как ни в чём не бывало.
+
+     Теперь после каждой записи мы перечитываем нужный список и проверяем,
+     что мир действительно изменился. Дороже на один запрос, зато панель
+     перестаёт врать.  */
+  function writeThenVerify(kind, payload, action, key, isDone) {
+    return backendPost(kind, payload)
+      .then(function () { return backendGet(action); })
+      .then(function (r) {
+        if (!r || !r.ok) return { ok: false, error: 'нет ответа при проверке' };
+        return isDone(r[key] || [])
+          ? { ok: true }
+          : { ok: false, error: 'изменение не подтвердилось' };
+      })
+      .catch(function (err) { return { ok: false, error: String(err) }; });
+  }
+
   function uid(prefix) {
     return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
   }
@@ -100,10 +122,13 @@ const StorageAPI = (function () {
       },
       save: function (activity) {
         if (!activity.id) { activity.id = uid('act'); activity.createdAt = Date.now(); }
-        return backendPost('activity', { activity: activity }).then(() => activity);
+        return writeThenVerify('activity', { activity: activity }, 'activities', 'activities',
+          function (list) { return list.some(function (a) { return a.id === activity.id; }); }
+        ).then(function (res) { res.activity = activity; return res; });
       },
       remove: function (id) {
-        return backendPost('activity_delete', { id: id });
+        return writeThenVerify('activity_delete', { id: id }, 'activities', 'activities',
+          function (list) { return !list.some(function (a) { return a.id === id; }); });
       },
     },
 
@@ -126,13 +151,20 @@ const StorageAPI = (function () {
           id: uid('ses'), activityId: activityId, group: group,
           status: 'open', openedAt: Date.now(), closedAt: null,
         };
-        return backendPost('session', { session: session }).then(() => session);
+        return writeThenVerify('session', { session: session }, 'sessions', 'sessions',
+          function (list) { return list.some(function (x) { return x.id === session.id; }); }
+        ).then(function (res) { res.session = session; return res; });
       },
       close: function (id) {
-        return backendPost('session_close', { id: id });
+        return writeThenVerify('session_close', { id: id }, 'sessions', 'sessions',
+          function (list) {
+            var s = list.filter(function (x) { return x.id === id; })[0];
+            return !s || s.status === 'closed';
+          });
       },
       remove: function (id) {
-        return backendPost('session_delete', { id: id });
+        return writeThenVerify('session_delete', { id: id }, 'sessions', 'sessions',
+          function (list) { return !list.some(function (x) { return x.id === id; }); });
       },
     },
 
@@ -144,19 +176,51 @@ const StorageAPI = (function () {
       // Удалить результат. Строки не имеют id — определяем по совокупности
       // полей (дата+время+имя+группа), этого достаточно для уникальности.
       remove: function (r) {
-        return backendPost('result_delete', {
-          date: r.date, time: r.time, fullName: r.fullName, group: r.group
-        });
+        var same = function (x) {
+          return String(x.date) === String(r.date) && String(x.time) === String(r.time) &&
+                 String(x.fullName) === String(r.fullName) && String(x.group) === String(r.group);
+        };
+        return writeThenVerify('result_delete',
+          { date: r.date, time: r.time, fullName: r.fullName, group: r.group },
+          'results', 'results',
+          function (list) { return !list.some(same); });
       },
     },
     recordings: {
       list: function () {
         return backendGet('recordings').then(r => listOrFail(r, 'recordings'));
       },
-      // Выставить балл за запись (обратная запись в хранилище).
-      // Запись определяется по url — он уникален.
+      /* Выставить балл за запись. Запись определяется по url — он уникален.
+
+         ВАЖНО: отправка идёт в режиме no-cors, то есть ответ backend'а
+         браузеру недоступен — «запрос ушёл» и «данные записаны» это
+         РАЗНЫЕ вещи. Поэтому после отправки перечитываем список и
+         убеждаемся, что балл действительно лёг в таблицу. Иначе панель
+         пишет «Сохранено», преподаватель идёт дальше, а в результатах
+         работа так и висит непроверенной. */
+      /* Удалить запись целиком: строку из таблицы и файл с Диска.
+         Нужно для уборки собственных пробных прохождений. */
+      remove: function (url) {
+        return writeThenVerify('recording_delete', { url: url }, 'recordings', 'recordings',
+          function (list) { return !list.some(function (x) { return x.url === url; }); });
+      },
       grade: function (url, grade) {
-        return backendPost('grade_recording', { url: url, grade: grade });
+        return backendPost('grade_recording', { url: url, grade: grade })
+          .then(function () {
+            return backendGet('recordings');
+          })
+          .then(function (r) {
+            const list = (r && r.ok) ? (r.recordings || []) : null;
+            if (!list) return { ok: false, error: 'нет ответа при проверке' };
+            const row = list.filter(function (x) { return x.url === url; })[0];
+            const landed = row && String(row.grade) === String(grade);
+            return landed
+              ? { ok: true, grade: grade }
+              : { ok: false, error: 'балл не найден в таблице' };
+          })
+          .catch(function (err) {
+            return { ok: false, error: String(err) };
+          });
       },
     },
 
