@@ -1673,10 +1673,6 @@ body { margin: 0; }
     return m ? m[1] : null;
   }
 
-  function driveAudioUrl(url) {
-    var id = driveFileId(url);
-    return id ? 'https://drive.google.com/uc?export=download&id=' + id : url;
-  }
 
   /* Последняя попытка по каждому (ученик · группа · аят · сессия).
      Нужен в двух местах сразу: и в списке записей, и при сведении общего
@@ -1820,26 +1816,36 @@ body { margin: 0; }
 
     function collapsePlayer(box) {
       box.classList.remove('playing');
+      if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
       box.innerHTML = '<button class="btn rec-play-btn" style="width:100%;">▶ Слушать</button>';
       box.querySelector('.rec-play-btn').addEventListener('click', function () { openPlayer(box); });
     }
 
+    /* Запись приходит от нашего же скрипта: браузеру Google звук напрямую
+       не отдаёт. Скачиваем один файл, собираем его в памяти и передаём
+       обычному плееру. Открытый плеер держим только один — на телефоне
+       память кончается быстро. */
+    var blobUrl = null;
+
     function openPlayer(box) {
-      // закрыть тот, что был открыт раньше — больше одного не держим
       var open = document.querySelector('.rec-player.playing');
       if (open && open !== box) collapsePlayer(open);
       box.classList.add('playing');
-      box.innerHTML = '<audio class="rec-audio" controls preload="metadata" src="' +
-                      box.getAttribute('data-url') + '"></audio>';
-      var au = box.querySelector('.rec-audio');
-      au.addEventListener('error', function () {
-        box.innerHTML = '<div class="rec-audio-fail">Не удалось проиграть здесь. ' +
-          '<a href="' + box.getAttribute('data-drive') + '" target="_blank">Открыть на Диске</a></div>';
+      box.innerHTML = '<div class="rec-audio-fail">Загружаю запись…</div>';
+
+      StorageAPI.recordings.audio(box.getAttribute('data-id')).then(function (res) {
+        if (!res || !res.ok) {
+          box.innerHTML = '<div class="rec-audio-fail">Не удалось получить запись. ' +
+            '<a href="' + box.getAttribute('data-drive') + '" target="_blank">Открыть на Диске</a></div>';
+          return;
+        }
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        blobUrl = URL.createObjectURL(res.blob);
+        box.innerHTML = '<audio class="rec-audio" controls preload="auto" src="' + blobUrl + '"></audio>';
       });
-      au.play().catch(function () { /* браузер ждёт нажатия на сам плеер — это нормально */ });
     }
 
-    playBox.setAttribute('data-url', driveAudioUrl(r.url));
+    playBox.setAttribute('data-id', driveFileId(r.url) || '');
     playBox.setAttribute('data-drive', r.url);
     playBox.querySelector('.rec-play-btn')
            .addEventListener('click', function () { openPlayer(playBox); });

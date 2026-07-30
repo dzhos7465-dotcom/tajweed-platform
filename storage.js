@@ -198,6 +198,22 @@ const StorageAPI = (function () {
          убеждаемся, что балл действительно лёг в таблицу. Иначе панель
          пишет «Сохранено», преподаватель идёт дальше, а в результатах
          работа так и висит непроверенной. */
+      /* Получить саму запись. Возвращает { ok, blob } — готовый файл,
+         который можно отдать плееру. Через backend, потому что напрямую
+         с Диска браузеру звук не достаётся. */
+      audio: function (fileId) {
+        return backendGet('audio', { id: fileId }).then(function (r) {
+          if (!r || !r.ok || !r.data) return { ok: false, error: (r && r.error) || 'нет ответа' };
+          try {
+            var bin = atob(r.data);
+            var bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return { ok: true, blob: new Blob([bytes], { type: r.mime || 'audio/mpeg' }) };
+          } catch (e) {
+            return { ok: false, error: String(e) };
+          }
+        });
+      },
       /* Удалить запись целиком: строку из таблицы и файл с Диска.
          Нужно для уборки собственных пробных прохождений. */
       remove: function (url) {
