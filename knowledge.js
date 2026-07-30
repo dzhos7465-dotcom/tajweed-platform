@@ -169,7 +169,7 @@ const EXAMPLES = [
 
   // Правило НА ТАНВИНЕ (танвин раздельный: изхар)
   { id: 'ex_izn_10', text: 'كُفُوًا أَحَدٌ', themes: ['izhar_nun'] },   // Аль-Ихляс, 4
-  { id: 'ex_izn_11', text: 'سَلٰمٌ هِىَ', themes: ['izhar_nun'] },   // Аль-Кадр, 5
+  { id: 'ex_izn_11', text: 'سَلـٰمٌ هِىَ', themes: ['izhar_nun'] },   // Аль-Кадр, 5
   { id: 'ex_izn_12', text: 'ذَرَّةٍ خَيۡرًا', themes: ['izhar_nun'] },   // Аз-Залзаля, 7
   { id: 'ex_izn_13', text: 'سَمِيعٌ عَلِيمٌ', themes: ['izhar_nun'] },   // часто в Коране
   { id: 'ex_izn_14', text: 'نَارًا حَامِيَةً', themes: ['izhar_nun'] },   // Аль-Гашия, 4
@@ -189,7 +189,7 @@ const EXAMPLES = [
   { id: 'ex_idn_10', text: 'غَفُورࣱ رَّحِيمٌ', themes: ['idgham_nun'] },   // часто в Коране
   { id: 'ex_idn_11', text: 'وَيۡلࣱ لِّكُلِّ', themes: ['idgham_nun'] },   // Аль-Хумаза, 1
   { id: 'ex_idn_12', text: 'خَيۡرࣱ مِّنۡ', themes: ['idgham_nun'] },   // Аль-Кадр, 3
-  { id: 'ex_idn_13', text: 'جَنَّٰتࣲ وَعُيُونٍ', themes: ['idgham_nun'] },   // Ад-Духан, 52
+  { id: 'ex_idn_13', text: 'جَنَّـٰتࣲ وَعُيُونٍ', themes: ['idgham_nun'] },   // Ад-Духан, 52
   { id: 'ex_idn_14', text: 'خَيۡرࣰا يَرَهُۥ', themes: ['idgham_nun'] },   // Аз-Залзаля, 7
 
   // ── Икляб нуна ──
@@ -228,9 +228,9 @@ const EXAMPLES = [
 
   // Правило НА ТАНВИНЕ (танвин стопочкой: ихфа)
   { id: 'ex_ikn_20', text: 'قَوۡلࣰا ثَقِيلًا', themes: ['ikhfa_nun'] },   // Аль-Муззаммиль, 5
-  { id: 'ex_ikn_21', text: 'جَنَّٰتࣲ تَجۡرِى', themes: ['ikhfa_nun'] },   // часто в Коране
+  { id: 'ex_ikn_21', text: 'جَنَّـٰتࣲ تَجۡرِى', themes: ['ikhfa_nun'] },   // часто в Коране
   { id: 'ex_ikn_22', text: 'رِيحࣰا صَرۡصَرًا', themes: ['ikhfa_nun'] },   // Фуссылят, 16
-  { id: 'ex_ikn_23', text: 'سَلٰمࣰا سَلٰمًا', themes: ['ikhfa_nun'] },   // Аль-Вакы‘а, 26
+  { id: 'ex_ikn_23', text: 'سَلـٰمࣰا سَلـٰمًا', themes: ['ikhfa_nun'] },   // Аль-Вакы‘а, 26
   { id: 'ex_ikn_24', text: 'ظِلࣰّا ظَلِيلًا', themes: ['ikhfa_nun'] },   // Ан-Ниса, 57
 
   // ── Нун с шаддой: نّ читается с гунной две огласовки ──

@@ -17,11 +17,11 @@
 
 const AYAH_MARKS = {
   // ── идгам мими ──
-  ay_idm_1: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'idgham_nun'}, {w:3, rule:'idgham_mim'} ],
+  ay_idm_1: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'idgham_nun'}, {w:3, rule:'idgham_mim'}, {w:5, rule:'madd_arid'} ],
   //           لَهُمۡ فِيهَا(изхар мими) · فَٰكِهَةٌ وَلَهُم(идгам нуна) · وَلَهُم مَّا(идгам мими)
-  ay_idm_2: [ {w:1, rule:'ikhfa_nun'}, {w:1, rule:'idgham_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'izhar_nun'} ],
+  ay_idm_2: [ {w:1, rule:'ikhfa_nun'}, {w:1, rule:'idgham_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'izhar_nun'}, {w:5, rule:'madd_arid'} ],
   //           مِنكُم(ихфа нуна внутри) · مِنكُم مِّنۡ(идгам мими) · مِّنۡ أَحَدٍ(изхар) · أَحَدٍ عَنۡهُ(изхар) · عَنۡهُ(изхар внутри)
-  ay_idm_3: [ {w:1, rule:'idgham_mim'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'idgham_nun'}, {w:4, rule:'idgham_mim'}, {w:5, rule:'izhar_nun'} ],
+  ay_idm_3: [ {w:1, rule:'idgham_mim'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'idgham_nun'}, {w:4, rule:'idgham_mim'}, {w:5, rule:'izhar_nun'}, {w:0, rule:'madd_munfasil'} ],
   ay_idm_4: [ {w:0, rule:'idgham_mim'} ],
   ay_idm_5: [ {w:0, rule:'idgham_mim'} ],
   ay_idm_6: [ {w:0, rule:'idgham_mim'}, {w:1, rule:'izhar_nun'} ],
@@ -30,29 +30,29 @@ const AYAH_MARKS = {
 
   // ── ихфа мими ──
   ay_ikm_1: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'} ],
-  ay_ikm_2: [ {w:1, rule:'ikhfa_mim'} ],
+  ay_ikm_2: [ {w:1, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
   ay_ikm_3: [ {w:0, rule:'ikhfa_mim'} ],
-  ay_ikm_4: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'ikhfa_nun'} ],
-  ay_ikm_5: [ {w:1, rule:'ikhfa_mim'} ],
-  ay_ikm_6: [ {w:0, rule:'ikhfa_nun'}, {w:0, rule:'ikhfa_mim'} ],
-  ay_ikm_7: [ {w:0, rule:'ikhfa_mim'} ],
-  ay_ikm_8: [ {w:0, rule:'ikhfa_mim'} ],
+  ay_ikm_4: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'madd_arid'} ],
+  ay_ikm_5: [ {w:1, rule:'ikhfa_mim'}, {w:4, rule:'madd_arid'} ],
+  ay_ikm_6: [ {w:0, rule:'ikhfa_nun'}, {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
+  ay_ikm_7: [ {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
+  ay_ikm_8: [ {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
 
   // ── изхар мими ──
-  ay_izm_1: [],  // правил нет
-  ay_izm_2: [ {w:0, rule:'izhar_mim'} ],
-  ay_izm_3: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'izhar_mim'} ],
-  ay_izm_4: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'izhar_nun'} ],
-  ay_izm_5: [ {w:0, rule:'izhar_mim'}, {w:1, rule:'idgham_nun'} ],
+  ay_izm_1: [ {w:3, rule:'madd_arid'} ],  // правил нет
+  ay_izm_2: [ {w:0, rule:'izhar_mim'}, {w:6, rule:'madd_arid'} ],
+  ay_izm_3: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'izhar_mim'}, {w:4, rule:'madd_arid'} ],
+  ay_izm_4: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'madd_arid'} ],
+  ay_izm_5: [ {w:0, rule:'izhar_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'madd_arid'} ],
 
   // ── мим с шаддой ──
-  ay_shm_1: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'ikhfa_nun'} ],
-  ay_shm_2: [ {w:0, rule:'shadda_mim'} ],
+  ay_shm_1: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'ikhfa_nun'}, {w:2, rule:'madd_arid'} ],
+  ay_shm_2: [ {w:0, rule:'shadda_mim'}, {w:1, rule:'madd_arid'}, {w:1, rule:'madd_muttasil'} ],
   ay_shm_3: [ {w:0, rule:'shadda_mim'} ],
 
   // ── изхар нуна ──
   ay_izn_1: [ {w:2, rule:'izhar_nun'} ],
-  ay_izn_2: [ {w:3, rule:'izhar_nun'} ],
+  ay_izn_2: [ {w:3, rule:'izhar_nun'}, {w:1, rule:'madd_muttasil'} ],
   ay_izn_3: [ {w:1, rule:'shadda_nun'}, {w:2, rule:'izhar_nun'} ],
   ay_izn_4: [ {w:2, rule:'izhar_nun'}, {w:2, rule:'izhar_mim'} ],
 
@@ -60,7 +60,7 @@ const AYAH_MARKS = {
   ay_idn_1: [ {w:0, rule:'izhar_mim'}, {w:1, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'} ],
   ay_idn_2: [ {w:0, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'idgham_nun'} ],
   ay_idn_3: [ {w:2, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'} ],
-  ay_idn_4: [ {w:1, rule:'idgham_nun'} ],
+  ay_idn_4: [ {w:1, rule:'idgham_nun'}, {w:2, rule:'madd_iwad'} ],
 
   // ── ихфа нуна ──
   ay_ikn_1: [ {w:0, rule:'izhar_mim'}, {w:4, rule:'izhar_nun'}, {w:8, rule:'ikhfa_nun'} ],
@@ -68,7 +68,47 @@ const AYAH_MARKS = {
   ay_ikn_3: [ {w:1, rule:'ikhfa_nun'} ],
 
   // ── икляб ──
-  ay_iqn_1: [ {w:6, rule:'iqlab_nun'} ],
+  ay_iqn_1: [ {w:6, rule:'iqlab_nun'}, {w:9, rule:'madd_muttasil'} ],
+
+  // ── МАДД: аяты домашних заданий (порция 1: мунфасыль и лазим) ──
+  // Естественный мадд НЕ размечаем: он в 63% слов, задание превратилось бы
+  // в подчёркивание всего аята. Он остаётся в вопросах и распределении.
+  ay_mdm_1: [ {w:0, rule:'madd_muttasil'} ],   // Ат-Тарик, 1
+  ay_mdm_2: [ {w:0, rule:'madd_munfasil'} ],   // Ат-Тарик, 2
+  ay_mdm_3: [ {w:1, rule:'madd_muttasil'} ],   // Ан-Наср, 1
+  ay_mdm_4: [ {w:0, rule:'madd_munfasil'} ],   // Аль-Кадр, 1
+  ay_mdl_1: [ {w:1, rule:'madd_lazim'} ],   // Ад-Духа, 7
+  ay_mdl_2: [ {w:1, rule:'madd_muttasil'}, {w:2, rule:'madd_lazim'} ],   // Абаса, 33
+  ay_mdl_3: [ {w:0, rule:'madd_lazim'} ],   // Аль-Хакка, 1
+  ay_mdl_4: [ {w:1, rule:'madd_lazim'} ],   // Аль-Хакка, 2
+  ay_mdl_5: [ {w:0, rule:'madd_munfasil'}, {w:3, rule:'madd_lazim'} ],   // Аль-Хакка, 3
+
+  // ── МАДД, порция 2: буквенный лазим и ‘арид ──
+  // ‘Арид помечается ТОЛЬКО на последнем слове аята: он возникает при
+  // остановке, а естественная остановка — конец аята. Слова в середине,
+  // подходящие по строению, не помечаем — останавливаться там незачем.
+  ay_mdlh_1: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-‘Имран, 1
+  ay_mdlh_2: [ {w:1, rule:'madd_munfasil'}, {w:6, rule:'madd_arid'} ],   // Аль-‘Имран, 2
+  ay_mdlh_3: [ {w:0, rule:'madd_lazim_harfi'} ],   // Йа-Син, 1
+  ay_mdlh_4: [ {w:1, rule:'madd_arid'} ],   // Йа-Син, 2
+  ay_mdlh_5: [ {w:0, rule:'madd_lazim_harfi'}, {w:2, rule:'madd_arid'} ],   // Каф, 1
+  ay_mda_1: [ {w:3, rule:'madd_arid'} ],   // Аль-Фатиха, 2
+  ay_mda_2: [ {w:3, rule:'madd_arid'} ],   // Ан-Нас, 1
+  ay_mda_3: [ {w:1, rule:'madd_arid'} ],   // Ат-Тин, 1
+
+
+  // ── МАДД, порция 3: ‘ивад и естественный мадд ──
+  // ‘Ивад — только на последнем слове аята: правило возникает при остановке.
+  ay_mdi_1: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 1
+  ay_mdi_2: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 2
+  ay_mdi_3: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 3
+  ay_mdi_4: [ {w:2, rule:'madd_iwad'} ],   // Аль-‘Адият, 4
+  ay_mdi_5: [ {w:2, rule:'madd_iwad'} ],   // Аль-‘Адият, 5
+  ay_mdt_1: [ {w:3, rule:'madd_tabii'} ],   // Аль-Ихляс, 3
+  ay_mdt_2: [ {w:0, rule:'madd_tabii'} ],   // Ад-Духа, 1
+  ay_mdt_3: [ {w:1, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'} ],   // Ад-Духа, 2
+  ay_mdt_4: [ {w:0, rule:'madd_tabii'}, {w:1, rule:'madd_tabii'}, {w:1, rule:'madd_arid'} ],   // Ат-Тин, 2
+  ay_mdt_5: [ {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:3, rule:'madd_arid'} ],   // Аль-Фатиха, 5
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;

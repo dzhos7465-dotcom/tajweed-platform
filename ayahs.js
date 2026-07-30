@@ -60,7 +60,7 @@ const AYAHS = [
   { id: 'ay_izn_1', text: 'فَصَلِّ لِرَبِّكَ وَٱنۡـحَرۡ',                   rules: ['izhar_nun'], usage: ['recite', 'find'] },
   { id: 'ay_izn_2', text: 'وَأَمَّا ٱلسَّآئِلَ فَلَا تَنۡـهَرۡ',           rules: ['izhar_nun'], usage: ['recite', 'find'] },
   { id: 'ay_izn_3', text: 'وَقَالَ إِنِّى ذَاهِبٌ إِلَىٰ رَبِّى',        rules: ['izhar_nun'], usage: ['recite', 'find'] },
-  { id: 'ay_izn_4', text: 'صِرَٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ',      rules: ['izhar_nun'], usage: ['recite', 'find'] },
+  { id: 'ay_izn_4', text: 'صِرَـٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ',      rules: ['izhar_nun'], usage: ['recite', 'find'] },
 
   // ── Идгам нуна ──
   { id: 'ay_idn_1', text: 'وَلَمۡ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ',          rules: ['idgham_nun'], usage: ['recite', 'find'] },
@@ -72,7 +72,43 @@ const AYAHS = [
   { id: 'ay_ikn_1', text: 'لَمۡ يَكُنِ ٱلَّذِينَ كَفَرُوا۟ مِنۡ أَهۡلِ ٱلۡكِتَـٰبِ وَٱلۡمُشۡرِكِينَ مُنفَكِّينَ حَتَّىٰ تَأۡتِيَهُمُ ٱلۡبَيِّنَةُ', rules: ['ikhfa_nun'], usage: ['recite', 'find'] },
   { id: 'ay_ikn_2', text: 'رَسُولٌ مِّنَ ٱللَّهِ يَتۡلُوا۟ صُحُفࣰا مُّطَهَّرَةࣰ', rules: ['ikhfa_nun', 'idgham_nun'], usage: ['recite', 'find'] },
   { id: 'ay_ikn_3', text: 'فِيهَا كُتُبٌ قَيِّمَةٌ',                       rules: ['ikhfa_nun'], usage: ['recite', 'find'] },
-  { id: 'ay_iqn_1', text: 'وَمَا تَفَرَّقَ ٱلَّذِينَ أُوتُوا۟ ٱلۡكِتَٰبَ إِلَّا مِنۢ بَعۡدِ مَا جَآءَتۡهُمُ ٱلۡبَيِّنَةُ', rules: ['iqlab_nun'], usage: ['recite', 'find'] },
+  { id: 'ay_iqn_1', text: 'وَمَا تَفَرَّقَ ٱلَّذِينَ أُوتُوا۟ ٱلۡكِتَـٰبَ إِلَّا مِنۢ بَعۡدِ مَا جَآءَتۡهُمُ ٱلۡبَيِّنَةُ', rules: ['iqlab_nun'], usage: ['recite', 'find'] },
+
+  // ── Аяты для мадда (домашние задания уроков; выверены преподавателем) ──
+  { id: 'ay_mdm_1', text: 'وَٱلسَّمَآءِ وَٱلطَّارِقِ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 1
+  { id: 'ay_mdm_2', text: 'وَمَآ أَدۡرَىٰكَ مَا ٱلطَّارِقُ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 2
+  { id: 'ay_mdm_3', text: 'إِذَا جَآءَ نَصۡرُ ٱللَّهِ وَٱلۡفَتۡحُ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Ан-Наср, 1
+  { id: 'ay_mdm_4', text: 'إِنَّآ أَنزَلۡنَـٰهُ فِى لَيۡلَةِ ٱلۡقَدۡرِ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кадр, 1
+  { id: 'ay_mdl_1', text: 'وَوَجَدَكَ ضَآلًّا فَهَدَىٰ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Ад-Духа, 7
+  { id: 'ay_mdl_2', text: 'فَإِذَا جَآءَتِ ٱلصَّآخَّةُ', rules: ['madd_lazim', 'madd_muttasil'], usage: ['recite', 'find'] },   // Абаса, 33
+  { id: 'ay_mdl_3', text: 'ٱلۡحَآقَّةُ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Аль-Хакка, 1
+  { id: 'ay_mdl_4', text: 'مَا ٱلۡحَآقَّةُ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Аль-Хакка, 2
+  { id: 'ay_mdl_5', text: 'وَمَآ أَدۡرَىٰكَ مَا ٱلۡحَآقَّةُ', rules: ['madd_lazim', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Хакка, 3
+
+  // ── Аяты для мадда, порция 2: буквенный лазим и ‘арид ──
+  { id: 'ay_mdlh_1', text: 'الٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-‘Имран, 1
+  { id: 'ay_mdlh_2', text: 'ٱللَّهُ لَآ إِلَـٰهَ إِلَّا هُوَ ٱلۡحَىُّ ٱلۡقَيُّومُ', rules: ['madd_arid', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-‘Имран, 2
+  { id: 'ay_mdlh_3', text: 'يـسٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Йа-Син, 1
+  { id: 'ay_mdlh_4', text: 'وَٱلۡقُرۡءَانِ ٱلۡحَكِيمِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Йа-Син, 2
+  { id: 'ay_mdlh_5', text: 'قٓ وَٱلۡقُرۡءَانِ ٱلۡمَجِيدِ', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Каф, 1
+  { id: 'ay_mda_1', text: 'ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَـٰلَمِينَ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Аль-Фатиха, 2
+  { id: 'ay_mda_2', text: 'قُلۡ أَعُوذُ بِرَبِّ ٱلنَّاسِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Ан-Нас, 1
+  { id: 'ay_mda_3', text: 'وَٱلتِّينِ وَٱلزَّيۡتُونِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Ат-Тин, 1
+
+
+  // ── Аяты для мадда, порция 3: ‘ивад и естественный мадд ──
+  // Естественный мадд берём ТОЛЬКО короткими аятами: в длинных он
+  // в каждом втором слове, и задание стало бы разметкой всего текста.
+  { id: 'ay_mdi_1', text: 'وَٱلۡعَـٰدِيَـٰتِ ضَبۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 1
+  { id: 'ay_mdi_2', text: 'فَٱلۡمُورِيَـٰتِ قَدۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 2
+  { id: 'ay_mdi_3', text: 'فَٱلۡمُغِيرَـٰتِ صُبۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 3
+  { id: 'ay_mdi_4', text: 'فَأَثَرۡنَ بِهِۥ نَقۡعًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 4
+  { id: 'ay_mdi_5', text: 'فَوَسَطۡنَ بِهِۥ جَمۡعًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 5
+  { id: 'ay_mdt_1', text: 'لَمۡ يَلِدۡ وَلَمۡ يُولَدۡ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Аль-Ихляс, 3
+  { id: 'ay_mdt_2', text: 'وَٱلضُّحَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 1
+  { id: 'ay_mdt_3', text: 'وَٱللَّيۡلِ إِذَا سَجَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 2
+  { id: 'ay_mdt_4', text: 'وَطُورِ سِينِينَ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 2
+  { id: 'ay_mdt_5', text: 'إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Фатиха, 5
 ];
 
 // Индекс по id
