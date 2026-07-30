@@ -560,13 +560,32 @@ body { margin: 0; }
           ? '<button class="btn btn-quiet ses-close-btn" data-id="' + s.id + '" style="padding:4px 12px;">Закрыть</button>'
           : '';
         const delBtn = '<button class="btn btn-quiet ses-del-btn" data-id="' + s.id + '" data-group="' + (s.group || '') + '" style="padding:4px 12px; color:var(--err); border-color:var(--err-tint);">Удалить</button>';
-        return '<div class="list-row"><b>Группа ' + (s.group || '?') + '</b>' +
+        const linkBtn = '<button class="btn btn-quiet ses-link-btn" data-id="' + s.id +
+          '" style="padding:4px 12px;">Ссылка</button>';
+        // «Группа» не приписываем, если преподаватель уже назвал группу так
+        const grpName = String(s.group || '?');
+        const grpLabel = /^гр/i.test(grpName) ? grpName : 'Группа ' + grpName;
+        return '<div class="list-row"><b>' + grpLabel + '</b>' +
           '<span style="color:var(--ink-soft); font-size:var(--text-sm);">' +
             (actTitle[s.activityId] || '—') + '</span>' +
           '<span class="pill ' + cls + '">' + label + '</span>' +
           '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + opened + closed + '</span>' +
-          '<span style="flex:1"></span>' + closeBtn + delBtn + '</div>';
+          '<span style="flex:1"></span>' + linkBtn + closeBtn + delBtn + '</div>';
       }).join('');
+      // ссылка для учеников — по любой сессии, в любой момент
+      $('sessions-list').querySelectorAll('.ses-link-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          showSessionLink(btn.getAttribute('data-id'));
+          var inp = $('ses-link');
+          inp.select();
+          try {
+            document.execCommand('copy');
+            btn.textContent = 'Скопирована';
+            setTimeout(function () { btn.textContent = 'Ссылка'; }, 1500);
+          } catch (e) {}
+        });
+      });
+
       // повесить закрытие
       $('sessions-list').querySelectorAll('.ses-close-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -609,17 +628,32 @@ body { margin: 0; }
 
     $('ses-open').textContent = 'Открываю…';
     $('ses-open').disabled = true;
-    StorageAPI.sessions.open(activityId, group).then(function (session) {
+    StorageAPI.sessions.open(activityId, group).then(function (res) {
       $('ses-open').textContent = 'Открыть сессию';
       $('ses-open').disabled = false;
-      // Ссылка для учеников: экзамен с id сессии (ученики войдут по ней)
-      const base = window.location.href.replace(/panel\.html.*/, 'exam.html');
-      const link = base + '?session=' + session.id;
-      $('ses-link').value = link;
-      $('ses-link-box').style.display = '';
+      if (!res || !res.ok || !res.session) {
+        alert('Сессия не открылась — таблица не ответила. Попробуйте ещё раз.');
+        return;
+      }
+      showSessionLink(res.session.id);
       $('ses-group').value = '';
       loadSessions();
     });
+  }
+
+  /* Ссылка для учеников. Строится из id сессии — значит её можно получить
+     в любой момент, а не только сразу после открытия. Раньше ссылка
+     показывалась один раз и, если страницу закрыли, добыть её было нельзя:
+     приходилось открывать новую сессию. Отсюда и накопились дубли. */
+  function sessionLink(sessionId) {
+    const base = window.location.href.replace(/panel\.html.*/, 'exam.html');
+    return base + '?session=' + sessionId;
+  }
+
+  function showSessionLink(sessionId) {
+    $('ses-link').value = sessionLink(sessionId);
+    $('ses-link-box').style.display = '';
+    $('ses-link-box').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   $('ses-open').addEventListener('click', openSession);
