@@ -147,6 +147,10 @@ body { margin: 0; }
 .res-group-name { font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); }
 .res-group-stat { font-size: var(--text-xs); color: var(--ink-faint); }
 .res-row { display: grid; grid-template-columns: 1fr auto auto 56px; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+/* В режиме выбора появляется пятый элемент — галочка. Без своей колонки
+   она попадала в колонку имени и растягивалась на всю её ширину. */
+.res-row.picking { grid-template-columns: 22px 1fr auto auto 56px; }
+.res-row .res-check { width: 18px; height: 18px; margin: 0; accent-color: var(--seal); cursor: pointer; }
 .res-row:last-child { border-bottom: none; }
 .res-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
 .res-meta { font-size: var(--text-xs); color: var(--ink-faint); }
@@ -156,6 +160,7 @@ body { margin: 0; }
 .res-score { font-size: var(--text-xl); font-weight: var(--weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) {
   .res-row { grid-template-columns: 1fr auto 48px; }
+  .res-row.picking { grid-template-columns: 22px 1fr auto 48px; }
   .res-meta { display: none; }
 }
 
@@ -349,6 +354,7 @@ body { margin: 0; }
       <div class="panel-box" style="display:flex; gap:var(--space-3); align-items:center; flex-wrap:wrap;">
         <button class="btn btn-quiet" id="res-select-toggle">Выбрать для удаления</button>
         <button class="btn btn-quiet" id="res-delete" style="display:none; color:var(--err); border-color:var(--err-tint);">Удалить выбранные (<span id="res-sel-count">0</span>)</button>
+        <button class="btn btn-quiet" id="res-select-all" style="display:none;">Выбрать все</button>
         <button class="btn btn-quiet" id="res-select-cancel" style="display:none;">Отмена</button>
       </div>
       <div class="panel-box">
@@ -693,15 +699,28 @@ body { margin: 0; }
 
   function updateResDeleteBtn() {
     var n = Object.keys(resSelected).length;
+    var total = (window._resultsCache || []).length;
     $('res-sel-count').textContent = n;
     $('res-delete').style.display = resSelectMode ? '' : 'none';
     $('res-delete').disabled = n === 0;
+    $('res-select-all').style.display = resSelectMode ? '' : 'none';
+    $('res-select-all').textContent = (n && n === total) ? 'Снять все' : 'Выбрать все';
   }
+
+  $('res-select-all').addEventListener('click', function () {
+    var all = (window._resultsCache || []);
+    var n = Object.keys(resSelected).length;
+    resSelected = {};
+    if (n !== all.length) all.forEach(function (r, i) { resSelected[i] = true; });
+    updateResDeleteBtn();
+    loadResults();
+  });
 
   $('res-select-toggle').addEventListener('click', function () {
     resSelectMode = true; resSelected = {};
     $('res-select-toggle').style.display = 'none';
     $('res-select-cancel').style.display = '';
+    $('res-select-all').style.display = '';
     updateResDeleteBtn();
     loadResults();
   });
@@ -709,6 +728,7 @@ body { margin: 0; }
     resSelectMode = false; resSelected = {};
     $('res-select-toggle').style.display = '';
     $('res-select-cancel').style.display = 'none';
+    $('res-select-all').style.display = 'none';
     $('res-delete').style.display = 'none';
     loadResults();
   });
@@ -716,15 +736,42 @@ body { margin: 0; }
     var picked = Object.keys(resSelected).map(function (i) { return (window._resultsCache || [])[+i]; }).filter(Boolean);
     if (!picked.length) return;
     if (!confirm('Удалить выбранные результаты (' + picked.length + ')? Это нельзя отменить.')) return;
-    $('res-delete').textContent = 'Удаляю…'; $('res-delete').disabled = true;
-    Promise.all(picked.map(function (r) { return StorageAPI.results.remove(r); })).then(function () {
+    $('res-delete').disabled = true;
+
+    /* Удаляем ПО ОЧЕРЕДИ и с конца таблицы к началу.
+       Раньше все запросы уходили разом, и это ломалось двумя способами:
+       Apps Script выполняет их вперемешку, а после удаления строки все
+       следующие сдвигаются вверх — номера съезжают. Идя от последней
+       строки к первой, мы не задеваем ещё не удалённые.
+       И теперь мы СМОТРИМ на ответ: сколько удалилось, сколько нет. */
+    var queue = picked.slice().sort(function (a, b) { return (b.row || 0) - (a.row || 0); });
+    var done = 0, failed = 0;
+
+    function step() {
+      if (!queue.length) return finish();
+      var r = queue.shift();
+      $('res-delete').textContent = 'Удаляю… ' + (done + failed + 1) + ' из ' + picked.length;
+      StorageAPI.results.remove(r).then(function (res) {
+        if (res && res.ok) done++; else failed++;
+        step();
+      });
+    }
+
+    function finish() {
       resSelectMode = false; resSelected = {};
       $('res-select-toggle').style.display = '';
       $('res-select-cancel').style.display = 'none';
+      $('res-select-all').style.display = 'none';
       $('res-delete').style.display = 'none';
       $('res-delete').innerHTML = 'Удалить выбранные (<span id="res-sel-count">0</span>)';
-      setTimeout(loadResults, 600);   // дать таблице обновиться
-    });
+      if (failed) {
+        alert('Удалено: ' + done + '. Не удалось: ' + failed +
+              '.\nОбновите раздел и попробуйте ещё раз.');
+      }
+      loadResults();
+    }
+
+    step();
   });
 
   function loadResults() {
@@ -819,9 +866,10 @@ body { margin: 0; }
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
             : '<span class="res-tag res-tag-done">проверено</span>';
           const checkbox = resSelectMode
-            ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + ' style="margin-right:var(--space-2);">'
+            ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + '>'
             : '';
-          return '<div class="res-row" data-idx="' + x._idx + '" style="cursor:pointer">' +
+          return '<div class="res-row' + (resSelectMode ? ' picking' : '') +
+              '" data-idx="' + x._idx + '" style="cursor:pointer">' +
               checkbox +
               '<div class="res-name">' + (x.fullName || '—') + '</div>' +
               '<div class="res-meta">' + shortWhen(x.date, x.time) + '</div>' +

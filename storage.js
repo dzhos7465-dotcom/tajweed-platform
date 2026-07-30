@@ -181,7 +181,7 @@ const StorageAPI = (function () {
                  String(x.fullName) === String(r.fullName) && String(x.group) === String(r.group);
         };
         return writeThenVerify('result_delete',
-          { date: r.date, time: r.time, fullName: r.fullName, group: r.group },
+          { row: r.row, date: r.date, time: r.time, fullName: r.fullName, group: r.group },
           'results', 'results',
           function (list) { return !list.some(same); });
       },
