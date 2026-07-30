@@ -104,7 +104,9 @@ body { margin: 0; }
 .rec-card-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
 .rec-card-meta { font-size: var(--text-xs); color: var(--ink-faint); }
 .rec-card-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.5rem; line-height: 1.8; color: var(--ink); margin: var(--space-2) 0; }
-.rec-frame { width: 100%; height: 60px; border: none; border-radius: var(--radius-sm); background: var(--paper-sunken); }
+.rec-frame { width: 100%; height: 120px; border: none; border-radius: var(--radius-sm); background: var(--paper-sunken); }
+/* Встроенный проигрыватель Диска рисует себя крупнее, чем 60px: при
+   такой высоте у него срезало кнопку воспроизведения и полосу времени. */
 .rec-play-btn { color: var(--seal); border-color: var(--line-strong); }
 .rec-player { margin: var(--space-2) 0; }
 .rec-grade-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); flex-wrap: wrap; }
@@ -582,8 +584,7 @@ body { margin: 0; }
         const linkBtn = '<button class="btn btn-quiet ses-link-btn" data-id="' + s.id +
           '" style="padding:4px 12px;">Ссылка</button>';
         // «Группа» не приписываем, если преподаватель уже назвал группу так
-        const grpName = String(s.group || '?');
-        const grpLabel = /^гр/i.test(grpName) ? grpName : 'Группа ' + grpName;
+        const grpLabel = groupLabel(s.group);
         return '<div class="list-row"><b>' + grpLabel + '</b>' +
           '<span style="color:var(--ink-soft); font-size:var(--text-sm);">' +
             (actTitle[s.activityId] || '—') + '</span>' +
@@ -998,7 +999,7 @@ body { margin: 0; }
     }
 
     $('detail-title').textContent = r.fullName || 'Работа ученика';
-    $('detail-sub').textContent = 'Группа ' + (r.group || '—') + ' · ' + shortWhen(r.date, r.time) +
+    $('detail-sub').textContent = groupLabel(r.group || '—') + ' · ' + shortWhen(r.date, r.time) +
       (total ? ' · верно ' + correct + ' из ' + (total - pending) : '');
 
     // Разбор общего балла: тест 80% + чтение 20%
@@ -1735,7 +1736,7 @@ body { margin: 0; }
     recGroups.forEach(function (g) {
       var title = document.createElement('div');
       title.className = 'rec-group-title';
-      title.textContent = 'Группа ' + g + ' · ' + byGroup[g].length;
+      title.textContent = groupLabel(g) + ' · ' + byGroup[g].length;
       $('rec-list').appendChild(title);
       byGroup[g].slice().sort(function (a, b) { return b._key - a._key; })
         .forEach(function (r) { $('rec-list').appendChild(recCard(r)); });
