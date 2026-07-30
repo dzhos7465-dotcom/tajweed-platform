@@ -428,11 +428,24 @@ function ayahsWithGroup(rules) {
   return AYAHS.filter(a => findTargetsFor(a.id, rules) !== null);
 }
 
-function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort, activityFind) {
-  // Для контрольной seed постоянный — «билет» стабилен для всей группы.
-  // Для тренировки seed из времени — каждый запуск свежий.
-  const rng = randomize ? makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0)
-                        : makeRng(20260101); // фиксированный «номер билета»
+/* Каким «номером билета» собрана последняя работа. Нужен снаружи:
+   в случайных режимах его сохраняют вместе с ответами, чтобы после
+   перезагрузки собрать РОВНО ТУ ЖЕ работу, а не новую. */
+let LAST_SEED = null;
+
+function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort, activityFind, seed) {
+  /* Для контрольной seed постоянный — «билет» стабилен для всей группы.
+     Для остальных режимов свежий при каждом запуске.
+
+     ВАЖНО: seed можно передать снаружи. Без этого получалась порча работы:
+     ученик отвечал на пять вопросов, перезагружал страницу — задания
+     пересобирались заново со случайными примерами, а ответы оставались
+     старыми и оказывались привязаны к другим словам. */
+  const useSeed = randomize
+    ? (seed != null ? seed : ((Date.now() ^ (Math.random() * 1e9)) >>> 0))
+    : 20260101;                          // фиксированный «номер билета»
+  LAST_SEED = useSeed;
+  const rng = makeRng(useSeed);
   const pick = (arr, n) => pickWith(arr, n, rng);
 
   const built = [];
@@ -635,8 +648,9 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize, activityThemes, activityRecite, activitySort, activityFind) {
-  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null, activitySort || null, activityFind || null);
+function rebuildTasks(randomize, activityThemes, activityRecite, activitySort, activityFind, seed) {
+  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null,
+                                  activitySort || null, activityFind || null, seed);
   return TASKS;
 }
 

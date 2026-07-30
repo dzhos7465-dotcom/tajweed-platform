@@ -120,7 +120,11 @@ function startExam(student, config) {
   // Если конфиг несёт темы из активности (activityThemes) — собираем по ним,
   // иначе по встроенным шаблонам. Движок не знает, откуда темы.
   if (typeof rebuildTasks === 'function') {
-    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null, activeConfig.activityRecite || null, activeConfig.activitySort || null, activeConfig.activityFind || null);
+    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null,
+                 activeConfig.activityRecite || null, activeConfig.activitySort || null,
+                 activeConfig.activityFind || null);
+    // запоминаем, каким «номером билета» собрана работа: он уйдёт в черновик
+    session.seed = (typeof LAST_SEED !== 'undefined') ? LAST_SEED : null;
   }
   session.student = student;
   session.startTime = Date.now();
@@ -385,6 +389,9 @@ function saveDraft() {
       taskOrder: session.taskOrder,
       answers: session.answers,
       currentIndex: session.currentIndex,
+      // Без него после перезагрузки собиралась ДРУГАЯ работа: те же номера
+      // заданий, но другие слова, а ответы оставались от прежних.
+      seed: session.seed || null,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch (e) { /* localStorage может быть недоступен — не критично */ }
@@ -399,6 +406,16 @@ function loadDraft() {
 }
 
 function restoreDraft(draft) {
+  /* Собираем работу заново тем же «номером билета» — тогда в заданиях
+     окажутся ровно те слова, на которые ученик уже отвечал. */
+  if (draft.seed != null && typeof rebuildTasks === 'function' && session.mode) {
+    var cfg = (typeof window !== 'undefined' && window.SESSION_EXAM_CONFIG)
+      ? window.SESSION_EXAM_CONFIG : EXAM_CONFIG;
+    rebuildTasks(session.mode.randomizeExamples, cfg.activityThemes || null,
+                 cfg.activityRecite || null, cfg.activitySort || null,
+                 cfg.activityFind || null, draft.seed);
+    session.seed = draft.seed;
+  }
   session.student = draft.student;
   session.startTime = draft.startTime;
   session.taskOrder = draft.taskOrder;
