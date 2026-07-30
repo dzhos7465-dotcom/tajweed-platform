@@ -104,7 +104,10 @@ body { margin: 0; }
 .rec-card-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
 .rec-card-meta { font-size: var(--text-xs); color: var(--ink-faint); }
 .rec-card-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.5rem; line-height: 1.8; color: var(--ink); margin: var(--space-2) 0; }
-.rec-frame { width: 100%; height: 120px; border: none; border-radius: var(--radius-sm); background: var(--paper-sunken); }
+.rec-audio { width: 100%; direction: ltr; margin: var(--space-2) 0; }
+.rec-audio-fail { font-size: var(--text-sm); color: var(--ink-soft); padding: var(--space-3);
+  background: var(--paper-sunken); border-radius: var(--radius-sm); text-align: center; }
+.rec-audio-fail a { color: var(--seal); }
 /* Встроенный проигрыватель Диска рисует себя крупнее, чем 60px: при
    такой высоте у него срезало кнопку воспроизведения и полосу времени. */
 .rec-play-btn { color: var(--seal); border-color: var(--line-strong); }
@@ -1655,9 +1658,24 @@ body { margin: 0; }
   // ── Проверка чтения: слушать + ставить балл ──
   var allRecordings = [];
 
-  function drivePreviewUrl(url) {
-    var m = String(url).match(/\/d\/([^\/]+)/);
-    return m ? 'https://drive.google.com/file/d/' + m[1] + '/preview' : url;
+  /* ПОЧЕМУ НЕ ВСТРОЕННЫЙ ПРОИГРЫВАТЕЛЬ ДИСКА.
+     Раньше запись открывалась через страницу Диска в рамке. На компьютере
+     она играла, а на iPhone — нет: Safari не даёт такой рамке запуститься.
+     И вид её мы не контролируем: у преподавателя кнопка воспроизведения
+     оказалась справа, а полоса громкости обрезана.
+
+     Теперь берём прямую ссылку на файл и отдаём её обычному плееру
+     браузера: он родной для телефона, играет по нажатию и выглядит
+     одинаково. Если файл почему-то не открылся — показываем ссылку
+     на Диск, чтобы преподаватель всё равно мог послушать. */
+  function driveFileId(url) {
+    var m = String(url).match(/\/d\/([^\/?#]+)/) || String(url).match(/[?&]id=([^&]+)/);
+    return m ? m[1] : null;
+  }
+
+  function driveAudioUrl(url) {
+    var id = driveFileId(url);
+    return id ? 'https://drive.google.com/uc?export=download&id=' + id : url;
   }
 
   /* Последняя попытка по каждому (ученик · группа · аят · сессия).
@@ -1811,11 +1829,18 @@ body { margin: 0; }
       var open = document.querySelector('.rec-player.playing');
       if (open && open !== box) collapsePlayer(open);
       box.classList.add('playing');
-      box.innerHTML = '<iframe class="rec-frame" src="' + box.getAttribute('data-url') +
-                      '" allow="autoplay"></iframe>';
+      box.innerHTML = '<audio class="rec-audio" controls preload="metadata" src="' +
+                      box.getAttribute('data-url') + '"></audio>';
+      var au = box.querySelector('.rec-audio');
+      au.addEventListener('error', function () {
+        box.innerHTML = '<div class="rec-audio-fail">Не удалось проиграть здесь. ' +
+          '<a href="' + box.getAttribute('data-drive') + '" target="_blank">Открыть на Диске</a></div>';
+      });
+      au.play().catch(function () { /* браузер ждёт нажатия на сам плеер — это нормально */ });
     }
 
-    playBox.setAttribute('data-url', drivePreviewUrl(r.url));
+    playBox.setAttribute('data-url', driveAudioUrl(r.url));
+    playBox.setAttribute('data-drive', r.url);
     playBox.querySelector('.rec-play-btn')
            .addEventListener('click', function () { openPlayer(playBox); });
 
