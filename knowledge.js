@@ -28,6 +28,12 @@
    последовательность задаёт курс или экзамен, а не сама тема.
    Поле order — лишь удобная подсказка «естественного» порядка, которую
    слой проверки может использовать или переопределить.
+
+   Поле sign — по какому признаку правило узнаётся. Это ЗНАНИЕ о правиле,
+   поэтому живёт здесь, а не в задании. Из него собирается объяснение
+   после ответа в домашке, тренировке и повторении: показываем признак
+   верного правила и признак того, что ученик выбрал, — чтобы он увидел
+   не «не угадал», а чем одно отличается от другого.
 ────────────────────────────────────────────────────────────────────── */
 /* Два поля вместо одного — они отвечают на РАЗНЫЕ вопросы:
 
@@ -47,27 +53,43 @@
    активностей в таблице; переименование осиротит их. Название меняется
    свободно, id — нет. */
 const THEMES = {
-  izhar_mim:  { id: 'izhar_mim',  name: 'Изхар мими',   group: 'mim', stage: 'course1', order: 1 },
-  idgham_mim: { id: 'idgham_mim', name: 'Идгам мими',   group: 'mim', stage: 'course1', order: 2 },
-  ikhfa_mim:  { id: 'ikhfa_mim',  name: 'Ихфа мими',    group: 'mim', stage: 'course1', order: 3 },
-  shadda_mim: { id: 'shadda_mim', name: 'Мим с шаддой', group: 'mim', stage: 'course1', order: 4 },
+  izhar_mim:  { id: 'izhar_mim',  name: 'Изхар мими',   group: 'mim', stage: 'course1', order: 1,
+                    sign: 'Мим с сукуном, а дальше любая буква, кроме م и ب. Читается ясно, без призвука.' },
+  idgham_mim: { id: 'idgham_mim', name: 'Идгам мими',   group: 'mim', stage: 'course1', order: 2,
+                    sign: 'Мим с сукуном, а дальше тоже م. Две мим сливаются в одну с гунной.' },
+  ikhfa_mim:  { id: 'ikhfa_mim',  name: 'Ихфа мими',    group: 'mim', stage: 'course1', order: 3,
+                    sign: 'Мим с сукуном, а дальше ب. Губы не смыкаются до конца, звук идёт с гунной.' },
+  shadda_mim: { id: 'shadda_mim', name: 'Мим с шаддой', group: 'mim', stage: 'course1', order: 4,
+                    sign: 'Над мим стоит шадда — гунна тянется две огласовки.' },
 
-  izhar_nun:  { id: 'izhar_nun',  name: 'Изхар нуна',   group: 'nun', stage: 'course1', order: 5 },
-  idgham_nun: { id: 'idgham_nun', name: 'Идгам нуна',   group: 'nun', stage: 'course1', order: 6 },
-  iqlab_nun:  { id: 'iqlab_nun',  name: 'Икляб нуна',   group: 'nun', stage: 'course1', order: 7 },
-  ikhfa_nun:  { id: 'ikhfa_nun',  name: 'Ихфа нуна',    group: 'nun', stage: 'course1', order: 8 },
-  shadda_nun: { id: 'shadda_nun', name: 'Нун с шаддой', group: 'nun', stage: 'course1', order: 9 },
+  izhar_nun:  { id: 'izhar_nun',  name: 'Изхар нуна',   group: 'nun', stage: 'course1', order: 5,
+                    sign: 'Нун с сукуном или танвин, а дальше буква горла: ء ه ع ح غ خ. Читается ясно.' },
+  idgham_nun: { id: 'idgham_nun', name: 'Идгам нуна',   group: 'nun', stage: 'course1', order: 6,
+                    sign: 'Нун с сукуном или танвин, а дальше одна из ي ر م ل و ن. Нун исчезает, следующая буква удваивается.' },
+  iqlab_nun:  { id: 'iqlab_nun',  name: 'Икляб нуна',   group: 'nun', stage: 'course1', order: 7,
+                    sign: 'Нун с сукуном или танвин, а дальше ب. Нун превращается в мим с гунной.' },
+  ikhfa_nun:  { id: 'ikhfa_nun',  name: 'Ихфа нуна',    group: 'nun', stage: 'course1', order: 8,
+                    sign: 'Нун с сукуном или танвин, а дальше одна из остальных пятнадцати букв. Нун прячется, остаётся гунна.' },
+  shadda_nun: { id: 'shadda_nun', name: 'Нун с шаддой', group: 'nun', stage: 'course1', order: 9,
+                    sign: 'Над нун стоит шадда — гунна тянется две огласовки.' },
 
   // ── Правила мадда (удлинение) ──
-  madd_tabii:      { id: 'madd_tabii',      name: 'Естественный мадд',        group: 'madd', stage: 'course1', order: 10 },
-  madd_iwad:       { id: 'madd_iwad',       name: 'Мадд ‘ивад',               group: 'madd', stage: 'course1', order: 11 },
-  madd_muttasil:   { id: 'madd_muttasil',   name: 'Мадд муттасиль',           group: 'madd', stage: 'course1', order: 12 },
-  madd_munfasil:   { id: 'madd_munfasil',   name: 'Мадд мунфасыль',           group: 'madd', stage: 'course1', order: 13 },
+  madd_tabii:      { id: 'madd_tabii',      name: 'Естественный мадд',        group: 'madd', stage: 'course1', order: 10,
+                    sign: 'В слове есть буква мадда (ا و ي), и после неё нет ни хамзы, ни сукуна.' },
+  madd_iwad:       { id: 'madd_iwad',       name: 'Мадд ‘ивад',               group: 'madd', stage: 'course1', order: 11,
+                    sign: 'На конце слова танвин фатха, и на этом слове остановка. Танвин не читается, звук удлиняется.' },
+  madd_muttasil:   { id: 'madd_muttasil',   name: 'Мадд муттасиль',           group: 'madd', stage: 'course1', order: 12,
+                    sign: 'Буква мадда и хамза стоят вместе, внутри одного слова. Причина удлинения — хамза.' },
+  madd_munfasil:   { id: 'madd_munfasil',   name: 'Мадд мунфасыль',           group: 'madd', stage: 'course1', order: 13,
+                    sign: 'Буква мадда и хамза разделены границей слова, но читаются слитно. Причина удлинения — хамза.' },
   // id остаётся madd_lazim — тема уже живёт в сохранённых активностях.
   // Уточнение «(словесный)» появилось, когда добавился буквенный.
-  madd_lazim:      { id: 'madd_lazim',      name: 'Мадд лазим (словесный)',   group: 'madd', stage: 'course1', order: 14 },
-  madd_lazim_harfi:{ id: 'madd_lazim_harfi',name: 'Мадд лазим (буквенный)',   group: 'madd', stage: 'course1', order: 15 },
-  madd_arid:       { id: 'madd_arid',       name: 'Мадд ‘арид',               group: 'madd', stage: 'course1', order: 16 },
+  madd_lazim:      { id: 'madd_lazim',      name: 'Мадд лазим (словесный)',   group: 'madd', stage: 'course1', order: 14,
+                    sign: 'Сразу после буквы мадда стоит буква с шаддой — в шадде спрятан сукун.' },
+  madd_lazim_harfi:{ id: 'madd_lazim_harfi',name: 'Мадд лазим (буквенный)',   group: 'madd', stage: 'course1', order: 15,
+                    sign: 'Над буквой в начале суры стоит волнистая линия. Есть линия — тянем шесть харакатов, нет линии — не тянем.' },
+  madd_arid:       { id: 'madd_arid',       name: 'Мадд ‘арид',               group: 'madd', stage: 'course1', order: 16,
+                    sign: 'Слово стоит в позиции остановки: последняя буква получает сукун, а перед ним — буква мадда.' },
 };
 
 
@@ -145,6 +167,13 @@ const EXAMPLES = [
   { id: 'ex_izn_8', text: 'مِنۡ غَيۡرِ شَيۡءٍ',     themes: ['izhar_nun'] },
   { id: 'ex_izn_9', text: 'مِنۡ خَوۡفٍ',            themes: ['izhar_nun'] },
 
+  // Правило НА ТАНВИНЕ (танвин раздельный: изхар)
+  { id: 'ex_izn_10', text: 'كُفُوًا أَحَدٌ', themes: ['izhar_nun'] },   // Аль-Ихляс, 4
+  { id: 'ex_izn_11', text: 'سَلٰمٌ هِىَ', themes: ['izhar_nun'] },   // Аль-Кадр, 5
+  { id: 'ex_izn_12', text: 'ذَرَّةٍ خَيۡرًا', themes: ['izhar_nun'] },   // Аз-Залзаля, 7
+  { id: 'ex_izn_13', text: 'سَمِيعٌ عَلِيمٌ', themes: ['izhar_nun'] },   // часто в Коране
+  { id: 'ex_izn_14', text: 'نَارًا حَامِيَةً', themes: ['izhar_nun'] },   // Аль-Гашия, 4
+
   // ── Идгам нуна ──
   { id: 'ex_idn_1', text: 'مَن يَقُولُ',           themes: ['idgham_nun'] },
   { id: 'ex_idn_2', text: 'مِن رَّبِّهِمۡ',         themes: ['idgham_nun'] },
@@ -156,17 +185,31 @@ const EXAMPLES = [
   { id: 'ex_idn_8', text: 'مِن لَّدُنۡهُ',          themes: ['idgham_nun'] },
   { id: 'ex_idn_9', text: 'مِن رَّسُولٍ',           themes: ['idgham_nun'] },
 
+  // Правило НА ТАНВИНЕ (танвин стопочкой: идгам)
+  { id: 'ex_idn_10', text: 'غَفُورࣱ رَّحِيمٌ', themes: ['idgham_nun'] },   // часто в Коране
+  { id: 'ex_idn_11', text: 'وَيۡلࣱ لِّكُلِّ', themes: ['idgham_nun'] },   // Аль-Хумаза, 1
+  { id: 'ex_idn_12', text: 'خَيۡرࣱ مِّنۡ', themes: ['idgham_nun'] },   // Аль-Кадр, 3
+  { id: 'ex_idn_13', text: 'جَنَّٰتࣲ وَعُيُونٍ', themes: ['idgham_nun'] },   // Ад-Духан, 52
+  { id: 'ex_idn_14', text: 'خَيۡرࣰا يَرَهُۥ', themes: ['idgham_nun'] },   // Аз-Залзаля, 7
+
   // ── Икляб нуна ──
   { id: 'ex_iqn_1', text: 'مِنۢ بَعۡدِ',           themes: ['iqlab_nun'] },
   { id: 'ex_iqn_2', text: 'زَوۡجِۢ بَـهِـيجٍ',        themes: ['iqlab_nun'] },
   { id: 'ex_iqn_3', text: 'مِنۢ بَيۡنِ',            themes: ['iqlab_nun'] },
   { id: 'ex_iqn_4', text: 'أَنۢ بُورِكَ',           themes: ['iqlab_nun'] },
 
+  // Правило НА ТАНВИНЕ (огласовка + малая мим: икляб)
+  { id: 'ex_iqn_5', text: 'صُمُّۢ بُكۡمٌ', themes: ['iqlab_nun'] },   // Аль-Бакара, 18
+  { id: 'ex_iqn_6', text: 'سَمِيعَۢا بَصِيرًا', themes: ['iqlab_nun'] },   // Аль-Инсан, 2
+  { id: 'ex_iqn_7', text: 'كِرَامِۢ بَرَرَةٍ', themes: ['iqlab_nun'] },   // Абаса, 16
+  { id: 'ex_iqn_8', text: 'لَطِيفُۢ بِعِبَادِهِ', themes: ['iqlab_nun'] },   // Аш-Шура, 19
+  { id: 'ex_iqn_9', text: 'عَلِيمُۢ بِذَاتِ', themes: ['iqlab_nun'] },   // Аль-Маида, 7
+
   // ── Ихфа нуна ──
   { id: 'ex_ikn_1', text: 'مِنۡ قَبۡلُ',           themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_2', text: 'أَنفُسَكُمۡ',           themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_3', text: 'مِنۡ ثَـمَرَاتٍ',         themes: ['ikhfa_nun'] },
-  { id: 'ex_ikn_4', text: 'شَيۡءٖ قَدِيرٌ',         themes: ['ikhfa_nun'] },
+  { id: 'ex_ikn_4', text: 'شَيۡءࣲ قَدِيرٌ',         themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_5',  text: 'أَن سَيَكُونَ',         themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_6',  text: 'مِن دَابَّةٍ',          themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_7',  text: 'مِن طِينٍ',             themes: ['ikhfa_nun'] },
@@ -182,6 +225,13 @@ const EXAMPLES = [
   { id: 'ex_ikn_17', text: 'مَن جَاءَ',             themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_18', text: 'مِن شَرِّ',             themes: ['ikhfa_nun'] },
   { id: 'ex_ikn_19', text: 'وَإِن قِيلَ',           themes: ['ikhfa_nun'] },
+
+  // Правило НА ТАНВИНЕ (танвин стопочкой: ихфа)
+  { id: 'ex_ikn_20', text: 'قَوۡلࣰا ثَقِيلًا', themes: ['ikhfa_nun'] },   // Аль-Муззаммиль, 5
+  { id: 'ex_ikn_21', text: 'جَنَّٰتࣲ تَجۡرِى', themes: ['ikhfa_nun'] },   // часто в Коране
+  { id: 'ex_ikn_22', text: 'رِيحࣰا صَرۡصَرًا', themes: ['ikhfa_nun'] },   // Фуссылят, 16
+  { id: 'ex_ikn_23', text: 'سَلٰمࣰا سَلٰمًا', themes: ['ikhfa_nun'] },   // Аль-Вакы‘а, 26
+  { id: 'ex_ikn_24', text: 'ظِلࣰّا ظَلِيلًا', themes: ['ikhfa_nun'] },   // Ан-Ниса, 57
 
   // ── Нун с шаддой: نّ читается с гунной две огласовки ──
   { id: 'ex_shn_1', text: 'إِنَّ',                 themes: ['shadda_nun'] },
