@@ -213,20 +213,33 @@ function checkTask(task, answer) {
 
     case TASK_TYPES.FIND: {
       // Найди в аяте: ученик подчёркивает места и называет правило.
-      // task.answer — карта {индекс слова: правило} (только правила группы задания).
+      // task.answer — карта {индекс слова: [правила]}: на одном слове может
+      // сойтись несколько искомых правил (у маддов это обычное дело).
       // answer ученика — массив черт [{words:[индексы], rule}].
+      //
+      // Цель — ПАРА «слово + правило». Слово с двумя искомыми правилами даёт
+      // две цели: ученик отмечает его дважды, называя разные правила.
       const targets = task.answer || {};
       const strokes = Array.isArray(answer) ? answer : [];
-      const targetIds = Object.keys(targets);
-      const total = targetIds.length || 1;
 
-      const found = {};      // какие цели найдены верно
+      // на всякий случай понимаем и старый формат {слово: 'правило'}
+      const rulesAt = function (w) {
+        const v = targets[w];
+        if (v == null) return [];
+        return Array.isArray(v) ? v : [v];
+      };
+
+      let total = 0;
+      Object.keys(targets).forEach(w => { total += rulesAt(w).length; });
+      if (!total) total = 1;
+
+      const found = {};      // ключ «слово|правило» — чтобы не зачесть дважды
       let wrongStrokes = 0;  // черты, не попавшие ни в одну цель с верным правилом
       strokes.forEach(s => {
         if (!s || !s.rule || !Array.isArray(s.words)) return;
-        // черта верна, если накрыла слово-цель И правило совпало
-        const hits = s.words.filter(w => targets[w] === s.rule);
-        if (hits.length) hits.forEach(w => { found[w] = true; });
+        // черта верна, если накрыла слово-цель И названное правило там есть
+        const hits = s.words.filter(w => rulesAt(w).indexOf(s.rule) !== -1);
+        if (hits.length) hits.forEach(w => { found[w + '|' + s.rule] = true; });
         else wrongStrokes++;
       });
 

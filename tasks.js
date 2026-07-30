@@ -376,29 +376,56 @@ const TASK_WEIGHTS = {
 /* Группы правил для задания «Найди в аяте» (без шадды — решение
    преподавателя): нун = 4 правила, мим = 3. */
 const FIND_GROUPS = {
-  nun: { id:'nun', name:'нуна', rules:['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'] },
-  mim: { id:'mim', name:'мима', rules:['izhar_mim','idgham_mim','ikhfa_mim'] },
+  nun:  { id:'nun',  name:'нуна', rules:['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'] },
+  mim:  { id:'mim',  name:'мима', rules:['izhar_mim','idgham_mim','ikhfa_mim'] },
+  madd: { id:'madd', name:'мадда', rules:['madd_tabii','madd_iwad','madd_muttasil',
+          'madd_munfasil','madd_lazim','madd_lazim_harfi','madd_arid'] },
 };
 
-/* Цели задания: из разметки аята берём только правила нужной группы.
-   Возвращает {индекс слова: правило} или null, если в аяте таких правил нет. */
-function findTargetsFor(ayahId, groupId) {
+/* ──────────────────────────────────────────────────────────────────────
+   ЦЕЛИ ЗАДАНИЯ «НАЙДИ В АЯТЕ»
+   ──────────────────────────────────────────────────────────────────────
+   Раньше здесь была карта {слово: правило} — по одному правилу на слово.
+   Для мима и нуна это годилось: в одном слове они не встречаются вместе.
+   Мадды встречаются постоянно: в ٱلضَّآلِّينَ сразу лазим, естественный и,
+   при остановке, ‘арид. Одно правило на слово теряло бы остальные.
+
+   Теперь цель — ПАРА «слово + правило», а на слове их может быть несколько:
+       { 3: ['madd_lazim', 'madd_tabii'] }
+   Слово с двумя искомыми правилами требует двух черт: ученик отмечает его
+   дважды и называет разные правила.
+
+   rules — какие правила ИЩЕМ. Их выбирает преподаватель для каждого аята:
+   можно одно, можно три. Остальные правила в аяте просто не спрашиваются
+   и за них не штрафуют.
+────────────────────────────────────────────────────────────────────── */
+function findTargetsFor(ayahId, rules) {
   if (typeof AYAH_MARKS === 'undefined') return null;
   const marks = AYAH_MARKS[ayahId] || [];
-  const grp = FIND_GROUPS[groupId];
-  if (!grp) return null;
+  // строкой пришёл id группы — берём все её правила (старые активности)
+  const list = Array.isArray(rules)
+    ? rules
+    : ((FIND_GROUPS[rules] && FIND_GROUPS[rules].rules) || []);
+  if (!list.length) return null;
   const targets = {};
   let any = false;
   marks.forEach(m => {
-    if (grp.rules.indexOf(m.rule) !== -1) { targets[m.w] = m.rule; any = true; }
+    if (list.indexOf(m.rule) === -1) return;
+    if (!targets[m.w]) targets[m.w] = [];
+    if (targets[m.w].indexOf(m.rule) === -1) { targets[m.w].push(m.rule); any = true; }
   });
   return any ? targets : null;
 }
 
-/* Аяты, где есть правила данной группы — чтобы задание было осмысленным. */
-function ayahsWithGroup(groupId) {
+/* Сколько всего целей в аяте — считаем пары «слово + правило». */
+function countFindTargets(targets) {
+  return Object.keys(targets || {}).reduce(function (n, w) { return n + targets[w].length; }, 0);
+}
+
+/* Аяты, где есть искомые правила — чтобы задание было осмысленным. */
+function ayahsWithGroup(rules) {
   if (typeof AYAHS === 'undefined') return [];
-  return AYAHS.filter(a => findTargetsFor(a.id, groupId) !== null);
+  return AYAHS.filter(a => findTargetsFor(a.id, rules) !== null);
 }
 
 function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort, activityFind) {
@@ -502,33 +529,51 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
   });
 
   // 2.5 Задания «Найди в аяте» — по галочкам активности (найди правила нуна/мима)
-  if (activityFind && (activityFind.nun || activityFind.mim)) {
-    ['nun', 'mim'].forEach(function (gid) {
+  if (activityFind && (activityFind.nun || activityFind.mim || activityFind.madd)) {
+    ['nun', 'mim', 'madd'].forEach(function (gid) {
       if (!activityFind[gid]) return;
       var grp = FIND_GROUPS[gid];
+      // Какие правила ИЩЕМ. Преподаватель выбирает их сам; если не выбрал —
+      // все правила раздела, как было раньше (старые активности не ломаются).
+      var groupRules = activityFind[gid + 'Rules'];
+      if (!Array.isArray(groupRules) || !groupRules.length) groupRules = grp.rules;
+
       // аяты, выбранные преподавателем; если не выбрал — берём все подходящие
       var selectedIds = activityFind[gid + 'Ayahs'] || [];
       var chosen;
       if (selectedIds.length) {
         chosen = selectedIds
           .map(function (id) { return AYAH_BY_ID[id]; })
-          .filter(function (a) { return a && findTargetsFor(a.id, gid); });
+          .filter(function (a) { return a && findTargetsFor(a.id, groupRules); });
       } else {
-        var pool = ayahsWithGroup(gid);
+        var pool = ayahsWithGroup(groupRules);
         if (!pool.length) return;
         chosen = pick(pool, 1);   // не выбрал — один случайный
       }
       chosen.forEach(function (ayah) {
-        var targets = findTargetsFor(ayah.id, gid);
+        var targets = findTargetsFor(ayah.id, groupRules);
+        // Правила, которые в этом аяте вправду есть, — только они идут
+        // в варианты. Предлагать правило, которого в аяте нет, — подсказка
+        // наоборот: ученик будет искать несуществующее.
+        var present = [];
+        Object.keys(targets).forEach(function (w) {
+          targets[w].forEach(function (r) { if (present.indexOf(r) === -1) present.push(r); });
+        });
+        var options = groupRules.filter(function (r) { return present.indexOf(r) !== -1; });
+        var names = options.map(function (r) {
+          return (THEMES[r] && THEMES[r].name) || r;
+        });
         built.push({
           id: nextId('t_find_' + gid),
-          theme: grp.rules[0],              // для окраски/группировки
+          theme: options[0] || grp.rules[0],   // для окраски/группировки
           type: TASK_TYPES.FIND,
-          prompt: 'Подчеркни места правил ' + grp.name,
+          prompt: options.length === 1
+            ? 'Подчеркни в аяте места правила «' + names[0] + '»'
+            : 'Подчеркни места правил ' + grp.name + ': ' + names.join(', '),
           ayahRef: ayah.id,
-          findGroup: gid,                   // какая группа правил
-          options: grp.rules,               // варианты при выборе правила
-          answer: targets,                  // {индекс слова: правило}
+          findGroup: gid,
+          options: options,                    // варианты при выборе правила
+          answer: targets,                     // {слово: [правила]}
           check: CHECK.AUTO,
           weight: TASK_WEIGHTS.find,
         });

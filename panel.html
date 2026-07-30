@@ -286,13 +286,24 @@ body { margin: 0; }
           <div class="collapse-body">
             <div class="find-group-block">
               <label class="sort-opt"><input type="checkbox" id="af-find-nun"> Найди правила <b>нуна</b> в аяте</label>
-              <div class="find-hint-line">Отметь аяты, где ученик будет искать правила нуна:</div>
+              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div id="af-find-nun-rules" class="sort-rules" style="display:none;"></div>
+              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
               <div id="af-find-nun-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
             <div class="find-group-block" style="margin-top:var(--space-4);">
               <label class="sort-opt"><input type="checkbox" id="af-find-mim"> Найди правила <b>мима</b> в аяте</label>
-              <div class="find-hint-line">Отметь аяты, где ученик будет искать правила мима:</div>
+              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div id="af-find-mim-rules" class="sort-rules" style="display:none;"></div>
+              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
               <div id="af-find-mim-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
+            </div>
+            <div class="find-group-block" style="margin-top:var(--space-4);">
+              <label class="sort-opt"><input type="checkbox" id="af-find-madd"> Найди правила <b>мадда</b> в аяте</label>
+              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div id="af-find-madd-rules" class="sort-rules" style="display:none;"></div>
+              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
+              <div id="af-find-madd-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -1150,6 +1161,32 @@ body { margin: 0; }
     });
   }
 
+  /* Выбор правил для «найди в аяте». Отдельный от распределения, потому что
+     смысл другой: там правила — это коробки, здесь — что именно искать.
+     Ничего не отмечено = искать все правила раздела (как было раньше). */
+  function buildFindRules(groupId) {
+    var wrap = $('af-find-' + groupId + '-rules');
+    if (!wrap) return;
+    var grp = (typeof FIND_GROUPS !== 'undefined') ? FIND_GROUPS[groupId] : null;
+    if (!grp) return;
+    wrap.innerHTML = grp.rules.map(function (r) {
+      var th = (typeof THEMES !== 'undefined') ? THEMES[r] : null;
+      var color = (typeof ruleAccent === 'function') ? ruleAccent(r) : 'var(--seal)';
+      return '<label class="sort-rule-opt"><input type="checkbox" class="frule-check" data-rule="' + r + '">' +
+        '<span class="mat-rule-dot" style="background:' + color + '"></span>' +
+        ((th && th.name) || r) + '</label>';
+    }).join('');
+  }
+
+  function collectFindRules(groupId) {
+    var out = [];
+    var wrap = $('af-find-' + groupId + '-rules');
+    if (wrap) wrap.querySelectorAll('.frule-check').forEach(function (c) {
+      if (c.checked) out.push(c.getAttribute('data-rule'));
+    });
+    return out;
+  }
+
   function collectSortRules(groupId) {
     var out = [];
     var wrap = $('af-sort-' + groupId + '-rules');
@@ -1306,11 +1343,17 @@ body { margin: 0; }
     });
   });
   // «Найди в аяте»: галочка включает поле количества
-  ['nun', 'mim'].forEach(function (gid) {
+  ['nun', 'mim', 'madd'].forEach(function (gid) {
     var chk = $('af-find-' + gid);
     var picker = $('af-find-' + gid + '-ayahs');
+    var rulesBox = $('af-find-' + gid + '-rules');
+    if (rulesBox && chk) rulesBox.style.display = chk.checked ? '' : 'none';
     if (chk && picker) chk.addEventListener('change', function () {
       picker.style.display = chk.checked ? '' : 'none';
+      if (rulesBox) {
+        rulesBox.style.display = chk.checked ? '' : 'none';
+        if (chk.checked && !rulesBox.hasChildNodes()) buildFindRules(gid);
+      }
       if (chk.checked && !picker.hasChildNodes()) buildFindPicker(gid);
       updateCollapseHints();
     });
@@ -1333,9 +1376,12 @@ body { margin: 0; }
     });
     $('af-find-mim').checked = false;
     $('af-find-nun').checked = false;
-    ['nun', 'mim'].forEach(function (gid) {
+    $('af-find-madd').checked = false;
+    ['nun', 'mim', 'madd'].forEach(function (gid) {
       var picker = $('af-find-' + gid + '-ayahs');
       if (picker) { picker.innerHTML = ''; picker.style.display = 'none'; }
+      var rb = $('af-find-' + gid + '-rules');
+      if (rb) { rb.innerHTML = ''; rb.style.display = 'none'; }
     });
     buildThemePicker();
     buildAyahPicker();
@@ -1397,16 +1443,29 @@ body { margin: 0; }
       }
     });
     // Галочки «найди в аяте» + выбранные аяты
-    ['nun', 'mim'].forEach(function (gid) {
-      var on = !!act['find' + (gid === 'nun' ? 'Nun' : 'Mim')];
+    ['nun', 'mim', 'madd'].forEach(function (gid) {
+      var Cap = gid === 'nun' ? 'Nun' : (gid === 'mim' ? 'Mim' : 'Madd');
+      var on = !!act['find' + Cap];
       var chk = $('af-find-' + gid);
       var picker = $('af-find-' + gid + '-ayahs');
       chk.checked = on;
+      // восстановить выбранные правила
+      var rulesBox = $('af-find-' + gid + '-rules');
+      if (rulesBox) {
+        rulesBox.style.display = on ? '' : 'none';
+        if (on) {
+          buildFindRules(gid);
+          (act['find' + Cap + 'Rules'] || []).forEach(function (rid) {
+            var c = rulesBox.querySelector('.frule-check[data-rule="' + rid + '"]');
+            if (c) c.checked = true;
+          });
+        }
+      }
       if (picker) {
         picker.style.display = on ? '' : 'none';
         if (on) {
           buildFindPicker(gid);
-          var chosen = act['find' + (gid === 'nun' ? 'Nun' : 'Mim') + 'Ayahs'] || [];
+          var chosen = act['find' + Cap + 'Ayahs'] || [];
           chosen.forEach(function (ayId) {
             var c = picker.querySelector('.fap-check[data-ayah="' + ayId + '"]');
             if (c) { c.checked = true; c.closest('.ayah-pick').classList.add('on'); }
@@ -1471,8 +1530,13 @@ body { margin: 0; }
       sortMaddRules: collectSortRules('madd'),
       findMim: $('af-find-mim').checked,   // найди правила мима в аяте
       findNun: $('af-find-nun').checked,
+      findMadd: $('af-find-madd').checked,
       findMimAyahs: collectFindAyahs('mim'),   // выбранные аяты для мима
       findNunAyahs: collectFindAyahs('nun'),   // выбранные аяты для нуна
+      findMaddAyahs: collectFindAyahs('madd'),
+      findMimRules: collectFindRules('mim'),   // какие правила ищет ученик
+      findNunRules: collectFindRules('nun'),
+      findMaddRules: collectFindRules('madd'),
     };
     // Если редактируем — сохранить тот же id и дату создания (backend обновит строку)
     if (editingActivity) {

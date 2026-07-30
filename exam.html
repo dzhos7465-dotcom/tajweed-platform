@@ -454,8 +454,12 @@
             mimRules: activity.sortMimRules || [], nunRules: activity.sortNunRules || [], maddRules: activity.sortMaddRules || []
           };
           cfg.activityFind = {
-            mim: !!activity.findMim, nun: !!activity.findNun,
-            mimAyahs: activity.findMimAyahs || [], nunAyahs: activity.findNunAyahs || []
+            mim: !!activity.findMim, nun: !!activity.findNun, madd: !!activity.findMadd,
+            mimAyahs: activity.findMimAyahs || [], nunAyahs: activity.findNunAyahs || [],
+            maddAyahs: activity.findMaddAyahs || [],
+            // какие правила ищет ученик; пусто = все правила раздела
+            mimRules: activity.findMimRules || [], nunRules: activity.findNunRules || [],
+            maddRules: activity.findMaddRules || []
           };
           /* Тип активности → режим. Раньше здесь стояло «тренировка или
              экзамен», и «Домашнее задание» с «Повторением» молча

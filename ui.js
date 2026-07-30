@@ -428,6 +428,14 @@
       var hit = wordsUnder(d.x1, d.x2, d.y);
       if (!hit.length) { render(); return; }
       strokes.push({ x1: d.x1, x2: d.x2, y: d.y, words: hit, rule: null });
+      // Если ищем только одно правило, спрашивать «какое?» бессмысленно —
+      // оно названо в самом вопросе. Ставим сразу и не мучаем ребёнка
+      // лишним нажатием.
+      if (task.options && task.options.length === 1) {
+        strokes[strokes.length - 1].rule = task.options[0];
+        render(); save(); updateNav();
+        return;
+      }
       render(); openPicker(strokes.length - 1);
     }
 
