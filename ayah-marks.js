@@ -109,6 +109,41 @@ const AYAH_MARKS = {
   ay_mdt_3: [ {w:1, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'} ],   // Ад-Духа, 2
   ay_mdt_4: [ {w:0, rule:'madd_tabii'}, {w:1, rule:'madd_tabii'}, {w:1, rule:'madd_arid'} ],   // Ат-Тин, 2
   ay_mdt_5: [ {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:3, rule:'madd_arid'} ],   // Аль-Фатиха, 5
+
+  // ── МАДД, порция 5 ──
+  ay_mdlh_6: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-Бакара, 1
+  ay_mdlh_7: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-А‘раф, 1
+  ay_mdlh_8: [ {w:0, rule:'madd_lazim_harfi'} ],   // Юнус, 1
+  ay_mdlh_9: [ {w:0, rule:'madd_lazim_harfi'} ],   // Ар-Ра‘д, 1
+  ay_mdlh_10: [ {w:0, rule:'madd_lazim_harfi'} ],   // Марьям, 1
+  ay_mdlh_11: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аш-Шу‘ара, 1
+  ay_mdlh_12: [ {w:0, rule:'madd_lazim_harfi'} ],   // Ан-Намль, 1
+  ay_mdlh_13: [ {w:0, rule:'madd_lazim_harfi'} ],   // Сад, 1
+  ay_mdlh_14: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-Калям, 1
+  ay_mdlh_15: [ {w:0, rule:'madd_lazim_harfi'} ],   // Гафир, 1
+  ay_mdl_6: [ {w:8, rule:'madd_lazim'}, {w:8, rule:'madd_arid'} ],   // Аль-Фатиха, 7
+  ay_mdl_7: [ {w:1, rule:'madd_muttasil'}, {w:2, rule:'madd_lazim'} ],   // Ан-Нази‘ат, 34
+  ay_mdl_8: [ {w:0, rule:'madd_lazim'}, {w:1, rule:'madd_iwad'} ],   // Ас-Саффат, 1
+  ay_mdl_9: [ {w:5, rule:'madd_lazim'} ],   // Ар-Рахман, 74
+  ay_mdl_10: [ {w:2, rule:'madd_lazim'} ],   // Аль-Муджадиля, 5
+
+  // ── МАДД, порция 6 ──
+  ay_mdm_5: [ {w:0, rule:'madd_munfasil'}, {w:3, rule:'madd_arid'} ],   // Аль-Кафирун, 2
+  ay_mdm_6: [ {w:0, rule:'madd_munfasil'}, {w:3, rule:'madd_munfasil'} ],   // Аль-Кафирун, 3
+  ay_mdm_7: [ {w:0, rule:'madd_munfasil'} ],   // Аль-Кыяма, 1
+  ay_mdm_8: [ {w:0, rule:'madd_munfasil'} ],   // Аль-Балад, 1
+  ay_mdm_9: [ {w:0, rule:'madd_munfasil'} ],   // Аль-Кадр, 2
+  ay_mdt2_1: [ {w:0, rule:'madd_muttasil'}, {w:4, rule:'madd_iwad'} ],   // Аль-Фаджр, 22
+  ay_mdt2_2: [ {w:1, rule:'madd_muttasil'} ],   // Аль-Инфитар, 1
+  ay_mdt2_3: [ {w:1, rule:'madd_muttasil'} ],   // Аль-Иншикак, 1
+  ay_mdi_6: [ {w:6, rule:'madd_iwad'} ],   // Ан-Наср, 3
+  ay_mdi_7: [ {w:1, rule:'madd_iwad'} ],   // Аз-Зарият, 1
+  ay_mdi_8: [ {w:1, rule:'madd_iwad'} ],   // Аль-Мурсалят, 1
+  ay_mdt_6: [ {w:0, rule:'madd_munfasil'}, {w:1, rule:'madd_tabii'} ],   // Аль-Каусар, 1
+  ay_mdt_7: [ {w:1, rule:'madd_tabii'} ],   // Аль-‘Аср, 2
+  ay_mdt_8: [ {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'}, {w:2, rule:'madd_arid'} ],   // Ат-Тин, 3
+  ay_mdt_9: [ {w:0, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 3
+  ay_mdt_10: [ {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 4
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;

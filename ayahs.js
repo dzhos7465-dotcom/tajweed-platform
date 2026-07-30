@@ -109,6 +109,41 @@ const AYAHS = [
   { id: 'ay_mdt_3', text: 'وَٱللَّيۡلِ إِذَا سَجَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 2
   { id: 'ay_mdt_4', text: 'وَطُورِ سِينِينَ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 2
   { id: 'ay_mdt_5', text: 'إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Фатиха, 5
+
+  // ── Аяты для мадда, порция 5: буквенный лазим (начала сур) и словесный ──
+  { id: 'ay_mdlh_6', text: 'الٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Бакара, 1
+  { id: 'ay_mdlh_7', text: 'الٓـمٓـصٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-А‘раф, 1
+  { id: 'ay_mdlh_8', text: 'الٓـر', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Юнус, 1
+  { id: 'ay_mdlh_9', text: 'الٓـمٓـر', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Ар-Ра‘д, 1
+  { id: 'ay_mdlh_10', text: 'كٓـهيعٓـصٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Марьям, 1
+  { id: 'ay_mdlh_11', text: 'طسٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аш-Шу‘ара, 1
+  { id: 'ay_mdlh_12', text: 'طسٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Ан-Намль, 1
+  { id: 'ay_mdlh_13', text: 'صٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Сад, 1
+  { id: 'ay_mdlh_14', text: 'نٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Калям, 1
+  { id: 'ay_mdlh_15', text: 'حمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Гафир, 1
+  { id: 'ay_mdl_6', text: 'صِرَـٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ', rules: ['madd_arid', 'madd_lazim'], usage: ['recite', 'find'] },   // Аль-Фатиха, 7
+  { id: 'ay_mdl_7', text: 'فَإِذَا جَآءَتِ ٱلطَّآمَّةُ', rules: ['madd_lazim', 'madd_muttasil'], usage: ['recite', 'find'] },   // Ан-Нази‘ат, 34
+  { id: 'ay_mdl_8', text: 'وَٱلصَّآفَّـٰتِ صَفࣰّا', rules: ['madd_iwad', 'madd_lazim'], usage: ['recite', 'find'] },   // Ас-Саффат, 1
+  { id: 'ay_mdl_9', text: 'لَمۡ يَطۡمِثۡهُنَّ إِنسٌ قَبۡلَهُمۡ وَلَا جَآنٌّ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Ар-Рахман, 74
+  { id: 'ay_mdl_10', text: 'إِنَّ ٱلَّذِينَ يُحَادُّونَ ٱللَّهَ وَرَسُولَهُۥ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Аль-Муджадиля, 5
+
+  // ── Аяты для мадда, порция 6: мунфасыль, муттасиль, ‘ивад, естественный ──
+  { id: 'ay_mdm_5', text: 'لَآ أَعۡبُدُ مَا تَعۡبُدُونَ', rules: ['madd_arid', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кафирун, 2
+  { id: 'ay_mdm_6', text: 'وَلَآ أَنتُمۡ عَـٰبِدُونَ مَا أَعۡبُدُ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кафирун, 3
+  { id: 'ay_mdm_7', text: 'لَآ أُقۡسِمُ بِيَوۡمِ ٱلۡقِيَـٰمَةِ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кыяма, 1
+  { id: 'ay_mdm_8', text: 'لَآ أُقۡسِمُ بِهَـٰذَا ٱلۡبَلَدِ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Балад, 1
+  { id: 'ay_mdm_9', text: 'وَمَآ أَدۡرَىٰكَ مَا لَيۡلَةُ ٱلۡقَدۡرِ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кадр, 2
+  { id: 'ay_mdt2_1', text: 'وَجَآءَ رَبُّكَ وَٱلۡمَلَكُ صَفࣰّا صَفࣰّا', rules: ['madd_iwad', 'madd_muttasil'], usage: ['recite', 'find'] },   // Аль-Фаджр, 22
+  { id: 'ay_mdt2_2', text: 'إِذَا ٱلسَّمَآءُ ٱنفَطَرَتۡ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Аль-Инфитар, 1
+  { id: 'ay_mdt2_3', text: 'إِذَا ٱلسَّمَآءُ ٱنشَقَّتۡ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Аль-Иншикак, 1
+  { id: 'ay_mdi_6', text: 'فَسَبِّحۡ بِحَمۡدِ رَبِّكَ وَٱسۡتَغۡفِرۡهُ إِنَّهُۥ كَانَ تَوَّابࣰا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Ан-Наср, 3
+  { id: 'ay_mdi_7', text: 'وَٱلذَّـٰرِيَـٰتِ ذَرۡوࣰا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аз-Зарият, 1
+  { id: 'ay_mdi_8', text: 'وَٱلۡمُرۡسَلَـٰتِ عُرۡفࣰا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-Мурсалят, 1
+  { id: 'ay_mdt_6', text: 'إِنَّآ أَعۡطَيۡنَـٰكَ ٱلۡكَوۡثَرَ', rules: ['madd_munfasil', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Каусар, 1
+  { id: 'ay_mdt_7', text: 'إِنَّ ٱلۡإِنسَـٰنَ لَفِى خُسۡرٍ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Аль-‘Аср, 2
+  { id: 'ay_mdt_8', text: 'وَهَـٰذَا ٱلۡبَلَدِ ٱلۡأَمِينِ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 3
+  { id: 'ay_mdt_9', text: 'مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 3
+  { id: 'ay_mdt_10', text: 'وَلَلۡـَٔاخِرَةُ خَيۡرࣱ لَّكَ مِنَ ٱلۡأُولَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 4
 ];
 
 // Индекс по id
