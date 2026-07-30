@@ -688,7 +688,10 @@ const MODES = {
   homework: {
     id: 'homework',
     showAnswersImmediately: true,
-    allowBack: false,
+    // Назад ходить МОЖНО, но уже данный ответ переписать нельзя — интерфейс
+    // блокирует варианты у отвеченных вопросов. Без этого получался тупик:
+    // ученик пропустил вопрос, а вернуться к нему уже не мог.
+    allowBack: true,
     showExplanation: true,
     warnOnUnanswered: true,
     unlimitedAttempts: false,
@@ -701,7 +704,7 @@ const MODES = {
   training: {
     id: 'training',
     showAnswersImmediately: true,   // сразу видно верно/неверно
-    allowBack: false,               // идём вперёд, как в мини-тренажёрах
+    allowBack: true,                // вернуться можно, переписать ответ нельзя
     showExplanation: true,          // снизу объяснение
     warnOnUnanswered: false,
     unlimitedAttempts: true,        // проходить сколько угодно

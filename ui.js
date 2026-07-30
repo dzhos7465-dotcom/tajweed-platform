@@ -578,6 +578,24 @@
   }
   function closeDlg() { $('scrim').classList.remove('open'); }
 
+  /* «Вернуться» — не просто закрыть окно, а привести к ПЕРВОМУ вопросу
+     без ответа. Раньше окно закрывалось, ученик оставался на последнем
+     задании и найти пропущенное мог только листая назад вручную —
+     а в домашке и тренировке кнопки «назад» тогда вовсе не было. */
+  function backToUnanswered() {
+    closeDlg();
+    var idx = -1;
+    for (var i = 0; i < session.taskOrder.length; i++) {
+      var id = session.taskOrder[i];
+      var a = session.answers[id];
+      var empty = (a === undefined) ||
+                  (Array.isArray(a) && !a.length) ||
+                  (a && typeof a === 'object' && !Array.isArray(a) && !a.blob && !Object.keys(a).length);
+      if (empty) { idx = i; break; }
+    }
+    if (idx >= 0 && typeof goTo === 'function') { goTo(idx); renderTask(); }
+  }
+
   function doFinish() {
     closeDlg();
     stopTimer();
@@ -850,7 +868,7 @@
     $('btn-fwd').addEventListener('click', fwd);
     $('btn-back').addEventListener('click', back);
     $('btn-finish').addEventListener('click', askFinish);
-    $('btn-cancel').addEventListener('click', closeDlg);
+    $('btn-cancel').addEventListener('click', backToUnanswered);
     $('btn-confirm').addEventListener('click', doFinish);
     $('btn-again').addEventListener('click', () => location.reload());
     ['in-name', 'in-group'].forEach(id => {

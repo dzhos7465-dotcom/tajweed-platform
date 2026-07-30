@@ -891,7 +891,7 @@ body { margin: 0; }
 
         return '<div class="res-group" data-group="' + g + '">' +
             '<div class="res-group-head">' +
-              '<span class="res-group-name">Группа ' + g + '</span>' +
+              '<span class="res-group-name">' + groupLabel(g) + '</span>' +
               '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
                 (avg != null ? ' · средний ' + avg : '') + '</span>' +
               '<button class="res-shot-btn" data-group="' + g + '" title="Сохранить картинкой">📷</button>' +
@@ -1027,6 +1027,7 @@ body { margin: 0; }
   var TEACHER_SIGNATURE = 'Преподаватель таджвида';
 
   function screenshotGroup(group, btn) {
+    snapStart(btn);
     // Собираем данные группы из кэша результатов
     var all = (window._resultsCache || []).filter(function (r) { return (r.group || '—') === group; });
     if (!all.length) { alert('Нет данных для этой группы.'); return; }
@@ -1066,7 +1067,7 @@ body { margin: 0; }
         '<div style="position:absolute;bottom:14px;left:14px;width:20px;height:20px;border-bottom:2px solid #b8912f;border-left:2px solid #b8912f;border-radius:0 0 0 6px;opacity:.7;"></div>' +
         // шапка
         '<div style="text-align:center;margin-bottom:6px;">' +
-          '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#0f7d74;font-weight:600;">Результаты · Группа ' + group + '</div>' +
+          '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#0f7d74;font-weight:600;">Результаты · ' + groupLabel(group) + '</div>' +
           '<div style="font-size:25px;font-weight:700;color:#23252e;margin-top:8px;line-height:1.25;">' + workTitle + '</div>' +
           (workDate ? '<div style="font-size:13px;color:#8f8f9c;margin-top:5px;">' + workDate + '</div>' : '') +
         '</div>' +
@@ -1089,12 +1090,10 @@ body { margin: 0; }
       html2canvas(poster, { backgroundColor: '#fdfbf4', scale: 2 })
         .then(function (canvas) {
           document.body.removeChild(poster);
-          var a = document.createElement('a');
-          a.download = 'группа-' + group + '.png';
-          a.href = canvas.toDataURL('image/png');
-          a.click();
+          saveCanvas(canvas, 'группа-' + group + '.png');
         }).catch(function () {
           if (poster.parentNode) document.body.removeChild(poster);
+          snapDone();
           alert('Не удалось сохранить картинку.');
         });
     }
@@ -1106,6 +1105,68 @@ body { margin: 0; }
       s.onerror = function () { if (poster.parentNode) document.body.removeChild(poster); alert('Не удалось загрузить инструмент скриншота.'); };
       document.head.appendChild(s);
     } else run();
+  }
+
+  /* СОХРАНЕНИЕ СНИМКА.
+     ──────────────────────────────────────────────────────────────────
+     Раньше картинка отдавалась ссылкой с атрибутом «скачать». На
+     компьютере это работает, а Safari на iPhone такие ссылки просто
+     игнорирует — преподаватель нажимал и не получал ничего.
+
+     Теперь три пути, по убыванию удобства:
+       1. «Поделиться» — родное окно iOS: сохранить в фото, отправить;
+       2. обычное скачивание — компьютеры и Android;
+       3. если и это не сработало — показываем картинку на экране,
+          её можно зажать пальцем и сохранить вручную. */
+  function saveCanvas(canvas, filename) {
+    canvas.toBlob(function (blob) {
+      snapDone();
+      if (!blob) { alert('Не удалось подготовить картинку.'); return; }
+
+      var file = null;
+      try { file = new File([blob], filename, { type: 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch(function () { showImageFallback(blob); });
+        return;
+      }
+
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      if ('download' in a) {
+        a.download = filename; a.href = url;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      } else {
+        showImageFallback(blob);
+      }
+    }, 'image/png');
+  }
+
+  function showImageFallback(blob) {
+    var url = URL.createObjectURL(blob);
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(35,37,46,.85);' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:14px;';
+    box.innerHTML = '<div style="color:#fdfbf6;font-size:15px;text-align:center;">' +
+        'Зажмите картинку и выберите «Сохранить фото»</div>' +
+      '<img src="' + url + '" style="max-width:100%;max-height:75vh;border-radius:12px;">' +
+      '<button style="padding:10px 22px;border-radius:999px;border:none;background:#0f7d74;color:#fff;font-size:15px;">Закрыть</button>';
+    box.querySelector('button').addEventListener('click', function () {
+      document.body.removeChild(box); URL.revokeObjectURL(url);
+    });
+    document.body.appendChild(box);
+  }
+
+  /* Снимок готовится заметное время (особенно на телефоне), а раньше
+     кнопка молчала — казалось, что ничего не происходит. */
+  var snapBtnEl = null;
+  function snapStart(btn) { snapBtnEl = btn; if (btn) { btn.disabled = true; btn.textContent = '…'; } }
+  function snapDone() { if (snapBtnEl) { snapBtnEl.disabled = false; snapBtnEl.textContent = '📷'; snapBtnEl = null; } }
+
+  /* «Группа» не приписываем, если преподаватель уже назвал её так. */
+  function groupLabel(name) {
+    var g = String(name || '?');
+    return /^гр/i.test(g) ? g : 'Группа ' + g;
   }
 
   // склонение существительного после числа
@@ -1701,7 +1762,7 @@ body { margin: 0; }
         '<span class="rec-card-meta">' + shortWhen(r.date, r.time) + '</span>' +
       '</div>' +
       (ayahText ? '<div class="rec-card-ayah">' + ayahText + '</div>' : '') +
-      '<iframe class="rec-frame" src="' + drivePreviewUrl(r.url) + '" allow="autoplay"></iframe>' +
+      '<div class="rec-player"><button class="btn rec-play-btn" style="width:100%;">▶ Слушать</button></div>' +
       '<div class="rec-grade-row">' +
         '<label>Балл за чтение <span style="color:var(--ink-faint)">(из 10)</span>:</label>' +
         '<input type="number" class="rec-grade-input" min="0" max="10" step="0.5" value="' + (graded ? r.grade : '') + '" placeholder="—">' +
@@ -1727,6 +1788,33 @@ body { margin: 0; }
       saved.style.display = 'none';
       btn.textContent = 'Сохранить';
     });
+
+    /* ПРОИГРЫВАТЕЛЬ СОЗДАЁТСЯ ПО НАЖАТИЮ.
+       Раньше на каждую запись сразу вставлялся встроенный Диск — а это
+       полноценная веб-страница со своим кодом. Два десятка записей — два
+       десятка страниц одновременно; компьютер тянет, а Safari на iPhone
+       исчерпывает память и закрывает вкладку.
+       Теперь плеер один и появляется только там, где нажали. */
+    var playBox = card.querySelector('.rec-player');
+
+    function collapsePlayer(box) {
+      box.classList.remove('playing');
+      box.innerHTML = '<button class="btn rec-play-btn" style="width:100%;">▶ Слушать</button>';
+      box.querySelector('.rec-play-btn').addEventListener('click', function () { openPlayer(box); });
+    }
+
+    function openPlayer(box) {
+      // закрыть тот, что был открыт раньше — больше одного не держим
+      var open = document.querySelector('.rec-player.playing');
+      if (open && open !== box) collapsePlayer(open);
+      box.classList.add('playing');
+      box.innerHTML = '<iframe class="rec-frame" src="' + box.getAttribute('data-url') +
+                      '" allow="autoplay"></iframe>';
+    }
+
+    playBox.setAttribute('data-url', drivePreviewUrl(r.url));
+    playBox.querySelector('.rec-play-btn')
+           .addEventListener('click', function () { openPlayer(playBox); });
 
     var delBtn = card.querySelector('.rec-del-btn');
     delBtn.addEventListener('click', function () {

@@ -151,6 +151,16 @@ function goNext() {
   return false;
 }
 
+/* Перейти к заданию по номеру. Нужен, чтобы «Вернуться» из окна
+   завершения приводило прямо к пропущенному вопросу, а не оставляло
+   ученика искать его вручную. */
+function goTo(index) {
+  if (index < 0 || index >= session.taskOrder.length) return false;
+  session.currentIndex = index;
+  saveDraft();
+  return true;
+}
+
 function goBack() {
   if (session.mode && session.mode.allowBack && session.currentIndex > 0) {
     session.currentIndex--;
