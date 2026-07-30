@@ -923,9 +923,19 @@ body { margin: 0; }
     }).catch(function () { $('results-list').innerHTML = '<div class="status-line">Ошибка загрузки.</div>'; });
   }
 
-  const RULE_LABELS_DETAIL = {
-    izhar_mim:'Изхар мими', idgham_mim:'Идгам мими', ikhfa_mim:'Ихфа мими', shadda_mim:'Мим с шаддой',
-    izhar_nun:'Изхар нуна', idgham_nun:'Идгам нуна', iqlab_nun:'Икляб', ikhfa_nun:'Ихфа нуна', shadda_nun:'Нун с шаддой'
+  /* Названий правил здесь БОЛЬШЕ НЕТ.
+     Раньше тут лежал список, переписанный руками, — и он отстал: мадда в
+     нём не было, поэтому в разборе показывалось «madd_tabii» вместо
+     «Естественный мадд». Теперь имя спрашивается у библиотеки через
+     ruleName(), как во всей остальной панели. Добавится тема — подпись
+     появится сама.
+
+     Подписи типов заданий: в разборе «Распределение» полезнее, чем тема,
+     на которую это задание записано для порядка. */
+  const TASK_TYPE_LABELS = {
+    sort:   'Распределение',
+    find:   'Найди в аяте',
+    recite: 'Чтение вслух',
   };
 
   // Детальный просмотр работы ученика — «самое необходимое»
@@ -945,16 +955,35 @@ body { margin: 0; }
       rows = '<div class="status-line">Разбор недоступен для этой работы (старый результат без деталей).</div>';
     } else {
       rows = review.map(function (d, i) {
-        const themeName = RULE_LABELS_DETAIL[d.t] || d.t || '';
+        // Для распределения и «найди» тема — служебная (задание охватывает
+        // много правил), поэтому показываем тип задания.
+        const typeLabel = TASK_TYPE_LABELS[d.ty];
+        const themeName = typeLabel || ruleName(d.t) || '';
         let statusIcon, statusColor;
         if (d.p) { statusIcon = 'чтение'; statusColor = 'var(--amber, #b8860b)'; }
         else if (d.ok) { statusIcon = '✓'; statusColor = 'var(--ok)'; }
         else { statusIcon = '✗'; statusColor = 'var(--err)'; }
-        // показываем ответ ученика и правильный только для тестовых вопросов и только если ошибся
+
         let answerLine = '';
-        if (!d.p && d.a) {
-          if (d.ok) answerLine = '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + d.a + '</span>';
-          else answerLine = '<span style="font-size:var(--text-xs);"><span style="color:var(--err)">' + d.a + '</span> → <span style="color:var(--ok)">' + d.c + '</span></span>';
+        if (d.p) {
+          // ручная проверка — ответа как такового нет
+        } else if (d.pt && d.pt.total) {
+          // распределение и «найди»: одного «неверно» мало, показываем счёт
+          const okAll = d.pt.right === d.pt.total;
+          answerLine = '<span style="font-size:var(--text-xs); color:' +
+            (okAll ? 'var(--ink-faint)' : 'var(--err)') + ';">верно ' +
+            d.pt.right + ' из ' + d.pt.total +
+            (d.pt.wrong ? ' · лишних черт: ' + d.pt.wrong : '') + '</span>';
+        } else if (d.an === false || (!d.a || d.a === '—')) {
+          // без этой ветки строка выглядела пустой, и было непонятно,
+          // ошибся ученик или просто не дошёл до вопроса
+          answerLine = '<span style="font-size:var(--text-xs);">' +
+            '<span style="color:var(--ink-faint)">нет ответа</span>' +
+            (d.c ? ' → <span style="color:var(--ok)">' + d.c + '</span>' : '') + '</span>';
+        } else if (d.ok) {
+          answerLine = '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + d.a + '</span>';
+        } else {
+          answerLine = '<span style="font-size:var(--text-xs);"><span style="color:var(--err)">' + d.a + '</span> → <span style="color:var(--ok)">' + d.c + '</span></span>';
         }
         return '<div class="detail-row">' +
             '<span class="detail-num">' + (i + 1) + '</span>' +

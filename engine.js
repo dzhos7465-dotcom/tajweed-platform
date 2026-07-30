@@ -322,6 +322,9 @@ function computeResult() {
       pending: result.pending,
       studentAnswer: studentAns,   // что выбрал ученик
       correctAnswer: correctAns,   // правильный ответ
+      // Для распределения и «найди» одного «верно/неверно» мало: работа
+      // почти всегда частичная. Передаём, сколько из скольких.
+      partial: result.partial || null,
     });
   });
 
@@ -504,7 +507,8 @@ function buildResultPayload(result) {
     // Компактный разбор для детального просмотра (самое необходимое):
     // тема, тип, ответ ученика, правильный ответ, верно ли.
     review: JSON.stringify((result.details || []).map(function (d) {
-      return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer, ok: d.correct, p: d.pending };
+      return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
+               ok: d.correct, p: d.pending, pt: d.partial, an: d.answered };
     })),
   };
 }
