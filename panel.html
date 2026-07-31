@@ -852,6 +852,20 @@ body { margin: 0; }
       // несколько записей (несколько аятов) — берём среднее оценённых.
       var recsLatest = latestAttempts(recs);   // перезаписи в счёт не идут
 
+      /* Было ли в этой работе чтение вслух ВООБЩЕ.
+         Раньше панель смотрела только на присланные записи. Если ученик
+         не записал ни одного аята, записей нет — и работа считалась «без
+         чтения», а общий балл выставлялся по одному тесту. Получалось,
+         что пропустить чтение выгоднее, чем прочитать плохо.
+         Теперь смотрим в разбор работы: сколько заданий на чтение там было.
+         Оно приходит вместе с результатом, backend трогать не нужно. */
+      function reciteExpected(r) {
+        try {
+          var rev = r.review ? JSON.parse(r.review) : [];
+          return rev.filter(function (d) { return d.ty === 'recite'; }).length;
+        } catch (e) { return 0; }
+      }
+
       function readingScoreFor(r) {
         var key = (r.sessionId || '') + '|' + (r.fullName || '');
         var mine = recsLatest.filter(function (rec) {
@@ -873,13 +887,21 @@ body { margin: 0; }
         x._idx = idx; x._key = whenKey(x);
         var test = (x.autoScore != null && x.autoScore !== '') ? Number(x.autoScore) : null;
         var rd = readingScoreFor(x);
+        var expected = reciteExpected(x);
         x._test = test;
         x._reading = rd.grade;
         x._hasRec = rd.hasRec;
-        // общий балл: если чтение есть и оценено — считаем; если записи нет —
-        // общий = тест (нечего добавлять); если запись есть, но не оценена — ждёт
-        if (!rd.hasRec) {
-          x._total = test;                 // чтения не было в этой работе
+        x._reciteExpected = expected;
+        x._notSubmitted = false;
+
+        if (!rd.hasRec && expected > 0) {
+          // чтение задавали, но ученик его не сдал — это ноль, а не «нет чтения»
+          x._reading = 0;
+          x._notSubmitted = true;
+          x._total = Math.round((test != null ? test : 0) * WEIGHT_TEST);
+          x._waiting = false;
+        } else if (!rd.hasRec) {
+          x._total = test;                 // чтения в работе и не было
           x._waiting = false;
         } else if (rd.grade != null && rd.allGraded) {
           x._total = (test != null ? test : 0) * WEIGHT_TEST + rd.grade * WEIGHT_READING;
@@ -916,7 +938,9 @@ body { margin: 0; }
           if (score != null) scoreColor = score >= 70 ? 'var(--ok)' : (score >= 40 ? 'var(--amber, #b8860b)' : 'var(--err)');
           const pendingTag = x._waiting
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
-            : '<span class="res-tag res-tag-done">проверено</span>';
+            : (x._notSubmitted
+                ? '<span class="res-tag" style="background:var(--err-tint); color:var(--err); border:1px solid var(--err);">чтение не сдано</span>'
+                : '<span class="res-tag res-tag-done">проверено</span>');
           const checkbox = resSelectMode
             ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + '>'
             : '';
@@ -1092,6 +1116,7 @@ body { margin: 0; }
       return '<div style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid #ece3cf;">' +
         '<div style="flex:1;font-size:17px;color:#23252e;font-weight:500;">' + (r.fullName || '—') + '</div>' +
         (r._waiting ? '<div style="font-size:12px;color:#b8912f;margin-right:14px;">ждёт чтения</div>' : '') +
+        (r._notSubmitted ? '<div style="font-size:12px;color:#a53a3a;margin-right:14px;">чтение не сдано</div>' : '') +
         '<div style="font-size:22px;font-weight:700;color:' + col + ';min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">' + scoreText + '</div>' +
       '</div>';
     }).join('');

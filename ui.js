@@ -275,10 +275,21 @@
      на Google Drive — следующий шаг). Оценивает преподаватель (manual). */
   /* ── Найди в аяте: ученик подчёркивает места правил ── */
   var FIND_GROUP_NAMES = { nun: 'нуна', mim: 'мима' };
-  var FIND_RULE_LABELS = {
-    izhar_nun:'Изхар', idgham_nun:'Идгам', iqlab_nun:'Икляб', ikhfa_nun:'Ихфа',
-    izhar_mim:'Изхар', idgham_mim:'Идгам', ikhfa_mim:'Ихфа'
-  };
+  /* Подписи кнопок правил берём из общего списка вариантов (RULE_OPTIONS),
+     а не из своей копии. Копия была четвёртой по счёту за проект и, как все
+     предыдущие, отстала: в кнопках «найди в аяте» мадд показывался как
+     madd_lazim_harfi. Теперь новая тема подписывается сама. */
+  function findRuleLabel(id) {
+    if (typeof RULE_OPTIONS !== 'undefined') {
+      // у мима и нуна подписи общие: izhar_nun и izhar_mim оба «Изхар» —
+      // семейство и так названо в вопросе
+      var base = String(id).replace(/_(mim|nun)$/, '');
+      var o = RULE_OPTIONS.filter(function (x) { return x.id === id; })[0]
+           || RULE_OPTIONS.filter(function (x) { return x.id === base; })[0];
+      if (o) return o.label;
+    }
+    return (typeof THEMES !== 'undefined' && THEMES[id]) ? THEMES[id].name : id;
+  }
 
   function renderFind(task, wrap) {
     var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[task.ayahRef] : null;
@@ -387,7 +398,7 @@
       var btns = document.getElementById('find-btns');
       btns.innerHTML = task.options.map(function (r) {
         return '<button type="button" class="find-btn" data-r="' + r + '" style="--bc:' + ruleAccent(r) + '">' +
-               '<span class="find-dot"></span>' + (FIND_RULE_LABELS[r] || r) + '</button>';
+               '<span class="find-dot"></span>' + findRuleLabel(r) + '</button>';
       }).join('');
       btns.querySelectorAll('.find-btn').forEach(function (b) {
         b.addEventListener('click', function () {
