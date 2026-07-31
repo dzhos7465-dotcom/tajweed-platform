@@ -448,6 +448,9 @@ body { margin: 0; }
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
 <script src="ayah-marks.js"></script>
+<!-- tasks.js нужен панели ради настоящих списков правил (FIND_GROUPS и др.):
+     без него в панели заводились копии, переписанные руками, и отставали -->
+<script src="tasks.js"></script>
 <script src="storage.js"></script>
 <script>
 (function () {
@@ -1366,23 +1369,27 @@ body { margin: 0; }
     return out;
   }
 
-  // Группы правил для «найди в аяте» (те же, что в движке): нун=4, мим=3
-  var FIND_GROUP_RULES = {
-    nun: ['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'],
-    mim: ['izhar_mim','idgham_mim','ikhfa_mim']
-  };
+  /* Списка правил здесь БОЛЬШЕ НЕТ.
+     Раньше он был переписан руками и содержал только мим и нун — поэтому
+     раздел «найди правила мадда» показывал «нет аятов с этими правилами»,
+     хотя аяты были размечены. Третий случай одной и той же ошибки за день:
+     копия отстала от оригинала. Теперь спрашиваем у tasks.js. */
+  function findGroupRules(groupId) {
+    return (typeof FIND_GROUPS !== 'undefined' && FIND_GROUPS[groupId])
+      ? FIND_GROUPS[groupId].rules : [];
+  }
 
   // Есть ли в аяте правила данной группы (по разметке AYAH_MARKS)
   function ayahHasGroup(ayahId, groupId) {
     if (typeof AYAH_MARKS === 'undefined') return false;
     var marks = AYAH_MARKS[ayahId] || [];
-    var rules = FIND_GROUP_RULES[groupId] || [];
+    var rules = findGroupRules(groupId);
     return marks.some(function (m) { return rules.indexOf(m.rule) !== -1; });
   }
   function countGroupInAyah(ayahId, groupId) {
     if (typeof AYAH_MARKS === 'undefined') return 0;
     var marks = AYAH_MARKS[ayahId] || [];
-    var rules = FIND_GROUP_RULES[groupId] || [];
+    var rules = findGroupRules(groupId);
     return marks.filter(function (m) { return rules.indexOf(m.rule) !== -1; }).length;
   }
 
