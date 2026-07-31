@@ -475,6 +475,12 @@
             review:   'training',
           };
           cfg.mode = MODE_BY_TYPE[activity.type] || 'exam';
+          // порядок заданий — выбор преподавателя при создании активности
+          cfg.settings = Object.assign({}, cfg.settings, {
+            orderMode:    activity.orderMode || 'byType',
+            reciteLast:   activity.reciteLast !== false,
+            spreadThemes: activity.spreadThemes !== false,
+          });
           if (activity.timeLimit != null) {
             cfg.settings = cfg.settings || {};
             cfg.settings.timeLimitMinutes = activity.timeLimit > 0 ? activity.timeLimit : null;

@@ -255,6 +255,22 @@ body { margin: 0; }
             <input id="af-time" type="number" min="0" value="20">
           </div>
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Порядок заданий</label>
+            <select id="af-order">
+              <option value="byType">По типам: вопросы → распределение → найди → чтение</option>
+              <option value="byTheme">По темам: все задания одного правила вместе</option>
+              <option value="shuffle">Вперемешку</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:var(--space-2); margin-bottom:var(--space-4);">
+          <label class="sort-opt"><input type="checkbox" id="af-recite-last" checked>
+            Чтение вслух — последним заданием</label>
+          <label class="sort-opt"><input type="checkbox" id="af-spread" checked>
+            Не ставить подряд вопросы одного правила</label>
+        </div>
 
         <div class="collapse" data-collapse>
           <div class="collapse-head"><span class="collapse-arrow">▸</span> Вопросы «какое правило» <span class="collapse-hint" id="cnt-themes"></span></div>
@@ -1462,6 +1478,9 @@ body { margin: 0; }
     $('activities-top').style.display = 'none';
     $('af-title').value = '';
     $('af-type').value = 'exam';
+    $('af-order').value = 'byType';
+    $('af-recite-last').checked = true;
+    $('af-spread').checked = true;
     $('af-time').value = '20';
     $('af-sort-mim').checked = false;
     $('af-sort-nun').checked = false;
@@ -1498,6 +1517,9 @@ body { margin: 0; }
     $('activities-top').style.display = 'none';
     $('af-title').value = act.title || '';
     $('af-type').value = act.type || 'exam';
+    $('af-order').value = act.orderMode || 'byType';
+    $('af-recite-last').checked = act.reciteLast !== false;
+    $('af-spread').checked = act.spreadThemes !== false;
     $('af-time').value = (act.timeLimit != null ? act.timeLimit : 20);
     buildThemePicker();
     buildAyahPicker();
@@ -1615,6 +1637,9 @@ body { margin: 0; }
     const activity = {
       title: title,
       type: $('af-type').value,
+      orderMode: $('af-order').value,          // byType | byTheme | shuffle
+      reciteLast: $('af-recite-last').checked,
+      spreadThemes: $('af-spread').checked,
       timeLimit: parseInt($('af-time').value, 10) || 0,
       themes: themes,
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем

@@ -75,31 +75,76 @@ function resolveExamples(task) {
 ────────────────────────────────────────────────────────────────────── */
 function buildTaskOrder(config) {
   // Детерминированный порядок: у контрольной seed фиксирован → у всех устройств
-  // одинаковый экзамен. У тренировки — свежая случайность каждый раз.
+  // одинаковый экзамен. У остальных режимов — свежая случайность каждый раз.
   var randomize = (MODES[config.mode] || MODES.exam).randomizeExamples;
   var rng = randomize ? Math.random : orderRng(20260101);
+  var st = config.settings || {};
+  var orderMode = st.orderMode || 'byType';        // byType | byTheme | shuffle
+  var reciteLast = st.reciteLast !== false;        // по умолчанию да
+  var spread = st.spreadThemes !== false;          // по умолчанию да
 
-  // 1. Определяем порядок тем
-  let themeSequence = [...config.themeOrder];
-  if (config.settings.shuffleThemes) {
-    themeSequence = shuffle(themeSequence, rng);
+  /* РАЗБРОС ОДИНАКОВЫХ ТЕМ.
+     Если по одному правилу взято два-три примера, они шли подряд, и ученик
+     отвечал не думая: «раз прошлый был мунфасыль, значит и этот». Здесь мы
+     расставляем задания так, чтобы соседние были из РАЗНЫХ тем.
+
+     Приём простой: на каждом шаге берём тему, у которой осталось больше
+     всего заданий, но не ту, что стояла только что. Если выбора нет
+     (осталась одна тема) — ставим что есть. */
+  function spreadByTheme(list) {
+    if (list.length < 3) return list;
+    var buckets = {};
+    list.forEach(function (t) {
+      var k = t.theme || '—';
+      (buckets[k] = buckets[k] || []).push(t);
+    });
+    Object.keys(buckets).forEach(function (k) { buckets[k] = shuffle(buckets[k], rng); });
+
+    var out = [], last = null;
+    while (out.length < list.length) {
+      var keys = Object.keys(buckets).filter(function (k) { return buckets[k].length; });
+      if (!keys.length) break;
+      keys.sort(function (a, b) { return buckets[b].length - buckets[a].length; });
+      var pickKey = keys.find(function (k) { return k !== last; }) || keys[0];
+      out.push(buckets[pickKey].shift());
+      last = pickKey;
+    }
+    return out;
   }
 
-  // 2. Для каждой темы собираем её задания, при необходимости перемешивая
-  const order = [];
-  const placed = {};
-  themeSequence.forEach(themeId => {
-    let themeTasks = TASKS.filter(t => t.theme === themeId);
-    if (config.settings.shuffleWithinTheme) {
-      themeTasks = shuffle(themeTasks, rng);
-    }
-    themeTasks.forEach(t => { order.push(t.id); placed[t.id] = true; });
-  });
+  var order = [], placed = {};
+  var push = function (arr) { arr.forEach(function (t) { order.push(t.id); placed[t.id] = true; }); };
 
-  // 3. ЗАЩИТА: ни одно построенное задание не должно потеряться. Если у задания
-  // тема не попала в themeOrder (например, редкое правило) — добавляем в конец,
-  // чтобы число заданий было одинаковым у всех и ничего не пропало.
-  TASKS.forEach(t => { if (!placed[t.id]) order.push(t.id); });
+  if (orderMode === 'byTheme') {
+    // как было раньше: все задания одной темы вместе
+    var themeSequence = [].concat(config.themeOrder);
+    if (st.shuffleThemes) themeSequence = shuffle(themeSequence, rng);
+    themeSequence.forEach(function (themeId) {
+      var themeTasks = TASKS.filter(function (t) {
+        return t.theme === themeId && !(reciteLast && t.type === TASK_TYPES.RECITE);
+      });
+      if (st.shuffleWithinTheme) themeTasks = shuffle(themeTasks, rng);
+      push(themeTasks);
+    });
+  } else if (orderMode === 'shuffle') {
+    var all = TASKS.filter(function (t) { return !(reciteLast && t.type === TASK_TYPES.RECITE); });
+    push(spread ? spreadByTheme(shuffle(all, rng)) : shuffle(all, rng));
+  } else {
+    /* ПО ТИПАМ (по умолчанию): вопросы → распределение → найди → чтение.
+       Ребёнок начинает с коротких вопросов и входит в работу, а к записи
+       голоса подходит уже разогретым. Раньше запись могла оказаться первым
+       заданием: телефон сразу просил доступ к микрофону, и это пугало. */
+    [TASK_TYPES.SINGLE, TASK_TYPES.SORT, TASK_TYPES.FIND].forEach(function (ty) {
+      var block = TASKS.filter(function (t) { return t.type === ty; });
+      push(spread ? spreadByTheme(block) : shuffle(block, rng));
+    });
+  }
+
+  // Чтение — в конец (если так задано)
+  if (reciteLast) push(TASKS.filter(function (t) { return t.type === TASK_TYPES.RECITE && !placed[t.id]; }));
+
+  // ЗАЩИТА: ни одно построенное задание не должно потеряться.
+  TASKS.forEach(function (t) { if (!placed[t.id]) { order.push(t.id); placed[t.id] = true; } });
 
   return order;
 }
