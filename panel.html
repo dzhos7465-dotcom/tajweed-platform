@@ -309,23 +309,23 @@ body { margin: 0; }
           <div class="collapse-body">
             <div class="find-group-block">
               <label class="sort-opt"><input type="checkbox" id="af-find-nun"> Найди правила <b>нуна</b> в аяте</label>
-              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div class="find-hint-line">1. Что искать. Не отметишь — ищутся все правила раздела:</div>
               <div id="af-find-nun-rules" class="sort-rules" style="display:none;"></div>
-              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
+              <div class="find-hint-line">2. Где искать. На каждый отмеченный аят — своё задание:</div>
               <div id="af-find-nun-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
             <div class="find-group-block" style="margin-top:var(--space-4);">
               <label class="sort-opt"><input type="checkbox" id="af-find-mim"> Найди правила <b>мима</b> в аяте</label>
-              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div class="find-hint-line">1. Что искать. Не отметишь — ищутся все правила раздела:</div>
               <div id="af-find-mim-rules" class="sort-rules" style="display:none;"></div>
-              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
+              <div class="find-hint-line">2. Где искать. На каждый отмеченный аят — своё задание:</div>
               <div id="af-find-mim-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
             <div class="find-group-block" style="margin-top:var(--space-4);">
               <label class="sort-opt"><input type="checkbox" id="af-find-madd"> Найди правила <b>мадда</b> в аяте</label>
-              <div class="find-hint-line">Какие правила ищет ученик (не отметишь — все):</div>
+              <div class="find-hint-line">1. Что искать. Не отметишь — ищутся все правила раздела:</div>
               <div id="af-find-madd-rules" class="sort-rules" style="display:none;"></div>
-              <div class="find-hint-line">Отметь аяты, где ученик будет искать:</div>
+              <div class="find-hint-line">2. Где искать. На каждый отмеченный аят — своё задание:</div>
               <div id="af-find-madd-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
           </div>
@@ -1284,6 +1284,7 @@ body { margin: 0; }
     if (!wrap) return;
     var grp = (typeof FIND_GROUPS !== 'undefined') ? FIND_GROUPS[groupId] : null;
     if (!grp) return;
+    wrap.onchange = function () { refreshFindAyahs(groupId); };
     wrap.innerHTML = grp.rules.map(function (r) {
       var th = (typeof THEMES !== 'undefined') ? THEMES[r] : null;
       var color = (typeof ruleAccent === 'function') ? ruleAccent(r) : 'var(--seal)';
@@ -1291,6 +1292,27 @@ body { margin: 0; }
         '<span class="mat-rule-dot" style="background:' + color + '"></span>' +
         ((th && th.name) || r) + '</label>';
     }).join('');
+  }
+
+  /* Список аятов зависит от выбранных правил: показываем только те, где
+     эти правила есть. Иначе преподаватель отмечал аят, в котором нужного
+     правила нет, и задание молча не создавалось. Уже отмеченные аяты
+     сохраняем — если они всё ещё подходят. */
+  function refreshFindAyahs(groupId) {
+    var wrap = $('af-find-' + groupId + '-ayahs');
+    if (!wrap || !wrap.hasChildNodes()) return;
+    var keep = {};
+    wrap.querySelectorAll('.fap-check').forEach(function (c) {
+      if (c.checked) keep[c.getAttribute('data-ayah')] = true;
+    });
+    buildFindPicker(groupId);
+    wrap.querySelectorAll('.fap-check').forEach(function (c) {
+      if (keep[c.getAttribute('data-ayah')]) {
+        c.checked = true;
+        c.closest('.ayah-pick').classList.add('on');
+      }
+    });
+    updateCollapseHints();
   }
 
   function collectFindRules(groupId) {
@@ -1380,16 +1402,23 @@ body { margin: 0; }
   }
 
   // Есть ли в аяте правила данной группы (по разметке AYAH_MARKS)
+  /* Какие правила сейчас ищутся: отмеченные преподавателем, а если он
+     ничего не отметил — все правила раздела. */
+  function activeFindRules(groupId) {
+    var chosen = collectFindRules(groupId);
+    return chosen.length ? chosen : findGroupRules(groupId);
+  }
+
   function ayahHasGroup(ayahId, groupId) {
     if (typeof AYAH_MARKS === 'undefined') return false;
     var marks = AYAH_MARKS[ayahId] || [];
-    var rules = findGroupRules(groupId);
+    var rules = activeFindRules(groupId);
     return marks.some(function (m) { return rules.indexOf(m.rule) !== -1; });
   }
   function countGroupInAyah(ayahId, groupId) {
     if (typeof AYAH_MARKS === 'undefined') return 0;
     var marks = AYAH_MARKS[ayahId] || [];
-    var rules = findGroupRules(groupId);
+    var rules = activeFindRules(groupId);
     return marks.filter(function (m) { return rules.indexOf(m.rule) !== -1; }).length;
   }
 
