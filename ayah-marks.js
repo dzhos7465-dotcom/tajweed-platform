@@ -144,6 +144,12 @@ const AYAH_MARKS = {
   ay_mdt_8: [ {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'}, {w:2, rule:'madd_arid'} ],   // Ат-Тин, 3
   ay_mdt_9: [ {w:0, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 3
   ay_mdt_10: [ {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 4
+
+  // ── МАДД ЛИН: «Аль-Кураиш» 1–4 ──
+  ay_mln_1: [ {w:1, rule:'madd_lin'} ],   // «Аль-Кураиш», 1
+  ay_mln_2: [ {w:2, rule:'madd_muttasil'}, {w:3, rule:'madd_lin'} ],   // «Аль-Кураиш», 2
+  ay_mln_3: [ {w:3, rule:'madd_lin'} ],   // «Аль-Кураиш», 3
+  ay_mln_4: [ {w:0, rule:'madd_munfasil'}, {w:6, rule:'madd_lin'} ],   // «Аль-Кураиш», 4
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;
