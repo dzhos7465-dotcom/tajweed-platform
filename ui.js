@@ -325,7 +325,14 @@
     wrap.innerHTML =
       '<div class="find-hint">Проведи пальцем черту под местом правила. Нажми на черту, чтобы убрать.</div>' +
       '<div class="mushaf" id="find-box">' +
-        '<div class="ayah-find" id="find-ayah">' + html + '</div>' +
+        /* Скобки — отдельными значками, НЕ внутри текста аята: слова
+           здесь измеряются по своим местам, и лишний знак сдвинул бы
+           черты ученика. */
+        '<div class="ayah-find" id="find-ayah">' +
+          '<span class="ayah-br ayah-br-open">\uFD3F</span>' +
+          html +
+          '<span class="ayah-br ayah-br-close">\uFD3E</span>' +
+        '</div>' +
         '<svg id="find-strokes"></svg>' +
       '</div>' +
       '<div class="find-count">Подчёркнуто: <b id="find-cnt" style="color:' + groupColor + '">0</b></div>' +
@@ -468,7 +475,9 @@
     wrap.innerHTML =
       '<div class="mushaf recite-mushaf">' +
         '<div class="recite-label">Прочитайте с соблюдением правил</div>' +
-        '<div class="ayah-find recite-ar-framed">' + ayahText + '</div>' +
+        '<div class="ayah-find recite-ar-framed">' +
+          '<span class="ayah-br">\uFD3F</span>' + ayahText + '<span class="ayah-br">\uFD3E</span>' +
+        '</div>' +
       '</div>' +
       '<div class="rec-note">🎙️ Вашу запись услышит преподаватель. Перед отправкой убедитесь, ' +
         'что вас хорошо слышно. Если чтение не получилось — можно перезаписать.</div>' +
