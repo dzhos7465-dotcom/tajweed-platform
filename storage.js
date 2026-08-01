@@ -67,38 +67,45 @@ const StorageAPI = (function () {
     return empty;
   }
 
+  /* ЗАПИСЬ В ХРАНИЛИЩЕ.
+     Отправляем как обычную форму: такому запросу браузер разрешает прочитать
+     ответ, и мы сразу знаем, получилось или нет.
+
+     Раньше было иначе: ответ прочитать было нельзя, поэтому после каждой
+     записи панель скачивала весь список заново — только чтобы убедиться.
+     При тридцати с лишним записях каждое сохранение балла тянуло за собой
+     полную перекачку, и панель еле шевелилась. Теперь одно обращение. */
   function backendPost(kind, payload) {
     const body = Object.assign({ kind: kind }, payload);
+    const form = new URLSearchParams();
+    form.set('payload', JSON.stringify(body));
+
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, REQUEST_TIMEOUT_MS);
+
     return fetch(BACKEND_URL, {
       method: 'POST',
-      mode: 'no-cors',                       // Apps Script не отдаёт CORS-заголовки
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body),
+      body: form,                          // тип формы браузер проставит сам
+      signal: ctrl ? ctrl.signal : undefined,
     })
-      .then(() => ({ ok: true }))            // no-cors: ответ не читаем, считаем успехом
-      .catch(err => ({ ok: false, error: String(err) }));
+      .then(r => r.json())
+      .then(function (r) {
+        clearTimeout(timer);
+        return (r && r.ok === false) ? { ok: false, error: r.error } : { ok: true, data: r };
+      })
+      .catch(function (err) {
+        clearTimeout(timer);
+        return { ok: false, error: String(err) };
+      });
   }
 
-  /* ПОДТВЕРЖДЕНИЕ ЗАПИСИ.
-     Отправка идёт в режиме no-cors: браузеру ответ backend'а недоступен,
-     поэтому «запрос ушёл» и «данные записаны» — разные вещи. Раньше панель
-     считала первое вторым: нажимаешь «Удалить», список перечитывается
-     раньше, чем Apps Script успел отработать, — и строка возвращается
-     на место как ни в чём не бывало.
-
-     Теперь после каждой записи мы перечитываем нужный список и проверяем,
-     что мир действительно изменился. Дороже на один запрос, зато панель
-     перестаёт врать.  */
-  function writeThenVerify(kind, payload, action, key, isDone) {
-    return backendPost(kind, payload)
-      .then(function () { return backendGet(action); })
-      .then(function (r) {
-        if (!r || !r.ok) return { ok: false, error: 'нет ответа при проверке' };
-        return isDone(r[key] || [])
-          ? { ok: true }
-          : { ok: false, error: 'изменение не подтвердилось' };
-      })
-      .catch(function (err) { return { ok: false, error: String(err) }; });
+  /* Запись с проверкой. Теперь backend отвечает сам — перечитывать список
+     не нужно. Если ответ почему-то не пришёл (старая версия скрипта),
+     считаем успехом: панель обновит список сама и покажет правду. */
+  function writeThenVerify(kind, payload) {
+    return backendPost(kind, payload).then(function (r) {
+      return (r && r.ok) ? { ok: true } : { ok: false, error: (r && r.error) || 'нет ответа' };
+    });
   }
 
   function uid(prefix) {
@@ -106,8 +113,8 @@ const StorageAPI = (function () {
   }
 
   /* ── Публичная граница. ТОЛЬКО это видит панель. ──
-     Обрати внимание: методы описаны по СМЫСЛУ (сохрани активность),
-     а не по способу (запиши строку в Google). Способ спрятан выше. */
+     Методы описаны по СМЫСЛУ (сохрани активность), а не по способу
+     (запиши строку в Google). Способ спрятан выше. */
   return {
     // Активности
     activities: {
@@ -122,13 +129,11 @@ const StorageAPI = (function () {
       },
       save: function (activity) {
         if (!activity.id) { activity.id = uid('act'); activity.createdAt = Date.now(); }
-        return writeThenVerify('activity', { activity: activity }, 'activities', 'activities',
-          function (list) { return list.some(function (a) { return a.id === activity.id; }); }
-        ).then(function (res) { res.activity = activity; return res; });
+        return writeThenVerify('activity', { activity: activity })
+          .then(function (res) { res.activity = activity; return res; });
       },
       remove: function (id) {
-        return writeThenVerify('activity_delete', { id: id }, 'activities', 'activities',
-          function (list) { return !list.some(function (a) { return a.id === id; }); });
+        return writeThenVerify('activity_delete', { id: id });
       },
     },
 
@@ -137,9 +142,6 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('sessions').then(r => listOrFail(r, 'sessions'));
       },
-      // Получить одну сессию по id (для проверки доступа на входе в экзамен).
-      // Внутри — тот же список, отфильтрованный; когда backend научится
-      // отдавать одну сессию напрямую, поменяется только эта функция.
       get: function (id) {
         return backendGet('sessions').then(function (r) {
           const list = (r && r.ok ? r.sessions || [] : []);
@@ -151,56 +153,36 @@ const StorageAPI = (function () {
           id: uid('ses'), activityId: activityId, group: group,
           status: 'open', openedAt: Date.now(), closedAt: null,
         };
-        return writeThenVerify('session', { session: session }, 'sessions', 'sessions',
-          function (list) { return list.some(function (x) { return x.id === session.id; }); }
-        ).then(function (res) { res.session = session; return res; });
+        return writeThenVerify('session', { session: session })
+          .then(function (res) { res.session = session; return res; });
       },
       close: function (id) {
-        return writeThenVerify('session_close', { id: id }, 'sessions', 'sessions',
-          function (list) {
-            var s = list.filter(function (x) { return x.id === id; })[0];
-            return !s || s.status === 'closed';
-          });
+        return writeThenVerify('session_close', { id: id });
       },
       remove: function (id) {
-        return writeThenVerify('session_delete', { id: id }, 'sessions', 'sessions',
-          function (list) { return !list.some(function (x) { return x.id === id; }); });
+        return writeThenVerify('session_delete', { id: id });
       },
     },
 
-    // Результаты и записи (уже существуют в таблице — только чтение)
+    // Результаты и записи
     results: {
       list: function () {
         return backendGet('results').then(r => listOrFail(r, 'results'));
       },
-      // Удалить результат. Строки не имеют id — определяем по совокупности
-      // полей (дата+время+имя+группа), этого достаточно для уникальности.
+      // Строки не имеют id — определяем по номеру строки и полям.
       remove: function (r) {
-        var same = function (x) {
-          return String(x.date) === String(r.date) && String(x.time) === String(r.time) &&
-                 String(x.fullName) === String(r.fullName) && String(x.group) === String(r.group);
-        };
         return writeThenVerify('result_delete',
-          { row: r.row, date: r.date, time: r.time, fullName: r.fullName, group: r.group },
-          'results', 'results',
-          function (list) { return !list.some(same); });
+          { row: r.row, date: r.date, time: r.time, fullName: r.fullName, group: r.group });
       },
     },
+
     recordings: {
       list: function () {
         return backendGet('recordings').then(r => listOrFail(r, 'recordings'));
       },
-      /* Выставить балл за запись. Запись определяется по url — он уникален.
 
-         ВАЖНО: отправка идёт в режиме no-cors, то есть ответ backend'а
-         браузеру недоступен — «запрос ушёл» и «данные записаны» это
-         РАЗНЫЕ вещи. Поэтому после отправки перечитываем список и
-         убеждаемся, что балл действительно лёг в таблицу. Иначе панель
-         пишет «Сохранено», преподаватель идёт дальше, а в результатах
-         работа так и висит непроверенной. */
-      /* Получить саму запись. Возвращает { ok, blob } — готовый файл,
-         который можно отдать плееру. Через backend, потому что напрямую
-         с Диска браузеру звук не достаётся. */
+      /* Получить саму запись: { ok, blob }. Через backend, потому что
+         напрямую с Диска браузеру звук не достаётся. */
       audio: function (fileId) {
         return backendGet('audio', { id: fileId }).then(function (r) {
           if (!r || !r.ok || !r.data) return { ok: false, error: (r && r.error) || 'нет ответа' };
@@ -214,28 +196,19 @@ const StorageAPI = (function () {
           }
         });
       },
-      /* Удалить запись целиком: строку из таблицы и файл с Диска.
-         Нужно для уборки собственных пробных прохождений. */
+
+      // Удалить запись целиком: строку из таблицы и файл с Диска.
       remove: function (url) {
-        return writeThenVerify('recording_delete', { url: url }, 'recordings', 'recordings',
-          function (list) { return !list.some(function (x) { return x.url === url; }); });
+        return writeThenVerify('recording_delete', { url: url });
       },
+
+      /* Балл за чтение. Backend отвечает сам — лишнего скачивания всего
+         списка записей больше нет, именно оно тормозило сохранение. */
       grade: function (url, grade) {
         return backendPost('grade_recording', { url: url, grade: grade })
-          .then(function () {
-            return backendGet('recordings');
-          })
           .then(function (r) {
-            const list = (r && r.ok) ? (r.recordings || []) : null;
-            if (!list) return { ok: false, error: 'нет ответа при проверке' };
-            const row = list.filter(function (x) { return x.url === url; })[0];
-            const landed = row && String(row.grade) === String(grade);
-            return landed
-              ? { ok: true, grade: grade }
-              : { ok: false, error: 'балл не найден в таблице' };
-          })
-          .catch(function (err) {
-            return { ok: false, error: String(err) };
+            return (r && r.ok) ? { ok: true, grade: grade }
+                               : { ok: false, error: (r && r.error) || 'нет ответа' };
           });
       },
     },

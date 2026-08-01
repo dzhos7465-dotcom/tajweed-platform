@@ -830,7 +830,7 @@ body { margin: 0; }
     // Грузим и результаты (тест), и записи (чтение) — чтобы свести общий балл
     Promise.all([
       StorageAPI.results.list(),
-      StorageAPI.recordings.list().catch(function () { return []; })
+      StorageAPI.recordings.list().catch(function () { var e = []; e.failed = true; return e; })
     ]).then(function (both) {
       const res = both[0] || [];
       const recs = both[1] || [];
@@ -894,7 +894,13 @@ body { margin: 0; }
         x._reciteExpected = expected;
         x._notSubmitted = false;
 
-        if (!rd.hasRec && expected > 0) {
+        /* ВАЖНО: «не сдано» ставим, только если список записей ДЕЙСТВИТЕЛЬНО
+           загрузился. Иначе при обрыве связи панель объявляла несданными
+           все работы подряд — а в «Проверке чтения» те же записи спокойно
+           показывались оценёнными. */
+        if (recs && recs.failed) {
+          x._total = null; x._waiting = true;
+        } else if (!rd.hasRec && expected > 0) {
           // чтение задавали, но ученик его не сдал — это ноль, а не «нет чтения»
           x._reading = 0;
           x._notSubmitted = true;
