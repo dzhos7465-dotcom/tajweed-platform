@@ -110,10 +110,8 @@
       fullName: r.full_name, group: r.group_name,
       autoScore: r.auto_score, answered: r.answered, total: r.total,
       duration: r.duration, exam: r.exam_title,
-      /* Разбор отдаём СТРОКОЙ: панель ждёт именно её и сама вызывает
-         разбор. База хранит его готовым объектом, и панель на нём падала —
-         работа выглядела как «старый результат без деталей». */
-      review: (r.review == null) ? '' : JSON.stringify(r.review),
+      // Разбор отдаём как есть: панель принимает и список, и строку.
+      review: r.review || null,
       sessionId: r.session_id,
     };
   }
@@ -128,6 +126,13 @@
       grade: (r.grade === null || r.grade === undefined) ? '' : r.grade,
       sessionId: r.session_id,
     };
+  }
+
+  /* Обратное превращение: из ссылки обратно в путь к файлу. */
+  function pathFromUrl(url) {
+    const mark = '/object/public/' + BUCKET + '/';
+    const i = String(url || '').indexOf(mark);
+    return i === -1 ? String(url || '') : decodeURIComponent(String(url).slice(i + mark.length));
   }
 
   function publicUrl(path) {
@@ -293,19 +298,30 @@
         return Promise.resolve({ ok: true, directUrl: url || idOrPath });
       },
 
+      /* Панель опознаёт запись по ссылке — так повелось со времён Диска.
+         Достаём из ссылки путь к файлу и правим строку по нему: искать по
+         внутреннему номеру нельзя, панель его не передаёт. */
       grade: function (idOrUrl, grade) {
-        const id = (typeof idOrUrl === 'object') ? idOrUrl.id : idOrUrl;
-        return patch('recordings', { id: id }, { grade: grade })
+        const match = (typeof idOrUrl === 'object')
+          ? { id: idOrUrl.id }
+          : { file_path: pathFromUrl(idOrUrl) };
+        return patch('recordings', match, { grade: grade })
           .then(res => (res.ok ? { ok: true, grade: grade } : res));
       },
 
       remove: function (rec) {
-        const path = rec.filePath || rec;
+        const path = (typeof rec === 'object')
+          ? (rec.filePath || pathFromUrl(rec.url))
+          : pathFromUrl(rec);
         return fetch(SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
           method: 'DELETE', headers: HEADERS,
         })
           .catch(function () { /* файла может уже не быть — не беда */ })
-          .then(function () { return remove('recordings', { id: rec.id }); });
+          .then(function () {
+            return (typeof rec === 'object' && rec.id != null)
+              ? remove('recordings', { id: rec.id })
+              : remove('recordings', { file_path: path });
+          });
       },
     },
 

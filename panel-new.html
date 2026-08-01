@@ -471,8 +471,7 @@ body { margin: 0; }
 <!-- tasks.js нужен панели ради настоящих списков правил (FIND_GROUPS и др.):
      без него в панели заводились копии, переписанные руками, и отставали -->
 <script src="tasks.js"></script>
-<!-- НОВАЯ БАЗА (Supabase). Обычные panel.html и exam.html
-     по-прежнему работают на старом хранилище — они рядом и не тронуты. -->
+<!-- НОВАЯ БАЗА (Supabase) -->
 <script src="storage-supabase.js"></script>
 <script>
 (function () {
@@ -870,7 +869,8 @@ body { margin: 0; }
          Оно приходит вместе с результатом, backend трогать не нужно. */
       function reciteExpected(r) {
         try {
-          var rev = r.review ? JSON.parse(r.review) : [];
+          var rev = Array.isArray(r.review) ? r.review
+                  : (r.review ? JSON.parse(r.review) : []);
           return rev.filter(function (d) { return d.ty === 'recite'; }).length;
         } catch (e) { return 0; }
       }
@@ -1022,8 +1022,12 @@ body { margin: 0; }
   function openResultDetail(idx) {
     const r = (window._resultsCache || [])[idx];
     if (!r) return;
+    /* Разбор может прийти двумя видами: строкой (так отдаёт Google Sheets)
+       или уже готовым списком (так отдаёт новая база). Принимаем оба —
+       иначе на одном из них панель молча показывала «разбор недоступен». */
     let review = [];
-    try { review = r.review ? JSON.parse(r.review) : []; } catch (e) { review = []; }
+    if (Array.isArray(r.review)) review = r.review;
+    else { try { review = r.review ? JSON.parse(r.review) : []; } catch (e) { review = []; } }
 
     // сводка
     const total = review.length;
