@@ -1993,8 +1993,16 @@ body { margin: 0; }
         if (el) el.textContent = 'Загружаю запись… первая может идти до минуты';
       }, 6000);
 
-      StorageAPI.recordings.audio(box.getAttribute('data-id')).then(function (res) {
+      StorageAPI.recordings.audio(box.getAttribute('data-id'), box.getAttribute('data-drive'))
+        .then(function (res) {
         clearTimeout(slowHint);
+        /* Новое хранилище отдаёт прямую ссылку — посредник не нужен,
+           плеер получает её сразу. Старое присылает сам файл. */
+        if (res && res.ok && res.directUrl) {
+          box.innerHTML = '<audio class="rec-audio" controls preload="metadata" src="' +
+                          res.directUrl + '"></audio>';
+          return;
+        }
         if (!res || !res.ok) {
           box.innerHTML = '<div class="rec-audio-fail">Не удалось получить запись. ' +
             '<button class="btn rec-retry-btn" style="margin:0 8px;">Ещё раз</button>' +

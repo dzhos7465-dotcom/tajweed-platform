@@ -207,13 +207,23 @@
       },
       // Отправка работы ученика
       send: function (payload) {
+        /* Имена полей берём ровно те, что шлёт движок: durationText, а не
+           duration; totalQuestions, а не total. Из-за этой мелочи работа
+           записывалась наполовину — без разбора и без длительности, а в
+           панели выглядела как «старый результат без деталей». */
+        let review = payload.review;
+        if (typeof review === 'string') {
+          try { review = JSON.parse(review); } catch (e) { review = null; }
+        }
         return write('results', [{
           session_id: payload.sessionId || null,
           full_name: payload.fullName, group_name: payload.group,
-          auto_score: payload.autoScore, answered: payload.answered,
-          total: payload.totalQuestions, duration: payload.duration,
+          auto_score: payload.autoScore,
+          answered: payload.answered,
+          total: payload.totalQuestions != null ? payload.totalQuestions : payload.total,
+          duration: payload.durationText || payload.duration || '',
           exam_title: payload.examTitle || payload.exam,
-          review: payload.review ? JSON.parse(payload.review) : null,
+          review: review || null,
         }]);
       },
       remove: function (r) {
@@ -232,8 +242,20 @@
          тогда перезапись ложится ПОВЕРХ прежней, а не рядом: ребёнок
          вправе считать, что старый вариант исчез. */
       send: function (meta, blob) {
-        const safe = s => String(s || '').replace(/[^\wа-яА-ЯёЁ]+/g, '-').slice(0, 40);
-        const path = [safe(meta.sessionId), safe(meta.fullName), safe(meta.ayahId)].join('/')
+        /* В пути к файлу — только латиница, цифры и дефис: хранилище не
+           принимает кириллицу в именах, и запись молча не загружалась.
+           Имя ученика заменяем на короткий отпечаток от него: файлы
+           разных учеников не столкнутся, а само имя всё равно хранится
+           в таблице, рядом. */
+        const stamp = str => {
+          let h = 0;
+          const v = String(str || '');
+          for (let i = 0; i < v.length; i++) h = (h * 31 + v.charCodeAt(i)) >>> 0;
+          return h.toString(36);
+        };
+        const safe = s => String(s || '').replace(/[^A-Za-z0-9_-]+/g, '-')
+                                         .replace(/^-+|-+$/g, '').slice(0, 40) || 'x';
+        const path = [safe(meta.sessionId), stamp(meta.fullName), safe(meta.ayahId)].join('/')
                    + '.' + (blob.type.indexOf('mp4') !== -1 ? 'm4a' : 'webm');
 
         return fetch(SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
@@ -262,8 +284,9 @@
 
       /* Запись играется по прямой ссылке — посредник не нужен.
          Оставлено ради совместимости с панелью. */
-      audio: function (url) {
-        return Promise.resolve({ ok: true, directUrl: url });
+      audio: function (idOrPath, url) {
+        // ссылка уже готова — панель получает её и отдаёт плееру
+        return Promise.resolve({ ok: true, directUrl: url || idOrPath });
       },
 
       grade: function (idOrUrl, grade) {
