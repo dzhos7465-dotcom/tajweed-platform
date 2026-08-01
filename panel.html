@@ -1407,16 +1407,33 @@ body { margin: 0; }
     });
   }
 
-  // Выбор аятов для чтения — сгруппированы по правилу, галочки
-  const RULE_ORDER = ['izhar_mim','idgham_mim','ikhfa_mim','shadda_mim','izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun','shadda_nun'];
+  /* Выбор аятов для чтения — сгруппированы по правилу.
+     Порядок правил берём из библиотеки, а не из переписанного списка:
+     тот отстал и не знал про мадд, из-за чего 58 аятов из 94 нельзя было
+     задать для чтения вслух — они просто не показывались. */
+  function ruleOrder() {
+    if (typeof THEMES === 'undefined') return [];
+    return Object.values(THEMES)
+      .slice()
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
+      .map(function (t) { return t.id; });
+  }
   function ruleName(id) { return (typeof THEMES !== 'undefined' && THEMES[id]) ? THEMES[id].name : id; }
 
   function buildAyahPicker() {
     const wrap = $('af-ayahs');
     wrap.innerHTML = '';
     if (typeof AYAHS === 'undefined') { wrap.innerHTML = '<div style="color:var(--ink-faint);font-size:var(--text-sm)">Библиотека аятов недоступна.</div>'; return; }
-    RULE_ORDER.forEach(function (rule) {
-      const list = AYAHS.filter(function (a) { return a.rules.indexOf(rule) !== -1; });
+    ruleOrder().forEach(function (rule) {
+      /* Аят попадает в группу правила, если оно в нём РАЗМЕЧЕНО, а не только
+         если записано в rules. Иначе для чтения было доступно 11 аятов с
+         ‘аридом вместо 26: остальные заводились под мим или нун, хотя
+         ‘арид в них размечен. */
+      const list = AYAHS.filter(function (a) {
+        if (a.rules.indexOf(rule) !== -1) return true;
+        return typeof AYAH_MARKS !== 'undefined' &&
+               (AYAH_MARKS[a.id] || []).some(function (m) { return m.rule === rule; });
+      });
       if (!list.length) return;
       const label = document.createElement('div');
       label.className = 'ayah-group-label';
@@ -1425,7 +1442,20 @@ body { margin: 0; }
       list.forEach(function (a) {
         const row = document.createElement('div');
         row.className = 'ayah-pick';
-        row.innerHTML = '<input type="checkbox" class="ap-check" data-ayah="' + a.id + '"><span class="ap-ar">' + a.text + '</span>';
+        /* Показываем, какие ещё правила есть в аяте: одно и то же место
+           годится для разных тем, и без подсказки преподаватель об этом
+           не знает — поле rules хранит лишь то, на чём аят заводили. */
+        var extra = [];
+        if (typeof AYAH_MARKS !== 'undefined') {
+          var seen = {};
+          (AYAH_MARKS[a.id] || []).forEach(function (m) {
+            if (m.rule !== rule && !seen[m.rule]) { seen[m.rule] = 1; extra.push(ruleName(m.rule)); }
+          });
+        }
+        row.innerHTML = '<input type="checkbox" class="ap-check" data-ayah="' + a.id + '">' +
+          '<span class="ap-ar">' + a.text + '</span>' +
+          (extra.length ? '<span style="font-size:var(--text-xs); color:var(--ink-faint); ' +
+            'margin-right:auto;">также: ' + extra.join(', ') + '</span>' : '');
         const check = row.querySelector('.ap-check');
         row.addEventListener('click', function (e) {
           if (e.target !== check) check.checked = !check.checked;
