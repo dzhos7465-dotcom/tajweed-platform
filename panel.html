@@ -1025,7 +1025,13 @@ body { margin: 0; }
         const typeLabel = TASK_TYPE_LABELS[d.ty];
         const themeName = typeLabel || ruleName(d.t) || '';
         let statusIcon, statusColor;
-        if (d.p) { statusIcon = 'чтение'; statusColor = 'var(--amber, #b8860b)'; }
+        if (d.p) {
+          /* Задание на чтение. Если записи от ученика нет — он его не сдал,
+             и «чтение» янтарным вводит в заблуждение: выглядит как «ждёт
+             проверки», хотя проверять нечего. */
+          if (r._notSubmitted) { statusIcon = 'не сдано'; statusColor = 'var(--err)'; }
+          else { statusIcon = 'чтение'; statusColor = 'var(--amber, #b8860b)'; }
+        }
         else if (d.ok) { statusIcon = '✓'; statusColor = 'var(--ok)'; }
         else { statusIcon = '✗'; statusColor = 'var(--err)'; }
 

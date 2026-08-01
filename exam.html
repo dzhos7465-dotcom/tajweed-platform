@@ -516,6 +516,8 @@
             (activity.type === 'review' ? 'Повторение' : 'Контрольная работа');
           var h1 = document.querySelector('#screen-start h1');
           if (h1 && activity.title) h1.textContent = activity.title;
+          // теперь известна настоящая активность — пересчитать число заданий
+          if (typeof window.updateLedeCount === 'function') window.updateLedeCount();
         }
         proceed();
       }).catch(proceed);

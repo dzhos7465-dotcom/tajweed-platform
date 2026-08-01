@@ -894,12 +894,33 @@
         || 'Контрольная работа';
     }
 
-    // Число заданий на обложке — считаем реально, чтобы не расходилось
-    var lede = document.getElementById('lede-count');
-    if (lede && typeof TASKS !== 'undefined') lede.textContent = TASKS.length;
+    updateLedeCount();
 
     checkDraft();
   }
+
+  /* Число заданий на обложке.
+     Раньше показывалось TASKS.length — все построенные задания, а в работу
+     идёт лишь часть: сколько преподаватель задал по темам. Отсюда «43» там,
+     где на самом деле 16. Считаем ровно тем же путём, каким движок строит
+     работу. Вызывается ещё раз, когда активность сессии дозагрузилась. */
+  function updateLedeCount() {
+    var lede = document.getElementById('lede-count');
+    if (!lede) return;
+    var n = 0;
+    try {
+      var cfg = (typeof window !== 'undefined' && window.SESSION_EXAM_CONFIG)
+        ? window.SESSION_EXAM_CONFIG
+        : ((typeof getOpenActivity === 'function') ? getOpenActivity() : null);
+      if (cfg && typeof buildTaskOrder === 'function') {
+        session.mode = MODES[cfg.mode] || MODES.exam;
+        n = buildTaskOrder(cfg).length;
+      }
+    } catch (e) { n = 0; }
+    if (!n && typeof TASKS !== 'undefined') n = TASKS.length;
+    lede.textContent = n;
+  }
+  window.updateLedeCount = updateLedeCount;
 
   document.addEventListener('DOMContentLoaded', init);
 })();
