@@ -455,9 +455,25 @@
       if (g && window.SESSION_GROUP) { g.value = window.SESSION_GROUP; }
     }
 
+    /* Активность не загрузилась — работу НЕ начинаем.
+       Раньше в этом случае экзамен всё равно открывался, но собирался из
+       встроенных шаблонов: ученик получал 43 чужих задания вместо тех, что
+       задал преподаватель. Молча подменять работу нельзя — лучше честно
+       попросить открыть ссылку заново. */
+    function failToLoad() {
+      document.getElementById('session-msg-title').textContent = 'Не удалось загрузить задание';
+      document.getElementById('session-msg').innerHTML =
+        'Проверьте интернет и откройте ссылку ещё раз.<br>' +
+        '<button id="retry-load" style="margin-top:16px; padding:10px 22px; border-radius:999px; ' +
+        'border:none; background:#0f7d74; color:#fff; font-size:16px;">Попробовать снова</button>';
+      var b = document.getElementById('retry-load');
+      if (b) b.addEventListener('click', function () { location.reload(); });
+    }
+
     // Если у сессии есть активность — загрузить её и построить конфиг экзамена
     if (window.SESSION_ACTIVITY_ID && StorageAPI.activities && StorageAPI.activities.get) {
       StorageAPI.activities.get(window.SESSION_ACTIVITY_ID).then(function (activity) {
+        if (!activity) { failToLoad(); return; }   // не пришла — не подменяем шаблонами
         if (activity && activity.themes && activity.themes.length) {
           // Собрать конфиг на основе встроенного EXAM_CONFIG, подменив темы и время.
           // Движок соберёт задания по activityThemes (см. buildTasksFromTemplates).
@@ -520,13 +536,12 @@
           if (typeof window.updateLedeCount === 'function') window.updateLedeCount();
         }
         proceed();
-      }).catch(proceed);
+      }).catch(failToLoad);
     } else {
       proceed();
     }
   }).catch(function () {
-    // Ошибка проверки — не блокируем совсем, пускаем как обычно
-    show('screen-start');
+    failToLoad();
   });
 })();
 </script>

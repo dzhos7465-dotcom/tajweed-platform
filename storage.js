@@ -141,10 +141,16 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('activities').then(r => listOrFail(r, 'activities'));
       },
+      /* Одна активность по id. Спрашиваем именно её, а не весь список:
+         ученику при открытии ссылки не нужно скачивать все активности.
+         Если backend ещё старый и такого не умеет — откатываемся к списку. */
       get: function (id) {
-        return backendGet('activities').then(function (r) {
-          const list = (r && r.ok ? r.activities || [] : []);
-          return list.filter(a => a.id === id)[0] || null;
+        return backendGet('activity', { id: id }).then(function (r) {
+          if (r && r.ok && r.activity !== undefined) return r.activity;
+          return backendGet('activities').then(function (r2) {
+            const list = (r2 && r2.ok ? r2.activities || [] : []);
+            return list.filter(a => a.id === id)[0] || null;
+          });
         });
       },
       save: function (activity) {
@@ -162,10 +168,14 @@ const StorageAPI = (function () {
       list: function () {
         return backendGet('sessions').then(r => listOrFail(r, 'sessions'));
       },
+      // Одна сессия по id — см. пояснение у активностей.
       get: function (id) {
-        return backendGet('sessions').then(function (r) {
-          const list = (r && r.ok ? r.sessions || [] : []);
-          return list.filter(s => s.id === id)[0] || null;
+        return backendGet('session', { id: id }).then(function (r) {
+          if (r && r.ok && r.session !== undefined) return r.session;
+          return backendGet('sessions').then(function (r2) {
+            const list = (r2 && r2.ok ? r2.sessions || [] : []);
+            return list.filter(s => s.id === id)[0] || null;
+          });
         });
       },
       open: function (activityId, group) {
