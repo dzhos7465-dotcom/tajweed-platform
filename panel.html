@@ -1987,12 +1987,22 @@ body { margin: 0; }
       StorageAPI.recordings.grade(r.url, val).then(function (res) {
         btn.disabled = false;
         if (!res || !res.ok) {
-          // Честно говорим, что не получилось. Молчаливая «удача» здесь
-          // хуже ошибки: работа осталась бы непроверенной незаметно.
           btn.textContent = 'Сохранить';
           saved.style.display = '';
           saved.style.color = 'var(--err)';
           saved.textContent = 'Не сохранилось — нажмите ещё раз';
+          return;
+        }
+        if (res.unverified) {
+          /* Балл ушёл, но подтверждения мы не получили. Пугать красным
+             нельзя: чаще всего он записался. Говорим как есть. */
+          r.grade = val;
+          btn.textContent = 'Изменить балл';
+          saved.style.display = '';
+          saved.style.color = 'var(--warn, #9a6a1e)';
+          saved.textContent = 'Отправлено · обновите список, чтобы проверить';
+          badge.textContent = 'оценено · ' + val;
+          badge.setAttribute('style', badgeStyle(true));
           return;
         }
         r.grade = val;                       // обновить в памяти

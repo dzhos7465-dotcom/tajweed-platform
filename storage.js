@@ -75,36 +75,45 @@ const StorageAPI = (function () {
      записи панель скачивала весь список заново — только чтобы убедиться.
      При тридцати с лишним записях каждое сохранение балла тянуло за собой
      полную перекачку, и панель еле шевелилась. Теперь одно обращение. */
-  function backendPost(kind, payload) {
-    const body = Object.assign({ kind: kind }, payload);
-    const form = new URLSearchParams();
-    form.set('payload', JSON.stringify(body));
+  /* ЗАПИСЬ В ХРАНИЛИЩЕ.
+     Отправляем JSON как простой текст. Это важно сразу по двум причинам:
+     • такой запрос браузер шлёт напрямую, без предварительного согласования,
+       поэтому он быстрый;
+     • и старая, и новая версия скрипта понимают его одинаково — обновление
+       backend'а можно делать спокойно, панель не сломается.
 
+     Ответ читаем: тогда мы точно знаем, записалось или нет. Если прочитать
+     не удалось (сеть, старый backend, что угодно) — НЕ объявляем неудачу:
+     запрос мог дойти. Возвращаем «отправлено, подтверждения нет», и панель
+     напишет об этом мягко, а не красным «не сохранилось». */
+  function backendPost(kind, payload) {
+    const body = JSON.stringify(Object.assign({ kind: kind }, payload));
     const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, REQUEST_TIMEOUT_MS);
 
     return fetch(BACKEND_URL, {
       method: 'POST',
-      body: form,                          // тип формы браузер проставит сам
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: body,
       signal: ctrl ? ctrl.signal : undefined,
     })
-      .then(r => r.json())
+      .then(function (r) { return r.json(); })
       .then(function (r) {
         clearTimeout(timer);
-        return (r && r.ok === false) ? { ok: false, error: r.error } : { ok: true, data: r };
+        if (r && r.ok === false) return { ok: false, error: r.error };
+        return { ok: true, data: r };
       })
-      .catch(function (err) {
+      .catch(function () {
         clearTimeout(timer);
-        return { ok: false, error: String(err) };
+        return { ok: true, unverified: true };   // ушло, но подтвердить не смогли
       });
   }
 
-  /* Запись с проверкой. Теперь backend отвечает сам — перечитывать список
-     не нужно. Если ответ почему-то не пришёл (старая версия скрипта),
-     считаем успехом: панель обновит список сама и покажет правду. */
   function writeThenVerify(kind, payload) {
     return backendPost(kind, payload).then(function (r) {
-      return (r && r.ok) ? { ok: true } : { ok: false, error: (r && r.error) || 'нет ответа' };
+      return (r && r.ok)
+        ? { ok: true, unverified: !!r.unverified }
+        : { ok: false, error: (r && r.error) || 'нет ответа' };
     });
   }
 
