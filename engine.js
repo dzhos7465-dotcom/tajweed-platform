@@ -522,9 +522,23 @@ function blobToBase64(blob) {
 /* Отправить одну запись чтения. Вызывается для каждого recite-задания,
    у которого есть запись. Не блокирует — как и результаты тестов. */
 function sendRecording(student, ayahId, ayahText, blob, examMeta) {
-  var endpoint = SHEETS_CONFIG.url;   // единый скрипт (результаты + записи)
-  if (!endpoint || !blob) {
-    return Promise.resolve({ sent: false, reason: 'no-url-or-blob' });
+  if (!blob) return Promise.resolve({ sent: false, reason: 'no-blob' });
+
+  /* Новое хранилище кладёт файл напрямую и отвечает сразу. Заодно исчезает
+     превращение звука в текст: раньше запись раздувалась на треть, потому
+     что иначе Apps Script её не принимал. */
+  if (typeof StorageAPI !== 'undefined' && StorageAPI.recordings && StorageAPI.recordings.send) {
+    return StorageAPI.recordings.send({
+      fullName: student.name, group: student.group,
+      ayahId: ayahId, ayahText: ayahText,
+      exam: examMeta ? examMeta.id : '', examTitle: examMeta ? examMeta.title : '',
+      sessionId: (typeof window !== 'undefined' && window.SESSION_ID) ? window.SESSION_ID : '',
+    }, blob).then(res => ({ sent: !!(res && res.ok), reason: res && res.error }));
+  }
+
+  var endpoint = SHEETS_CONFIG.url;   // старый путь: единый скрипт
+  if (!endpoint) {
+    return Promise.resolve({ sent: false, reason: 'no-url' });
   }
   return blobToBase64(blob).then(function (b64) {
     var payload = {
@@ -588,11 +602,22 @@ function buildResultPayload(result) {
 /* Отправка. Возвращает Promise, но интерфейс не обязан его ждать —
    результат ученику уже показан. */
 function sendResultToSheets(result) {
+  const payload = buildResultPayload(result);
+
+  /* Если на странице подключено хранилище нового образца — отдаём работу
+     ему. Оно отвечает сразу, и мы наконец знаем, дошла работа или нет:
+     раньше отправка уходила «вслепую», подтвердить было нечем.
+     Старый путь остаётся ниже — переключение между базами не требует
+     менять движок, только строку подключения в exam.html. */
+  if (typeof StorageAPI !== 'undefined' && StorageAPI.results && StorageAPI.results.send) {
+    return StorageAPI.results.send(payload)
+      .then(res => ({ sent: !!(res && res.ok), reason: res && res.error }));
+  }
+
   if (!SHEETS_CONFIG.url) {
     // URL ещё не настроен — тихо выходим, чтобы не ломать показ результата.
     return Promise.resolve({ sent: false, reason: 'no-url' });
   }
-  const payload = buildResultPayload(result);
   return fetch(SHEETS_CONFIG.url, {
     method: 'POST',
     mode: 'no-cors',

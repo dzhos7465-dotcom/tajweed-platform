@@ -708,7 +708,10 @@ body { margin: 0; }
      показывалась один раз и, если страницу закрыли, добыть её было нельзя:
      приходилось открывать новую сессию. Отсюда и накопились дубли. */
   function sessionLink(sessionId) {
-    const base = window.location.href.replace(/panel\.html.*/, 'exam.html');
+    /* Ссылка для учеников всегда ведёт на экзамен, как бы ни называлась
+       сама панель. Раньше подставлялось только «panel.html», и при работе
+       из panel-new.html ссылка вела обратно в панель. */
+    const base = window.location.href.replace(/[^\/]*\.html.*$/, '') + 'exam.html';
     return base + '?session=' + sessionId;
   }
 

@@ -471,6 +471,8 @@ body { margin: 0; }
 <!-- tasks.js нужен панели ради настоящих списков правил (FIND_GROUPS и др.):
      без него в панели заводились копии, переписанные руками, и отставали -->
 <script src="tasks.js"></script>
+<!-- НОВАЯ БАЗА (Supabase). Обычные panel.html и exam.html
+     по-прежнему работают на старом хранилище — они рядом и не тронуты. -->
 <script src="storage-supabase.js"></script>
 <script>
 (function () {
@@ -708,7 +710,10 @@ body { margin: 0; }
      показывалась один раз и, если страницу закрыли, добыть её было нельзя:
      приходилось открывать новую сессию. Отсюда и накопились дубли. */
   function sessionLink(sessionId) {
-    const base = window.location.href.replace(/panel\.html.*/, 'exam.html');
+    /* Ссылка для учеников всегда ведёт на экзамен, как бы ни называлась
+       сама панель. Раньше подставлялось только «panel.html», и при работе
+       из panel-new.html ссылка вела обратно в панель. */
+    const base = window.location.href.replace(/[^\/]*\.html.*$/, '') + 'exam-new.html';   // проверочная связка
     return base + '?session=' + sessionId;
   }
 
