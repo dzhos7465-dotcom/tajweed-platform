@@ -1946,11 +1946,22 @@ body { margin: 0; }
       if (open && open !== box) collapsePlayer(open);
       box.classList.add('playing');
       box.innerHTML = '<div class="rec-audio-fail">Загружаю запись…</div>';
+      /* Первая запись после долгого перерыва идёт дольше: сервер таблицы
+         засыпает и просыпается не сразу. Говорим об этом, иначе кажется,
+         что всё зависло. */
+      var slowHint = setTimeout(function () {
+        var el = box.querySelector('.rec-audio-fail');
+        if (el) el.textContent = 'Загружаю запись… первая может идти до минуты';
+      }, 6000);
 
       StorageAPI.recordings.audio(box.getAttribute('data-id')).then(function (res) {
+        clearTimeout(slowHint);
         if (!res || !res.ok) {
           box.innerHTML = '<div class="rec-audio-fail">Не удалось получить запись. ' +
+            '<button class="btn rec-retry-btn" style="margin:0 8px;">Ещё раз</button>' +
             '<a href="' + box.getAttribute('data-drive') + '" target="_blank">Открыть на Диске</a></div>';
+          var rb = box.querySelector('.rec-retry-btn');
+          if (rb) rb.addEventListener('click', function () { openPlayer(box); });
           return;
         }
         if (blobUrl) URL.revokeObjectURL(blobUrl);

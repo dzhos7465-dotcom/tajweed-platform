@@ -38,13 +38,21 @@ const StorageAPI = (function () {
      висит на «Загрузка…» и преподаватель не понимает, что произошло. */
   const REQUEST_TIMEOUT_MS = 25000;
 
-  function backendGet(action, params) {
+  /* Аудио — особый случай: файл едет целиком, да ещё и раздутый примерно
+     на треть (двоичное приходится передавать текстом). Плюс Apps Script
+     после простоя просыпается несколько секунд. Общего предела в 25 секунд
+     ему не хватало, и панель сдавалась раньше времени — отсюда «не удалось
+     получить запись», которое со второго-третьего раза проходило. */
+  const AUDIO_TIMEOUT_MS = 90000;
+
+  function backendGet(action, params, timeoutMs) {
     const url = new URL(BACKEND_URL);
     url.searchParams.set('action', action);
     if (params) Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
 
     const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); },
+                             timeoutMs || REQUEST_TIMEOUT_MS);
 
     return fetch(url.toString(), ctrl ? { signal: ctrl.signal } : undefined)
       .then(r => r.json())
@@ -116,6 +124,9 @@ const StorageAPI = (function () {
         : { ok: false, error: (r && r.error) || 'нет ответа' };
     });
   }
+
+  // Записи, уже полученные в этом сеансе работы панели
+  const audioCache = {};
 
   function uid(prefix) {
     return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
@@ -193,17 +204,30 @@ const StorageAPI = (function () {
       /* Получить саму запись: { ok, blob }. Через backend, потому что
          напрямую с Диска браузеру звук не достаётся. */
       audio: function (fileId) {
-        return backendGet('audio', { id: fileId }).then(function (r) {
-          if (!r || !r.ok || !r.data) return { ok: false, error: (r && r.error) || 'нет ответа' };
-          try {
-            var bin = atob(r.data);
-            var bytes = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            return { ok: true, blob: new Blob([bytes], { type: r.mime || 'audio/mpeg' }) };
-          } catch (e) {
-            return { ok: false, error: String(e) };
-          }
-        });
+        // Уже полученное не качаем заново: вернуться к записи — обычное дело.
+        if (audioCache[fileId]) return Promise.resolve({ ok: true, blob: audioCache[fileId] });
+
+        function attempt(triesLeft) {
+          return backendGet('audio', { id: fileId }, AUDIO_TIMEOUT_MS).then(function (r) {
+            if (!r || !r.ok || !r.data) {
+              // Первая попытка часто уходит на пробуждение Apps Script —
+              // пробуем ещё раз, прежде чем говорить о неудаче.
+              if (triesLeft > 0) return attempt(triesLeft - 1);
+              return { ok: false, error: (r && r.error) || 'нет ответа' };
+            }
+            try {
+              var bin = atob(r.data);
+              var bytes = new Uint8Array(bin.length);
+              for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              var blob = new Blob([bytes], { type: r.mime || 'audio/mpeg' });
+              audioCache[fileId] = blob;
+              return { ok: true, blob: blob };
+            } catch (e) {
+              return { ok: false, error: String(e) };
+            }
+          });
+        }
+        return attempt(1);
       },
 
       // Удалить запись целиком: строку из таблицы и файл с Диска.
