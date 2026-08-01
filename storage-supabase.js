@@ -109,7 +109,11 @@
       date: toDate(r.created_at), time: toTime(r.created_at),
       fullName: r.full_name, group: r.group_name,
       autoScore: r.auto_score, answered: r.answered, total: r.total,
-      duration: r.duration, exam: r.exam_title, review: r.review,
+      duration: r.duration, exam: r.exam_title,
+      /* Разбор отдаём СТРОКОЙ: панель ждёт именно её и сама вызывает
+         разбор. База хранит его готовым объектом, и панель на нём падала —
+         работа выглядела как «старый результат без деталей». */
+      review: (r.review == null) ? '' : JSON.stringify(r.review),
       sessionId: r.session_id,
     };
   }

@@ -923,6 +923,14 @@
         : ((typeof getOpenActivity === 'function') ? getOpenActivity() : null);
       if (cfg && typeof buildTaskOrder === 'function') {
         session.mode = MODES[cfg.mode] || MODES.exam;
+        /* Сначала СОБРАТЬ задания по активности, потом считать. Без этого
+           считались встроенные шаблоны — те самые 43–45 заданий, которых
+           преподаватель не задавал. */
+        if (typeof rebuildTasks === 'function' && cfg.activityThemes) {
+          rebuildTasks(session.mode.randomizeExamples, cfg.activityThemes || null,
+                       cfg.activityRecite || null, cfg.activitySort || null,
+                       cfg.activityFind || null);
+        }
         n = buildTaskOrder(cfg).length;
       }
     } catch (e) { n = 0; }
