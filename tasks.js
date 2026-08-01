@@ -67,6 +67,7 @@ const RULE_OPTIONS = [
   { id: 'madd_lazim',       label: 'Лазим (словесный)' },
   { id: 'madd_lazim_harfi', label: 'Лазим (буквенный)' },
   { id: 'madd_arid',        label: '‘Арид' },
+  { id: 'madd_lin',         label: 'Мягкий (лин)' },
 ];
 
 /* Семейства правил — чтобы отвлекающие варианты были ПОХОЖИМИ (того же
@@ -76,7 +77,7 @@ const OPTION_FAMILY = {
   mim: ['izhar', 'idgham', 'ikhfa', 'shadda_mim'],
   nun: ['izhar', 'idgham', 'ikhfa', 'iqlab', 'shadda_nun'],
   madd: ['madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil',
-         'madd_lazim', 'madd_lazim_harfi', 'madd_arid'],
+         'madd_lazim', 'madd_lazim_harfi', 'madd_arid', 'madd_lin'],
 };
 function familyOfTheme(themeId) {
   if (themeId.indexOf('madd') !== -1) return 'madd';
@@ -163,6 +164,7 @@ const RULE_TEMPLATES = [
   { theme: 'madd_lazim',       answer: 'madd_lazim',       count: 2 },
   { theme: 'madd_lazim_harfi', answer: 'madd_lazim_harfi', count: 2 },
   { theme: 'madd_arid',        answer: 'madd_arid',        count: 2 },
+  { theme: 'madd_lin',         answer: 'madd_lin',         count: 2 },
 ];
 
 /* Карта «тема → правильный ответ». Нужна, когда шаблоны приходят из
@@ -201,6 +203,7 @@ const THEME_PROMPTS = {
   // диагонали и отвечает так, будто спрашивают про обычный мадд.
   madd_iwad: 'Какой мадд появится, если **остановиться на этом слове**?',
   madd_arid: 'Какой мадд появится, если **остановиться на этом слове**?',
+  madd_lin:  'Какой мадд появится, если **остановиться на этом слове**?',
 };
 
 function promptForTheme(themeId) {
@@ -221,7 +224,7 @@ const SCORE_GROUP_NAMES = {
    стоит коробкой в распределении, всё задание идёт «при остановке» —
    иначе оно противоречиво: при продолжении чтения этих правил нет вовсе.
    Одно место, откуда об этом узнают все задания. */
-const STOP_ONLY_THEMES = ['madd_iwad', 'madd_arid'];
+const STOP_ONLY_THEMES = ['madd_iwad', 'madd_arid', 'madd_lin'];
 
 /* Шаблоны sort. groups.id = тема библиотеки (откуда брать примеры). */
 const SORT_TEMPLATES = [
@@ -265,6 +268,7 @@ const SORT_TEMPLATES = [
       { id: 'madd_munfasil', label: 'Мунфасыль' },
       { id: 'madd_lazim',       label: 'Лазим (словесный)' },
       { id: 'madd_lazim_harfi', label: 'Лазим (буквенный)' },
+      { id: 'madd_lin',         label: 'Мягкий (лин)' },
       { id: 'madd_arid',        label: '‘Арид' },
     ],
     weight: 5,
@@ -379,7 +383,7 @@ const FIND_GROUPS = {
   nun:  { id:'nun',  name:'нуна', rules:['izhar_nun','idgham_nun','iqlab_nun','ikhfa_nun'] },
   mim:  { id:'mim',  name:'мима', rules:['izhar_mim','idgham_mim','ikhfa_mim'] },
   madd: { id:'madd', name:'мадда', rules:['madd_tabii','madd_iwad','madd_muttasil',
-          'madd_munfasil','madd_lazim','madd_lazim_harfi','madd_arid'] },
+          'madd_munfasil','madd_lazim','madd_lazim_harfi','madd_arid','madd_lin'] },
 };
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -601,11 +605,18 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
     // Приоритет источника аятов для чтения:
     //   1) активность (recite из панели), 2) выбранные в конструкторе (?ayahs=),
     //   3) иначе случайные по правилу.
-    var selectedIds = (activityRecite && activityRecite.length)
+    /* Активность пришла из панели (даже с пустым списком) — читаем ровно
+       то, что выбрал преподаватель. Ничего не выбрал — чтения не будет.
+       Случайные аяты подставляем только когда активности нет вовсе:
+       это учебный набор по умолчанию, а не работа преподавателя. */
+    var fromActivity = Array.isArray(activityRecite);
+    var selectedIds = fromActivity
       ? activityRecite
       : ((typeof getSelectedAyahIds === 'function') ? getSelectedAyahIds() : []);
 
-    if (selectedIds.length > 0) {
+    if (fromActivity && !selectedIds.length) {
+      // преподаватель не выбрал ни одного аята — заданий чтения нет
+    } else if (selectedIds.length > 0) {
       // FIXED: преподаватель задал конкретные аяты — по заданию на каждый
       selectedIds.forEach(function (ayId, i) {
         var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[ayId] : null;
