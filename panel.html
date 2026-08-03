@@ -218,6 +218,33 @@ body { margin: 0; }
 </style>
 </head>
 <body>
+
+<!-- ЭКРАН ВХОДА.
+     Показывается поверх панели, пока преподаватель не вошёл. Без входа
+     база отдаёт панели ровно ничего: права те же, что у ученика.
+     Работает только с новой базой; на старой панель открывается как
+     раньше, там вход не предусмотрен. -->
+<div id="login-screen" style="display:none; position:fixed; inset:0; z-index:9999;
+     background:var(--paper); align-items:center; justify-content:center; padding:20px;">
+  <div style="max-width:380px; width:100%; background:var(--paper-raised);
+       border:1px solid var(--line); border-radius:var(--radius); padding:var(--space-6);">
+    <div style="font-size:var(--text-xs); letter-spacing:.16em; text-transform:uppercase;
+         color:var(--seal); font-weight:var(--weight-semi); margin-bottom:var(--space-2);">
+      Таджвид</div>
+    <h2 style="margin:0 0 var(--space-5); font-size:var(--text-xl);">Вход для преподавателя</h2>
+    <div class="field" style="margin-bottom:var(--space-3);">
+      <label>Почта</label>
+      <input id="login-email" type="email" autocomplete="username">
+    </div>
+    <div class="field" style="margin-bottom:var(--space-4);">
+      <label>Пароль</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="login-btn" style="width:100%;">Войти</button>
+    <div id="login-error" style="display:none; margin-top:var(--space-3);
+         color:var(--err); font-size:var(--text-sm);"></div>
+  </div>
+</div>
 <div class="layout">
   <aside class="sidebar">
     <div class="brand">Таджвид · Панель</div>
@@ -2087,6 +2114,40 @@ body { margin: 0; }
   $('rec-load').addEventListener('click', loadRecordings);
   $('rec-filter-group').addEventListener('change', renderRecordings);
   $('rec-filter-name').addEventListener('input', renderRecordings);
+  /* ── ВХОД ──
+     Если хранилище умеет вход (новая база) и преподаватель ещё не вошёл —
+     показываем экран входа и не даём панели загружаться. */
+  function requireLogin() {
+    if (!StorageAPI.auth) return false;          // старая база — вход не нужен
+    if (StorageAPI.auth.isSignedIn()) return false;
+    $('login-screen').style.display = 'flex';
+    return true;
+  }
+
+  function doLogin() {
+    var email = $('login-email').value.trim();
+    var pass = $('login-pass').value;
+    if (!email || !pass) { showLoginError('Заполните оба поля.'); return; }
+    var btn = $('login-btn');
+    btn.disabled = true; btn.textContent = 'Вхожу…';
+    StorageAPI.auth.signIn(email, pass).then(function (res) {
+      btn.disabled = false; btn.textContent = 'Войти';
+      if (!res.ok) { showLoginError('Не удалось войти. Проверьте почту и пароль.'); return; }
+      $('login-screen').style.display = 'none';
+      location.reload();                          // начинаем с чистого листа, уже под входом
+    });
+  }
+
+  function showLoginError(text) {
+    var e = $('login-error');
+    e.textContent = text; e.style.display = '';
+  }
+
+  if ($('login-btn')) {
+    $('login-btn').addEventListener('click', doLogin);
+    $('login-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  }
+
   $('rec-show-old').addEventListener('change', renderRecordings);
 
   /* УБОРКА ЗАПИСЕЙ.
@@ -2211,8 +2272,10 @@ body { margin: 0; }
       }).join('');
   }
 
-  // Старт — открыть Dashboard
-  loadDashboard();
+  /* Старт. Если вход нужен, но его нет — панель не грузится вовсе:
+     показываем экран входа. Иначе панель просила бы данные, получала
+     отказ и пестрела ошибками. */
+  if (!requireLogin()) loadDashboard();
 })();
 </script>
 </body>

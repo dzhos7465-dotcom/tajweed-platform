@@ -24,11 +24,33 @@
   const REST = SUPABASE_URL + '/rest/v1/';
   const BUCKET = 'recordings';
 
-  const HEADERS = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json',
-  };
+  /* ── КТО ОБРАЩАЕТСЯ К БАЗЕ ────────────────────────────────────────
+     Ключ ниже одинаков у всех — он лежит в коде страницы, спрятать его
+     нельзя. Поэтому база различает не по ключу, а по входу: пока входа
+     нет, обращение считается ученическим и права у него ученические.
+     Преподаватель входит по паролю и получает пропуск на время работы.
+
+     Пропуск хранится в самом браузере: закрыл вкладку — вошёл заново.
+     Так безопаснее, чем помнить его вечно. */
+  const TOKEN_KEY = 'tajweed_teacher_token';
+
+  function savedToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY) || null; } catch (e) { return null; }
+  }
+
+  function authHeader() {
+    return 'Bearer ' + (savedToken() || SUPABASE_KEY);
+  }
+
+  function headers() {
+    return {
+      'apikey': SUPABASE_KEY,
+      'Authorization': authHeader(),
+      'Content-Type': 'application/json',
+    };
+  }
+
+
 
   /* ── Общение с базой ──────────────────────────────────────────────
      Пустой список и «не смог получить» — разные вещи, и панель должна
@@ -44,7 +66,7 @@
   function query(table, params) {
     const url = new URL(REST + table);
     if (params) Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-    return fetch(url.toString(), { headers: HEADERS })
+    return fetch(url.toString(), { headers: headers() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
       .catch(fail);
   }
@@ -52,7 +74,7 @@
   function write(table, rows, extraPrefer) {
     return fetch(REST + table, {
       method: 'POST',
-      headers: Object.assign({}, HEADERS, {
+      headers: Object.assign({}, headers(), {
         'Prefer': 'return=representation' + (extraPrefer ? ',' + extraPrefer : ''),
       }),
       body: JSON.stringify(rows),
@@ -69,7 +91,7 @@
     Object.keys(match).forEach(k => url.searchParams.set(k, 'eq.' + match[k]));
     return fetch(url.toString(), {
       method: 'PATCH',
-      headers: Object.assign({}, HEADERS, { 'Prefer': 'return=representation' }),
+      headers: Object.assign({}, headers(), { 'Prefer': 'return=representation' }),
       body: JSON.stringify(values),
     })
       .then(r => r.ok ? { ok: true } : { ok: false, error: 'HTTP ' + r.status })
@@ -79,7 +101,7 @@
   function remove(table, match) {
     const url = new URL(REST + table);
     Object.keys(match).forEach(k => url.searchParams.set(k, 'eq.' + match[k]));
-    return fetch(url.toString(), { method: 'DELETE', headers: HEADERS })
+    return fetch(url.toString(), { method: 'DELETE', headers: headers() })
       .then(r => r.ok ? { ok: true } : { ok: false, error: 'HTTP ' + r.status })
       .catch(err => ({ ok: false, error: String(err) }));
   }
@@ -314,7 +336,7 @@
           ? (rec.filePath || pathFromUrl(rec.url))
           : pathFromUrl(rec);
         return fetch(SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
-          method: 'DELETE', headers: HEADERS,
+          method: 'DELETE', headers: headers(),
         })
           .catch(function () { /* файла может уже не быть — не беда */ })
           .then(function () {
@@ -323,6 +345,33 @@
               : remove('recordings', { file_path: path });
           });
       },
+    },
+
+    /* ── ВХОД ПРЕПОДАВАТЕЛЯ ──────────────────────────────────────────
+       Пока не вошёл — панель показывает только экран входа, а база и не
+       отдаст ей ничего: права ученические. */
+    auth: {
+      signIn: function (email, password) {
+        return fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password }),
+        })
+          .then(r => r.json())
+          .then(function (r) {
+            if (!r || !r.access_token) {
+              return { ok: false, error: (r && (r.error_description || r.msg)) || 'не удалось войти' };
+            }
+            try { sessionStorage.setItem(TOKEN_KEY, r.access_token); } catch (e) {}
+            return { ok: true };
+          })
+          .catch(err => ({ ok: false, error: String(err) }));
+      },
+      signOut: function () {
+        try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+        return Promise.resolve({ ok: true });
+      },
+      isSignedIn: function () { return !!savedToken(); },
     },
 
     // Служебное: доступно ли хранилище
