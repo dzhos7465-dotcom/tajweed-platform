@@ -442,6 +442,10 @@ body { margin: 0; }
           <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--text-sm); color:var(--ink-soft); cursor:pointer;">
             <input type="checkbox" id="rec-show-old"> показывать перезаписи
           </label>
+          <label class="sort-opt" style="margin-left:auto;">
+            <button class="btn btn-quiet" id="rec-cleanup"
+              style="color:var(--err); border-color:var(--err-tint);">Убрать оценённые</button>
+          </label>
         </div>
       </div>
       <div id="rec-status" class="status-line">Нажмите «Загрузить записи».</div>
@@ -2084,6 +2088,46 @@ body { margin: 0; }
   $('rec-filter-group').addEventListener('change', renderRecordings);
   $('rec-filter-name').addEventListener('input', renderRecordings);
   $('rec-show-old').addEventListener('change', renderRecordings);
+
+  /* УБОРКА ЗАПИСЕЙ.
+     Запись нужна ровно до того, как преподаватель поставил балл: дальше
+     она только занимает место, а места на бесплатном тарифе гигабайт.
+     Убираем только ОЦЕНЁННЫЕ и только старше выбранного срока — свежие
+     и непроверенные не трогаем ни при каких условиях. */
+  $('rec-cleanup').addEventListener('click', function () {
+    var days = prompt('Убрать оценённые записи старше скольких дней?\n' +
+                      'Непроверенные останутся в любом случае.', '30');
+    if (days === null) return;
+    days = parseInt(days, 10);
+    if (isNaN(days) || days < 0) { alert('Нужно число дней.'); return; }
+
+    var edge = Date.now() - days * 86400000;
+    var old = (allRecordings || []).filter(function (r) {
+      var graded = r.grade !== null && r.grade !== undefined && r.grade !== '';
+      return graded && whenKey(r) && whenKey(r) < edge;
+    });
+    if (!old.length) { alert('Таких записей нет.'); return; }
+    if (!confirm('Найдено записей: ' + old.length + '.\nУдалить их вместе с файлами?')) return;
+
+    var btn = $('rec-cleanup'); btn.disabled = true;
+    var done = 0, failed = 0;
+
+    // по одной: разом сервер отвечает вперемешку и часть теряется
+    (function step() {
+      if (!old.length) {
+        btn.disabled = false; btn.textContent = 'Убрать оценённые';
+        alert('Удалено: ' + done + (failed ? '. Не удалось: ' + failed : ''));
+        loadRecordings();
+        return;
+      }
+      var r = old.shift();
+      btn.textContent = 'Убираю… ' + (done + failed + 1);
+      StorageAPI.recordings.remove(r).then(function (res) {
+        if (res && res.ok) done++; else failed++;
+        step();
+      });
+    })();
+  });
 
   // ── Материалы: витрина библиотеки ──
   var materialsBuilt = false;
