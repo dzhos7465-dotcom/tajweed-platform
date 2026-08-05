@@ -272,6 +272,13 @@
 .mushaf::after { bottom: 8px; left: 8px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
 /* Коранические скобки вокруг аята — только оформление, в данных их нет. */
 .ayah-br { color: var(--gold, #b8912f); padding: 0 4px; }
+/* Полоска о судьбе работы. Ребёнок должен видеть своими глазами, дошла
+   ли работа: иначе он уверен, что сдал, а у преподавателя её нет. */
+.send-state { margin: var(--space-4) auto 0; max-width: 460px; padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm); font-size: var(--text-sm); text-align: center; }
+.send-state-wait { background: var(--paper-sunken); color: var(--ink-soft); }
+.send-state-ok   { background: var(--ok-tint, #e3efed); color: var(--ok); border: 1px solid var(--ok); }
+.send-state-fail { background: var(--err-tint, #f8e8e8); color: var(--err); border: 1px solid var(--err); }
 .ayah-find { direction: rtl; text-align: center; font-family: var(--font-arabic); font-size: 2.2rem;
   line-height: 2.5; color: #1e1b16; position: relative; z-index: 2; pointer-events: none; }
 .ayah-find .fw { padding: 0 2px; }
@@ -366,6 +373,8 @@
     <div class="score">
       <div class="figure"><span id="r-score">0</span><span class="scale">/100</span></div>
       <div class="cap" id="r-cap">результат автоматической проверки</div>
+      <!-- Судьба работы: дошла до преподавателя или нет -->
+      <div id="send-state" class="send-state" style="display:none;"></div>
       <div class="cap" id="r-how" style="margin-top:var(--space-1); font-size:var(--text-xs); color:var(--ink-faint);"></div>
     </div>
     <div class="pending" id="r-pending">

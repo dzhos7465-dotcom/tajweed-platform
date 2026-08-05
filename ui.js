@@ -590,6 +590,9 @@
     if (warn && un > 0) {
       $('dlg-title').textContent = 'Без ответа: ' + un;
       $('dlg-text').textContent = 'Некоторые вопросы ещё не отвечены. После завершения изменить ответы будет нельзя. Всё равно завершить?';
+      // предупреждение стоит здесь же: закрыть вкладку, не завершив работу,
+      // значит не сдать её вовсе — записи уйдут, а работа нет
+      $('dlg-text').textContent += ' Работа доходит до преподавателя ТОЛЬКО после нажатия «Завершить».';
     } else {
       $('dlg-title').textContent = 'Завершить работу?';
       $('dlg-text').textContent = 'После завершения изменить ответы будет нельзя.';
@@ -625,12 +628,43 @@
     // Результат уже показан ученику. Отправка в фоне — не блокирует экран.
     var shouldSend = session.mode ? session.mode.sendResult : true;
     if (shouldSend && typeof sendResultToSheets === 'function') {
+      /* Ученик ДОЛЖЕН видеть, дошла ли работа. Раньше неудача уходила в
+         служебный журнал, которого никто не читает: ребёнок был уверен,
+         что сдал, а у преподавателя работы не было. */
+      showSendState('sending');
       sendResultToSheets(result).then(function (r) {
-        if (!r.sent && r.reason !== 'no-url') {
-          console.warn('Не удалось отправить результат:', r.reason);
+        if (r.sent) { showSendState('sent'); return; }
+        if (r.reason === 'no-url') { showSendState(null); return; }
+        function retry() {
+          showSendState('sending');
+          sendResultToSheets(result).then(function (again) {
+            showSendState(again.sent ? 'sent' : 'failed', retry);
+          });
         }
+        showSendState('failed', retry);
       });
       sendAllRecordings(result);
+    }
+  }
+
+  /* Полоска о судьбе работы на экране результата. */
+  function showSendState(state, onRetry) {
+    var box = document.getElementById('send-state');
+    if (!box) return;
+    if (!state) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    if (state === 'sending') {
+      box.className = 'send-state send-state-wait';
+      box.textContent = 'Отправляю работу преподавателю…';
+    } else if (state === 'sent') {
+      box.className = 'send-state send-state-ok';
+      box.textContent = '✓ Работа отправлена преподавателю';
+    } else {
+      box.className = 'send-state send-state-fail';
+      box.innerHTML = 'Работа НЕ отправлена. Проверьте интернет. ' +
+        '<button class="btn" id="send-retry" style="margin-top:8px;">Отправить ещё раз</button>';
+      var b = document.getElementById('send-retry');
+      if (b && onRetry) b.addEventListener('click', onRetry);
     }
   }
 
