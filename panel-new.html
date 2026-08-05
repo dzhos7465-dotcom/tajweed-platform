@@ -1220,7 +1220,12 @@ body { margin: 0; }
       html2canvas(poster, { backgroundColor: '#fdfbf4', scale: 2 })
         .then(function (canvas) {
           document.body.removeChild(poster);
-          saveCanvas(canvas, 'группа-' + group + '.png');
+          /* В имя добавляем дату и время: иначе второй снимок той же
+             группы затирает первый — Windows предлагает «заменить?». */
+          var d = new Date(), p2 = function (n) { return ('0' + n).slice(-2); };
+          var stamp = p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '_' +
+                      p2(d.getHours()) + '-' + p2(d.getMinutes());
+          saveCanvas(canvas, 'группа-' + group + '_' + stamp + '.png');
         }).catch(function () {
           if (poster.parentNode) document.body.removeChild(poster);
           snapDone();
@@ -1253,11 +1258,18 @@ body { margin: 0; }
       snapDone();
       if (!blob) { alert('Не удалось подготовить картинку.'); return; }
 
-      var file = null;
-      try { file = new File([blob], filename, { type: 'image/png' }); } catch (e) {}
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file] }).catch(function () { showImageFallback(blob); });
-        return;
+      /* На КОМПЬЮТЕРЕ сохраняем сразу в «Загрузки» — окно «Поделиться»
+         там только мешает: приходится выбирать, потом класть руками.
+         Окно «Поделиться» оставляем ТЕЛЕФОНУ: там это единственный путь
+         положить картинку в галерею. */
+      var onPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+      if (onPhone) {
+        var file = null;
+        try { file = new File([blob], filename, { type: 'image/png' }); } catch (e) {}
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file] }).catch(function () { showImageFallback(blob); });
+          return;
+        }
       }
 
       var url = URL.createObjectURL(blob);
