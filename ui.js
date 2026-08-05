@@ -708,7 +708,10 @@
     $('r-who').textContent = r.student.name;
     const mins = Math.floor(r.durationMs / 60000);
     const secs = Math.floor((r.durationMs % 60000) / 1000);
-    $('r-meta').textContent = 'Группа ' + r.student.group + ' · ответов ' +
+    /* «Группа» не приписываем, если преподаватель уже назвал её так —
+       иначе выходит «Группа Группа 793». Та же оговорка, что в панели. */
+    var grp = String(r.student.group || '');
+    $('r-meta').textContent = (/^гр/i.test(grp) ? grp : 'Группа ' + grp) + ' · ответов ' +
       r.answeredCount + ' из ' + r.totalCount + ' · время ' + mins + ' мин ' + secs + ' сек';
     $('r-score').textContent = r.auto.percent;
 

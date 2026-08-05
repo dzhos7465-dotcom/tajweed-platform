@@ -754,6 +754,23 @@ const MODES = {
    он должен увидеть, чем выбранное им правило отличается от нужного.
    Поэтому при ошибке показываем два признака сразу.
 ────────────────────────────────────────────────────────────────────── */
+/* У мима и нуна правильный ответ записан ОБЩИМ именем: izhar, idgham,
+   ikhfa — потому что «Изхар» в вопросе один, семейство названо отдельно.
+   А признак правила лежит у полной темы: izhar_nun, izhar_mim.
+
+   Из-за этого объяснение не находилось и печаталось само имя: «izhar.».
+   Здесь достраиваем общее имя до полного, глядя на тему задания. */
+function fullTheme(answerId, taskTheme) {
+  if (THEMES[answerId]) return answerId;
+  if (taskTheme) {
+    var suffix = String(taskTheme).match(/_(mim|nun)$/);
+    if (suffix && THEMES[answerId + suffix[0]]) return answerId + suffix[0];
+  }
+  var guess = ['_nun', '_mim'].map(function (x) { return answerId + x; })
+                              .filter(function (id) { return THEMES[id]; })[0];
+  return guess || answerId;
+}
+
 function signOf(themeId) {
   return (THEMES[themeId] && THEMES[themeId].sign) || '';
 }
@@ -769,15 +786,16 @@ function getExplanation(task, userAnswer, checkResult) {
 
   // Вопрос с одним ответом — здесь противопоставление работает лучше всего.
   if (task && task.type === TASK_TYPES.SINGLE) {
-    var right = task.answer;
+    var right = fullTheme(task.answer, task.theme);
     var rightPart = '<b>' + nameOf(right) + '</b>. ' + signOf(right);
 
     if (checkResult && checkResult.correct === true) {
       return rightPart;
     }
-    var chosenSign = (userAnswer && userAnswer !== right) ? signOf(userAnswer) : '';
+    var chosen = fullTheme(userAnswer, task.theme);
+    var chosenSign = (chosen && chosen !== right) ? signOf(chosen) : '';
     return 'Здесь ' + rightPart +
-      (chosenSign ? '<br><br>Ты выбрал <b>' + nameOf(userAnswer) + '</b>: ' + chosenSign : '');
+      (chosenSign ? '<br><br>Ты выбрал <b>' + nameOf(chosen) + '</b>: ' + chosenSign : '');
   }
 
   // Распределение: разбор по каждому слову ученик уже видит на экране,
