@@ -41,7 +41,6 @@ const AYAHS = [
   { id: 'ay_ikm_4', text: 'تَرۡمِيهِم بِـحِـجَارَةٍ مِّن سِـجِّيلٍ',          rules: ['ikhfa_mim', 'ikhfa_nun'], usage: ['recite', 'find'] },
   { id: 'ay_ikm_5', text: 'وَمَا هُم بِـخَـٰرِجِينَ مِنَ ٱلنَّارِ',          rules: ['ikhfa_mim'], usage: ['recite', 'find'] },
   { id: 'ay_ikm_6', text: 'أَنتُم بِهِۦ مُؤۡمِنُونَ',                      rules: ['ikhfa_mim'], usage: ['recite', 'find'] },
-  { id: 'ay_ikm_7', text: 'هُم بِهَا كَـٰفِرُونَ',                         rules: ['ikhfa_mim'], usage: ['recite', 'find'] },
   { id: 'ay_ikm_8', text: 'وَهُم بِٱلۡءَاخِرَةِ كَـٰفِرُونَ',              rules: ['ikhfa_mim'], usage: ['recite', 'find'] },
 
   // ── Изхар мими (сура Аль-Филь и др.) ──

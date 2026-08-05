@@ -19,9 +19,9 @@ const AYAH_MARKS = {
   // ── идгам мими ──
   ay_idm_1: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'idgham_nun'}, {w:3, rule:'idgham_mim'}, {w:5, rule:'madd_arid'} ],
   //           لَهُمۡ فِيهَا(изхар мими) · فَٰكِهَةٌ وَلَهُم(идгам нуна) · وَلَهُم مَّا(идгам мими)
-  ay_idm_2: [ {w:1, rule:'ikhfa_nun'}, {w:1, rule:'idgham_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'izhar_nun'}, {w:5, rule:'madd_arid'} ],
+  ay_idm_2: [ {w:1, rule:'ikhfa_nun'}, {w:1, rule:'idgham_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'izhar_nun'}, {w:5, rule:'madd_arid'}, {w:0, rule:'madd_tabii'}, {w:5, rule:'madd_tabii'} ],
   //           مِنكُم(ихфа нуна внутри) · مِنكُم مِّنۡ(идгам мими) · مِّنۡ أَحَدٍ(изхар) · أَحَدٍ عَنۡهُ(изхар) · عَنۡهُ(изхар внутри)
-  ay_idm_3: [ {w:1, rule:'idgham_mim'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'idgham_nun'}, {w:4, rule:'idgham_mim'}, {w:5, rule:'izhar_nun'}, {w:0, rule:'madd_munfasil'} ],
+  ay_idm_3: [ {w:1, rule:'idgham_mim'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'idgham_nun'}, {w:4, rule:'idgham_mim'}, {w:5, rule:'izhar_nun'}, {w:0, rule:'madd_munfasil'}, {w:3, rule:'madd_tabii'} ],
   ay_idm_4: [ {w:0, rule:'idgham_mim'} ],
   ay_idm_5: [ {w:0, rule:'idgham_mim'} ],
   ay_idm_6: [ {w:0, rule:'idgham_mim'}, {w:1, rule:'izhar_nun'} ],
@@ -30,29 +30,28 @@ const AYAH_MARKS = {
 
   // ── ихфа мими ──
   ay_ikm_1: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'} ],
-  ay_ikm_2: [ {w:1, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
+  ay_ikm_2: [ {w:1, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'}, {w:0, rule:'madd_tabii'} ],
   ay_ikm_3: [ {w:0, rule:'ikhfa_mim'} ],
-  ay_ikm_4: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'madd_arid'} ],
-  ay_ikm_5: [ {w:1, rule:'ikhfa_mim'}, {w:4, rule:'madd_arid'} ],
+  ay_ikm_4: [ {w:0, rule:'ikhfa_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'ikhfa_nun'}, {w:3, rule:'madd_arid'}, {w:0, rule:'madd_tabii'} ],
+  ay_ikm_5: [ {w:1, rule:'ikhfa_mim'}, {w:4, rule:'madd_arid'}, {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'} ],
   ay_ikm_6: [ {w:0, rule:'ikhfa_nun'}, {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
-  ay_ikm_7: [ {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
-  ay_ikm_8: [ {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'} ],
+  ay_ikm_8: [ {w:0, rule:'ikhfa_mim'}, {w:2, rule:'madd_arid'}, {w:2, rule:'madd_tabii'} ],
 
   // ── изхар мими ──
-  ay_izm_1: [ {w:3, rule:'madd_arid'} ],  // правил нет
-  ay_izm_2: [ {w:0, rule:'izhar_mim'}, {w:6, rule:'madd_arid'} ],
-  ay_izm_3: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'izhar_mim'}, {w:4, rule:'madd_arid'} ],
-  ay_izm_4: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'madd_arid'} ],
+  ay_izm_1: [ {w:3, rule:'madd_arid'}, {w:2, rule:'madd_tabii'} ],  // правил нет
+  ay_izm_2: [ {w:0, rule:'izhar_mim'}, {w:6, rule:'madd_arid'}, {w:5, rule:'madd_tabii'} ],
+  ay_izm_3: [ {w:0, rule:'izhar_mim'}, {w:2, rule:'izhar_mim'}, {w:4, rule:'madd_arid'}, {w:3, rule:'madd_tabii'} ],
+  ay_izm_4: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'izhar_nun'}, {w:3, rule:'madd_arid'}, {w:3, rule:'madd_tabii'} ],
   ay_izm_5: [ {w:0, rule:'izhar_mim'}, {w:1, rule:'idgham_nun'}, {w:2, rule:'madd_arid'} ],
 
   // ── мим с шаддой ──
-  ay_shm_1: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'ikhfa_nun'}, {w:2, rule:'madd_arid'} ],
+  ay_shm_1: [ {w:1, rule:'izhar_mim'}, {w:2, rule:'ikhfa_nun'}, {w:2, rule:'madd_arid'}, {w:1, rule:'madd_tabii'} ],
   ay_shm_2: [ {w:0, rule:'shadda_mim'}, {w:1, rule:'madd_arid'}, {w:1, rule:'madd_muttasil'} ],
   ay_shm_3: [ {w:0, rule:'shadda_mim'} ],
 
   // ── изхар нуна ──
   ay_izn_1: [ {w:2, rule:'izhar_nun'} ],
-  ay_izn_2: [ {w:3, rule:'izhar_nun'}, {w:1, rule:'madd_muttasil'} ],
+  ay_izn_2: [ {w:3, rule:'izhar_nun'}, {w:1, rule:'madd_muttasil'}, {w:2, rule:'madd_tabii'} ],
   ay_izn_3: [ {w:1, rule:'shadda_nun'}, {w:2, rule:'izhar_nun'} ],
   ay_izn_4: [ {w:2, rule:'izhar_nun'}, {w:2, rule:'izhar_mim'} ],
 
@@ -60,7 +59,7 @@ const AYAH_MARKS = {
   ay_idn_1: [ {w:0, rule:'izhar_mim'}, {w:1, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'} ],
   ay_idn_2: [ {w:0, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'}, {w:4, rule:'idgham_nun'} ],
   ay_idn_3: [ {w:2, rule:'idgham_nun'}, {w:3, rule:'izhar_nun'} ],
-  ay_idn_4: [ {w:1, rule:'idgham_nun'}, {w:2, rule:'madd_iwad'} ],
+  ay_idn_4: [ {w:1, rule:'idgham_nun'}, {w:2, rule:'madd_iwad'}, {w:0, rule:'madd_tabii'} ],
 
   // ── ихфа нуна ──
   ay_ikn_1: [ {w:0, rule:'izhar_mim'}, {w:4, rule:'izhar_nun'}, {w:8, rule:'ikhfa_nun'} ],
@@ -153,3 +152,29 @@ const AYAH_MARKS = {
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;
+
+/* ─────────────────────────────────────────────────────────────────────
+   ПРАВИЛА АЯТА БЕРУТСЯ ИЗ РАЗМЕТКИ
+   ─────────────────────────────────────────────────────────────────────
+   Раньше поле rules заполнялось вручную — «к какой теме аят заведён».
+   Из-за этого басмала числилась в изхаре мими, хотя мима в ней нет:
+   она попала в библиотеку как начало суры из урока про мим.
+
+   Теперь rules вычисляется по разметке: что размечено, то и есть.
+   Единый источник — разметка. Ручное поле сохраняется в rulesDeclared
+   на случай, если понадобится вспомнить, откуда аят пришёл.
+
+   Стоит здесь, а не в ayahs.js, потому что этот файл грузится ПОСЛЕ
+   и к этому моменту известно и то и другое.
+──────────────────────────────────────────────────────────────────── */
+(function () {
+  if (typeof AYAHS === 'undefined') return;
+  AYAHS.forEach(function (a) {
+    var marks = AYAH_MARKS[a.id] || [];
+    if (!marks.length) return;                     // нет разметки — оставляем как есть
+    var seen = {}, list = [];
+    marks.forEach(function (m) { if (!seen[m.rule]) { seen[m.rule] = 1; list.push(m.rule); } });
+    a.rulesDeclared = a.rules;
+    a.rules = list;
+  });
+})();
