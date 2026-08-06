@@ -260,6 +260,9 @@ body { margin: 0; }
       <div class="nav-item" data-section="results"><span class="nav-icon">✓</span><span>Результаты</span></div>
       <div class="nav-item" data-section="recordings"><span class="nav-icon">🎙</span><span>Проверка чтения</span></div>
       <div class="nav-item" data-section="materials"><span class="nav-icon">▦</span><span>Материалы</span></div>
+      <!-- Выход. Виден только когда вход вообще нужен (новая база). -->
+      <div class="nav-item" id="nav-logout" style="display:none; margin-top:auto; opacity:.75;">
+        <span class="nav-icon">⏻</span><span>Выйти</span></div>
     </nav>
   </aside>
 
@@ -2163,6 +2166,16 @@ body { margin: 0; }
     e.textContent = text; e.style.display = '';
   }
 
+  /* Выход: стирает пропуск с этого устройства. Нужен, если панель
+     открыта на чужом компьютере или преподаватель сменился. */
+  if ($('nav-logout') && StorageAPI.auth) {
+    $('nav-logout').style.display = '';
+    $('nav-logout').addEventListener('click', function () {
+      if (!confirm('Выйти из панели на этом устройстве?')) return;
+      StorageAPI.auth.signOut().then(function () { location.reload(); });
+    });
+  }
+
   if ($('login-btn')) {
     $('login-btn').addEventListener('click', doLogin);
     $('login-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
@@ -2294,8 +2307,21 @@ body { margin: 0; }
 
   /* Старт. Если вход нужен, но его нет — панель не грузится вовсе:
      показываем экран входа. Иначе панель просила бы данные, получала
-     отказ и пестрела ошибками. */
-  if (!requireLogin()) loadDashboard();
+     отказ и пестрела ошибками.
+
+     Перед этим молча продлеваем вход: пропуск живёт около часа, а мы
+     помним его на устройстве неделями — без продления панель просила бы
+     пароль каждый час. */
+  (function start() {
+    if (!StorageAPI.auth) { loadDashboard(); return; }        // старая база
+    if (!StorageAPI.auth.isSignedIn()) {
+      if (!requireLogin()) loadDashboard();
+      return;
+    }
+    StorageAPI.auth.refresh().then(function () {
+      if (!requireLogin()) loadDashboard();
+    });
+  })();
 })();
 </script>
 </body>

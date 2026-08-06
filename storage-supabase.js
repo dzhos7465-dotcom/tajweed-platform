@@ -33,9 +33,56 @@
      Пропуск хранится в самом браузере: закрыл вкладку — вошёл заново.
      Так безопаснее, чем помнить его вечно. */
   const TOKEN_KEY = 'tajweed_teacher_token';
+  const REFRESH_KEY = 'tajweed_teacher_refresh';
 
+  /* Пропуск помним НА УСТРОЙСТВЕ, а не до закрытия вкладки: преподаватель
+     заходит с телефона и с компьютера по многу раз в день, и вводить пароль
+     каждый раз — мучение. Хранится он в памяти самого браузера, на чужом
+     устройстве не появится.
+
+     Сам пропуск живёт около часа, поэтому рядом храним второй ключ —
+     обменный. По нему браузер молча получает новый пропуск, и вход
+     держится неделями. Кнопка «Выйти» стирает оба. */
   function savedToken() {
-    try { return sessionStorage.getItem(TOKEN_KEY) || null; } catch (e) { return null; }
+    try { return localStorage.getItem(TOKEN_KEY) || null; } catch (e) { return null; }
+  }
+
+  function savedRefresh() {
+    try { return localStorage.getItem(REFRESH_KEY) || null; } catch (e) { return null; }
+  }
+
+  function storeTokens(r) {
+    try {
+      if (r.access_token) localStorage.setItem(TOKEN_KEY, r.access_token);
+      if (r.refresh_token) localStorage.setItem(REFRESH_KEY, r.refresh_token);
+    } catch (e) {}
+  }
+
+  function clearTokens() {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);      // остатки прежнего способа
+    } catch (e) {}
+  }
+
+  /* Обновить просроченный пропуск по обменному ключу. Возвращает true,
+     если получилось: тогда можно повторить неудавшийся запрос. */
+  function refreshToken() {
+    const rt = savedRefresh();
+    if (!rt) return Promise.resolve(false);
+    return fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rt }),
+    })
+      .then(r => r.json())
+      .then(function (r) {
+        if (r && r.access_token) { storeTokens(r); return true; }
+        clearTokens();                            // обменный ключ протух
+        return false;
+      })
+      .catch(function () { return false; });
   }
 
   function authHeader() {
@@ -362,15 +409,17 @@
             if (!r || !r.access_token) {
               return { ok: false, error: (r && (r.error_description || r.msg)) || 'не удалось войти' };
             }
-            try { sessionStorage.setItem(TOKEN_KEY, r.access_token); } catch (e) {}
+            storeTokens(r);
             return { ok: true };
           })
           .catch(err => ({ ok: false, error: String(err) }));
       },
       signOut: function () {
-        try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+        clearTokens();
         return Promise.resolve({ ok: true });
       },
+      // молча продлить вход — вызывается панелью при запуске
+      refresh: refreshToken,
       isSignedIn: function () { return !!savedToken(); },
     },
 
