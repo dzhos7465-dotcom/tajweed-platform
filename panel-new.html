@@ -970,9 +970,17 @@ body { margin: 0; }
         }
       });
 
-      // группировка по группе
+      /* Группируем по СЕССИИ, а не по названию группы.
+         Раньше все работы группы 793 валились в одну коробку: и домашка
+         прошлой недели, и сегодняшняя контрольная. Понять, где какая, было
+         нельзя. Сессия — это конкретный запуск конкретной активности, и
+         именно она отделяет одно задание от другого.
+         Если сессии нет (старые работы) — собираем по группе, как раньше. */
       const byGroup = {};
-      res.forEach(function (x) { const g = x.group || '—'; (byGroup[g] = byGroup[g] || []).push(x); });
+      res.forEach(function (x) {
+        const key = x.sessionId ? ('s:' + x.sessionId) : ('g:' + (x.group || '—'));
+        (byGroup[key] = byGroup[key] || []).push(x);
+      });
 
       // группы по свежести (у которой самая свежая запись — выше)
       const groupsSorted = Object.keys(byGroup).sort(function (a, b) {
@@ -984,6 +992,12 @@ body { margin: 0; }
       $('results-list').innerHTML = groupsSorted.map(function (g) {
         // внутри группы — последний отправивший СНИЗУ (по возрастанию времени)
         const students = byGroup[g].slice().sort(function (a, b) { return a._key - b._key; });
+        /* Заголовок коробки: группа, название задания и день. Без названия
+           две домашки одной группы выглядели одинаково. */
+        const head = students[0] || {};
+        const title = groupLabel(head.group || '—') +
+          (head.exam ? ' · ' + head.exam : '') +
+          (head.date ? ' · ' + head.date : '');
         // средний общий балл по группе (по посчитанным)
         const scores = students.map(function (s) { return s._total; }).filter(function (n) { return n != null; });
         const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
@@ -1013,7 +1027,7 @@ body { margin: 0; }
 
         return '<div class="res-group" data-group="' + g + '">' +
             '<div class="res-group-head">' +
-              '<span class="res-group-name">' + groupLabel(g) + '</span>' +
+              '<span class="res-group-name">' + title + '</span>' +
               '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
                 (avg != null ? ' · средний ' + avg : '') + '</span>' +
               '<button class="res-shot-btn" data-group="' + g + '" title="Сохранить картинкой">📷</button>' +
@@ -1160,9 +1174,15 @@ body { margin: 0; }
 
   function screenshotGroup(group, btn) {
     snapStart(btn);
-    // Собираем данные группы из кэша результатов
-    var all = (window._resultsCache || []).filter(function (r) { return (r.group || '—') === group; });
-    if (!all.length) { alert('Нет данных для этой группы.'); return; }
+    /* На снимок берём РОВНО ту коробку, у которой нажали кнопку. Ключ
+       приходит тот же, что при группировке: сессия или, для старых
+       работ, название группы. Иначе на картинку попадали все задания
+       этой группы вперемешку. */
+    var all = (window._resultsCache || []).filter(function (r) {
+      var key = r.sessionId ? ('s:' + r.sessionId) : ('g:' + (r.group || '—'));
+      return key === group;
+    });
+    if (!all.length) { alert('Нет данных для этой работы.'); return; }
     // свежие снизу (как в разделе)
     all = all.slice().sort(function (a, b) { return whenKey(a) - whenKey(b); });
 
@@ -1200,7 +1220,7 @@ body { margin: 0; }
         '<div style="position:absolute;bottom:14px;left:14px;width:20px;height:20px;border-bottom:2px solid #b8912f;border-left:2px solid #b8912f;border-radius:0 0 0 6px;opacity:.7;"></div>' +
         // шапка
         '<div style="text-align:center;margin-bottom:6px;">' +
-          '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#0f7d74;font-weight:600;">Результаты · ' + groupLabel(group) + '</div>' +
+          '<div style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#0f7d74;font-weight:600;">Результаты · ' + groupLabel(all[0].group || '—') + '</div>' +
           '<div style="font-size:25px;font-weight:700;color:#23252e;margin-top:8px;line-height:1.25;">' + workTitle + '</div>' +
           (workDate ? '<div style="font-size:13px;color:#8f8f9c;margin-top:5px;">' + workDate + '</div>' : '') +
         '</div>' +
@@ -1228,7 +1248,7 @@ body { margin: 0; }
           var d = new Date(), p2 = function (n) { return ('0' + n).slice(-2); };
           var stamp = p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '_' +
                       p2(d.getHours()) + '-' + p2(d.getMinutes());
-          saveCanvas(canvas, 'группа-' + group + '_' + stamp + '.png');
+          saveCanvas(canvas, 'группа-' + (all[0].group || 'без-группы') + '_' + stamp + '.png');
         }).catch(function () {
           if (poster.parentNode) document.body.removeChild(poster);
           snapDone();
