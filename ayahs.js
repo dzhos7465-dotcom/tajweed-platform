@@ -145,6 +145,18 @@ const AYAHS = [
   { id: 'ay_j_yasin_1_2', text: 'يـسٓ ۝١ وَٱلۡقُرۡءَانِ ٱلۡحَكِيمِ ۝٢', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Йа-Син, 1–2
   { id: 'ay_j_qalam_1', text: 'نٓ وَٱلۡقَلَمِ وَمَا يَسۡطُرُونَ ۝١', rules: ['madd_arid', 'madd_lazim_harfi', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Калям, 1
   { id: 'ay_j_sad_1', text: 'صٓ وَٱلۡقُرۡءَانِ ذِى ٱلذِّكۡرِ ۝١', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Сад, 1
+
+  // ── Аяты для бедных правил: икляб, нун с шаддой, мим с шаддой ──
+  { id: 'ay_iqn_a1', text: 'كَلَّا لَيُنۢبَذَنَّ فِى ٱلۡحُطَمَةِ', rules: ['iqlab_nun', 'madd_tabii', 'shadda_nun'], usage: ['recite', 'find'] },   // Аль-Хумаза, 4
+  { id: 'ay_iqn_a2', text: 'إِنَّ ٱللَّهَ كَانَ سَمِيعَۢا بَصِيرًا', rules: ['iqlab_nun', 'madd_iwad', 'madd_tabii', 'shadda_nun'], usage: ['recite', 'find'] },   // Ан-Ниса, 58
+  { id: 'ay_iqn_a3', text: 'صُمُّۢ بُكۡمٌ عُمۡىࣱ فَهُمۡ لَا يَرۡجِعُونَ', rules: ['iqlab_nun', 'madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Бакара, 18
+  { id: 'ay_shn_a1', text: 'إِنَّ ٱلۡإِنسَـٰنَ لَفِى خُسۡرٍ', rules: ['ikhfa_nun', 'madd_tabii', 'shadda_nun'], usage: ['recite', 'find'] },   // Аль-‘Аср, 2
+  { id: 'ay_shn_a2', text: 'كَلَّآ إِنَّ ٱلۡإِنسَـٰنَ لَيَطۡغَىٰ', rules: ['ikhfa_nun', 'madd_munfasil', 'shadda_nun'], usage: ['recite', 'find'] },   // Аль-Аляк, 6
+  { id: 'ay_shn_a3', text: 'إِنَّآ أَعۡطَيۡنَـٰكَ ٱلۡكَوۡثَرَ', rules: ['madd_munfasil', 'madd_tabii', 'shadda_nun'], usage: ['recite', 'find'] },   // Аль-Каусар, 1
+  { id: 'ay_shn_a4', text: 'وَإِنَّكَ لَعَلَىٰ خُلُقٍ عَظِيمٍ', rules: ['madd_arid', 'shadda_nun'], usage: ['recite', 'find'] },   // Аль-Калям, 4
+  { id: 'ay_shm_a1', text: 'فَأَمَّا مَن ثَقُلَتۡ مَوَـٰزِينُهُۥ', rules: ['ikhfa_nun', 'madd_tabii', 'shadda_mim'], usage: ['recite', 'find'] },   // Аль-Кари‘а, 6
+  { id: 'ay_shm_a2', text: 'وَأَمَّا مَنۡ خَفَّتۡ مَوَـٰزِينُهُۥ', rules: ['izhar_nun', 'madd_tabii', 'shadda_mim'], usage: ['recite', 'find'] },   // Аль-Кари‘а, 8
+  { id: 'ay_shm_a3', text: 'ثُمَّ لَتُسۡـَٔلُنَّ يَوۡمَئِذٍ عَنِ ٱلنَّعِيمِ', rules: ['madd_arid', 'shadda_mim', 'shadda_nun'], usage: ['recite', 'find'] },   // Ат-Такасур, 8
 ];
 
 // Индекс по id

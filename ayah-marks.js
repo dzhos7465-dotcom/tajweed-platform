@@ -141,6 +141,18 @@ const AYAH_MARKS = {
   ay_j_yasin_1_2: [ {w:0, rule:'madd_lazim_harfi'}, {w:3, rule:'madd_arid'} ],   // Йа-Син, 1–2
   ay_j_qalam_1: [ {w:0, rule:'madd_lazim_harfi'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'madd_arid'} ],   // Аль-Калям, 1
   ay_j_sad_1: [ {w:0, rule:'madd_lazim_harfi'}, {w:3, rule:'madd_arid'} ],   // Сад, 1
+
+  // ── Разметка аятов для бедных правил ──
+  ay_iqn_a1: [ {w:1, rule:'iqlab_nun'}, {w:1, rule:'shadda_nun'}, {w:2, rule:'madd_tabii'} ],   // Аль-Хумаза, 4
+  ay_iqn_a2: [ {w:0, rule:'shadda_nun'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'iqlab_nun'}, {w:4, rule:'madd_iwad'} ],   // Ан-Ниса, 58
+  ay_iqn_a3: [ {w:0, rule:'iqlab_nun'}, {w:4, rule:'madd_tabii'}, {w:5, rule:'madd_arid'} ],   // Аль-Бакара, 18
+  ay_shn_a1: [ {w:0, rule:'shadda_nun'}, {w:1, rule:'ikhfa_nun'}, {w:1, rule:'madd_tabii'} ],   // Аль-‘Аср, 2
+  ay_shn_a2: [ {w:0, rule:'madd_munfasil'}, {w:1, rule:'shadda_nun'}, {w:2, rule:'ikhfa_nun'} ],   // Аль-Аляк, 6
+  ay_shn_a3: [ {w:0, rule:'madd_munfasil'}, {w:0, rule:'shadda_nun'}, {w:1, rule:'madd_tabii'} ],   // Аль-Каусар, 1
+  ay_shn_a4: [ {w:0, rule:'shadda_nun'}, {w:3, rule:'madd_arid'} ],   // Аль-Калям, 4
+  ay_shm_a1: [ {w:0, rule:'shadda_mim'}, {w:1, rule:'ikhfa_nun'}, {w:3, rule:'madd_tabii'} ],   // Аль-Кари‘а, 6
+  ay_shm_a2: [ {w:0, rule:'shadda_mim'}, {w:1, rule:'izhar_nun'}, {w:3, rule:'madd_tabii'} ],   // Аль-Кари‘а, 8
+  ay_shm_a3: [ {w:0, rule:'shadda_mim'}, {w:1, rule:'shadda_nun'}, {w:4, rule:'madd_arid'} ],   // Ат-Такасур, 8
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;
