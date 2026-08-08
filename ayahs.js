@@ -74,51 +74,33 @@ const AYAHS = [
   { id: 'ay_iqn_1', text: 'وَمَا تَفَرَّقَ ٱلَّذِينَ أُوتُوا۟ ٱلۡكِتَـٰبَ إِلَّا مِنۢ بَعۡدِ مَا جَآءَتۡهُمُ ٱلۡبَيِّنَةُ', rules: ['iqlab_nun'], usage: ['recite', 'find'] },
 
   // ── Аяты для мадда (домашние задания уроков; выверены преподавателем) ──
-  { id: 'ay_mdm_1', text: 'وَٱلسَّمَآءِ وَٱلطَّارِقِ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 1
-  { id: 'ay_mdm_2', text: 'وَمَآ أَدۡرَىٰكَ مَا ٱلطَّارِقُ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 2
   { id: 'ay_mdm_3', text: 'إِذَا جَآءَ نَصۡرُ ٱللَّهِ وَٱلۡفَتۡحُ', rules: ['madd_muttasil'], usage: ['recite', 'find'] },   // Ан-Наср, 1
   { id: 'ay_mdm_4', text: 'إِنَّآ أَنزَلۡنَـٰهُ فِى لَيۡلَةِ ٱلۡقَدۡرِ', rules: ['madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Кадр, 1
   { id: 'ay_mdl_1', text: 'وَوَجَدَكَ ضَآلًّا فَهَدَىٰ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Ад-Духа, 7
   { id: 'ay_mdl_2', text: 'فَإِذَا جَآءَتِ ٱلصَّآخَّةُ', rules: ['madd_lazim', 'madd_muttasil'], usage: ['recite', 'find'] },   // Абаса, 33
-  { id: 'ay_mdl_3', text: 'ٱلۡحَآقَّةُ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Аль-Хакка, 1
-  { id: 'ay_mdl_4', text: 'مَا ٱلۡحَآقَّةُ', rules: ['madd_lazim'], usage: ['recite', 'find'] },   // Аль-Хакка, 2
-  { id: 'ay_mdl_5', text: 'وَمَآ أَدۡرَىٰكَ مَا ٱلۡحَآقَّةُ', rules: ['madd_lazim', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Хакка, 3
 
   // ── Аяты для мадда, порция 2: буквенный лазим и ‘арид ──
-  { id: 'ay_mdlh_1', text: 'الٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-‘Имран, 1
   { id: 'ay_mdlh_2', text: 'ٱللَّهُ لَآ إِلَـٰهَ إِلَّا هُوَ ٱلۡحَىُّ ٱلۡقَيُّومُ', rules: ['madd_arid', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-‘Имран, 2
-  { id: 'ay_mdlh_3', text: 'يـسٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Йа-Син, 1
-  { id: 'ay_mdlh_4', text: 'وَٱلۡقُرۡءَانِ ٱلۡحَكِيمِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Йа-Син, 2
   { id: 'ay_mdlh_5', text: 'قٓ وَٱلۡقُرۡءَانِ ٱلۡمَجِيدِ', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Каф, 1
   { id: 'ay_mda_1', text: 'ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَـٰلَمِينَ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Аль-Фатиха, 2
   { id: 'ay_mda_2', text: 'قُلۡ أَعُوذُ بِرَبِّ ٱلنَّاسِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Ан-Нас, 1
-  { id: 'ay_mda_3', text: 'وَٱلتِّينِ وَٱلزَّيۡتُونِ', rules: ['madd_arid'], usage: ['recite', 'find'] },   // Ат-Тин, 1
 
 
   // ── Аяты для мадда, порция 3: ‘ивад и естественный мадд ──
   // Естественный мадд берём ТОЛЬКО короткими аятами: в длинных он
   // в каждом втором слове, и задание стало бы разметкой всего текста.
-  { id: 'ay_mdi_1', text: 'وَٱلۡعَـٰدِيَـٰتِ ضَبۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 1
-  { id: 'ay_mdi_2', text: 'فَٱلۡمُورِيَـٰتِ قَدۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 2
-  { id: 'ay_mdi_3', text: 'فَٱلۡمُغِيرَـٰتِ صُبۡحًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 3
   { id: 'ay_mdi_4', text: 'فَأَثَرۡنَ بِهِۥ نَقۡعًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 4
   { id: 'ay_mdi_5', text: 'فَوَسَطۡنَ بِهِۥ جَمۡعًا', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 5
   { id: 'ay_mdt_1', text: 'لَمۡ يَلِدۡ وَلَمۡ يُولَدۡ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Аль-Ихляс, 3
-  { id: 'ay_mdt_2', text: 'وَٱلضُّحَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 1
-  { id: 'ay_mdt_3', text: 'وَٱللَّيۡلِ إِذَا سَجَىٰ', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 2
-  { id: 'ay_mdt_4', text: 'وَطُورِ سِينِينَ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 2
   { id: 'ay_mdt_5', text: 'إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Фатиха, 5
 
   // ── Аяты для мадда, порция 5: буквенный лазим (начала сур) и словесный ──
-  { id: 'ay_mdlh_6', text: 'الٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Бакара, 1
   { id: 'ay_mdlh_7', text: 'الٓـمٓـصٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-А‘раф, 1
   { id: 'ay_mdlh_8', text: 'الٓـر', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Юнус, 1
   { id: 'ay_mdlh_9', text: 'الٓـمٓـر', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Ар-Ра‘д, 1
   { id: 'ay_mdlh_10', text: 'كٓـهيعٓـصٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Марьям, 1
   { id: 'ay_mdlh_11', text: 'طسٓـمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аш-Шу‘ара, 1
   { id: 'ay_mdlh_12', text: 'طسٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Ан-Намль, 1
-  { id: 'ay_mdlh_13', text: 'صٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Сад, 1
-  { id: 'ay_mdlh_14', text: 'نٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Калям, 1
   { id: 'ay_mdlh_15', text: 'حمٓ', rules: ['madd_lazim_harfi'], usage: ['recite', 'find'] },   // Гафир, 1
   { id: 'ay_mdl_6', text: 'صِرَـٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ', rules: ['madd_arid', 'madd_lazim'], usage: ['recite', 'find'] },   // Аль-Фатиха, 7
   { id: 'ay_mdl_7', text: 'فَإِذَا جَآءَتِ ٱلطَّآمَّةُ', rules: ['madd_lazim', 'madd_muttasil'], usage: ['recite', 'find'] },   // Ан-Нази‘ат, 34
@@ -147,10 +129,22 @@ const AYAHS = [
   // ── Мадд лин (мягкий): сура «Аль-Кураиш», домашнее задание урока ──
   // Знак ۟ над алифом в فَلۡيَعۡبُدُوا۟ — НЕ сукун, а кружок «буква не читается».
   // Заменять его на ۡ нельзя: это разные знаки мусхафа.
-  { id: 'ay_mln_1', text: 'لِإِيلَـٰفِ قُرَيۡشٍ', rules: ['madd_lin'], usage: ['recite', 'find'] },   // «Аль-Кураиш», 1
-  { id: 'ay_mln_2', text: 'إِۦلَـٰفِهِمۡ رِحۡلَةَ ٱلشِّتَآءِ وَٱلصَّيۡفِ', rules: ['madd_lin', 'madd_muttasil'], usage: ['recite', 'find'] },   // «Аль-Кураиш», 2
   { id: 'ay_mln_3', text: 'فَلۡيَعۡبُدُوا۟ رَبَّ هَـٰذَا ٱلۡبَيۡتِ', rules: ['madd_lin'], usage: ['recite', 'find'] },   // «Аль-Кураиш», 3
   { id: 'ay_mln_4', text: 'ٱلَّذِىٓ أَطۡعَمَهُم مِّن جُوعٍ وَءَامَنَهُم مِّنۡ خَوۡفٍ', rules: ['madd_lin', 'madd_munfasil'], usage: ['recite', 'find'] },   // «Аль-Кураиш», 4
+
+  // ── Склеенные отрывки: короткие аяты идут подряд, как в мусхафе.
+  //    Знак ۝ с номером разделяет аяты — ученик видит границу, а она
+  //    важна: правила остановки возникают именно на ней.
+  { id: 'ay_j_adiyat_1_3', text: 'وَٱلۡعَـٰدِيَـٰتِ ضَبۡحًا ۝١ فَٱلۡمُورِيَـٰتِ قَدۡحًا ۝٢ فَٱلۡمُغِيرَـٰتِ صُبۡحًا ۝٣', rules: ['madd_iwad'], usage: ['recite', 'find'] },   // Аль-‘Адият, 1–3
+  { id: 'ay_j_haqqa_1_3', text: 'ٱلۡحَآقَّةُ ۝١ مَا ٱلۡحَآقَّةُ ۝٢ وَمَآ أَدۡرَىٰكَ مَا ٱلۡحَآقَّةُ ۝٣', rules: ['madd_lazim', 'madd_munfasil'], usage: ['recite', 'find'] },   // Аль-Хакка, 1–3
+  { id: 'ay_j_duha_1_2', text: 'وَٱلضُّحَىٰ ۝١ وَٱللَّيۡلِ إِذَا سَجَىٰ ۝٢', rules: ['madd_tabii'], usage: ['recite', 'find'] },   // Ад-Духа, 1–2
+  { id: 'ay_j_tin_1_2', text: 'وَٱلتِّينِ وَٱلزَّيۡتُونِ ۝١ وَطُورِ سِينِينَ ۝٢', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 1–2
+  { id: 'ay_j_tariq_1_2', text: 'وَٱلسَّمَآءِ وَٱلطَّارِقِ ۝١ وَمَآ أَدۡرَىٰكَ مَا ٱلطَّارِقُ ۝٢', rules: ['madd_munfasil', 'madd_muttasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 1–2
+  { id: 'ay_j_quraysh_1_2', text: 'لِإِيلَـٰفِ قُرَيۡشٍ ۝١ إِۦلَـٰفِهِمۡ رِحۡلَةَ ٱلشِّتَآءِ وَٱلصَّيۡفِ ۝٢', rules: ['madd_lin', 'madd_muttasil'], usage: ['recite', 'find'] },   // Аль-Кураиш, 1–2
+  { id: 'ay_j_baqara_1_2', text: 'الٓـمٓ ۝١ ذَـٰلِكَ ٱلۡكِتَـٰبُ لَا رَيۡبَ فِيهِ هُدࣰى لِّلۡمُتَّقِينَ ۝٢', rules: ['idgham_nun', 'madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Бакара, 1–2
+  { id: 'ay_j_yasin_1_2', text: 'يـسٓ ۝١ وَٱلۡقُرۡءَانِ ٱلۡحَكِيمِ ۝٢', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Йа-Син, 1–2
+  { id: 'ay_j_qalam_1', text: 'نٓ وَٱلۡقَلَمِ وَمَا يَسۡطُرُونَ ۝١', rules: ['madd_arid', 'madd_lazim_harfi', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Калям, 1
+  { id: 'ay_j_sad_1', text: 'صٓ وَٱلۡقُرۡءَانِ ذِى ٱلذِّكۡرِ ۝١', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Сад, 1
 ];
 
 // Индекс по id

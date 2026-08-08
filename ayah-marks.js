@@ -72,53 +72,35 @@ const AYAH_MARKS = {
   // ── МАДД: аяты домашних заданий (порция 1: мунфасыль и лазим) ──
   // Естественный мадд НЕ размечаем: он в 63% слов, задание превратилось бы
   // в подчёркивание всего аята. Он остаётся в вопросах и распределении.
-  ay_mdm_1: [ {w:0, rule:'madd_muttasil'} ],   // Ат-Тарик, 1
-  ay_mdm_2: [ {w:0, rule:'madd_munfasil'} ],   // Ат-Тарик, 2
   ay_mdm_3: [ {w:1, rule:'madd_muttasil'} ],   // Ан-Наср, 1
   ay_mdm_4: [ {w:0, rule:'madd_munfasil'} ],   // Аль-Кадр, 1
   ay_mdl_1: [ {w:1, rule:'madd_lazim'} ],   // Ад-Духа, 7
   ay_mdl_2: [ {w:1, rule:'madd_muttasil'}, {w:2, rule:'madd_lazim'} ],   // Абаса, 33
-  ay_mdl_3: [ {w:0, rule:'madd_lazim'} ],   // Аль-Хакка, 1
-  ay_mdl_4: [ {w:1, rule:'madd_lazim'} ],   // Аль-Хакка, 2
-  ay_mdl_5: [ {w:0, rule:'madd_munfasil'}, {w:3, rule:'madd_lazim'} ],   // Аль-Хакка, 3
 
   // ── МАДД, порция 2: буквенный лазим и ‘арид ──
   // ‘Арид помечается ТОЛЬКО на последнем слове аята: он возникает при
   // остановке, а естественная остановка — конец аята. Слова в середине,
   // подходящие по строению, не помечаем — останавливаться там незачем.
-  ay_mdlh_1: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-‘Имран, 1
   ay_mdlh_2: [ {w:1, rule:'madd_munfasil'}, {w:6, rule:'madd_arid'} ],   // Аль-‘Имран, 2
-  ay_mdlh_3: [ {w:0, rule:'madd_lazim_harfi'} ],   // Йа-Син, 1
-  ay_mdlh_4: [ {w:1, rule:'madd_arid'} ],   // Йа-Син, 2
   ay_mdlh_5: [ {w:0, rule:'madd_lazim_harfi'}, {w:2, rule:'madd_arid'} ],   // Каф, 1
   ay_mda_1: [ {w:3, rule:'madd_arid'} ],   // Аль-Фатиха, 2
   ay_mda_2: [ {w:3, rule:'madd_arid'} ],   // Ан-Нас, 1
-  ay_mda_3: [ {w:1, rule:'madd_arid'} ],   // Ат-Тин, 1
 
 
   // ── МАДД, порция 3: ‘ивад и естественный мадд ──
   // ‘Ивад — только на последнем слове аята: правило возникает при остановке.
-  ay_mdi_1: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 1
-  ay_mdi_2: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 2
-  ay_mdi_3: [ {w:1, rule:'madd_iwad'} ],   // Аль-‘Адият, 3
   ay_mdi_4: [ {w:2, rule:'madd_iwad'} ],   // Аль-‘Адият, 4
   ay_mdi_5: [ {w:2, rule:'madd_iwad'} ],   // Аль-‘Адият, 5
   ay_mdt_1: [ {w:3, rule:'madd_tabii'} ],   // Аль-Ихляс, 3
-  ay_mdt_2: [ {w:0, rule:'madd_tabii'} ],   // Ад-Духа, 1
-  ay_mdt_3: [ {w:1, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'} ],   // Ад-Духа, 2
-  ay_mdt_4: [ {w:0, rule:'madd_tabii'}, {w:1, rule:'madd_tabii'}, {w:1, rule:'madd_arid'} ],   // Ат-Тин, 2
   ay_mdt_5: [ {w:0, rule:'madd_tabii'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:3, rule:'madd_arid'} ],   // Аль-Фатиха, 5
 
   // ── МАДД, порция 5 ──
-  ay_mdlh_6: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-Бакара, 1
   ay_mdlh_7: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-А‘раф, 1
   ay_mdlh_8: [ {w:0, rule:'madd_lazim_harfi'} ],   // Юнус, 1
   ay_mdlh_9: [ {w:0, rule:'madd_lazim_harfi'} ],   // Ар-Ра‘д, 1
   ay_mdlh_10: [ {w:0, rule:'madd_lazim_harfi'} ],   // Марьям, 1
   ay_mdlh_11: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аш-Шу‘ара, 1
   ay_mdlh_12: [ {w:0, rule:'madd_lazim_harfi'} ],   // Ан-Намль, 1
-  ay_mdlh_13: [ {w:0, rule:'madd_lazim_harfi'} ],   // Сад, 1
-  ay_mdlh_14: [ {w:0, rule:'madd_lazim_harfi'} ],   // Аль-Калям, 1
   ay_mdlh_15: [ {w:0, rule:'madd_lazim_harfi'} ],   // Гафир, 1
   ay_mdl_6: [ {w:8, rule:'madd_lazim'}, {w:8, rule:'madd_arid'} ],   // Аль-Фатиха, 7
   ay_mdl_7: [ {w:1, rule:'madd_muttasil'}, {w:2, rule:'madd_lazim'} ],   // Ан-Нази‘ат, 34
@@ -145,10 +127,20 @@ const AYAH_MARKS = {
   ay_mdt_10: [ {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 4
 
   // ── МАДД ЛИН: «Аль-Кураиш» 1–4 ──
-  ay_mln_1: [ {w:1, rule:'madd_lin'} ],   // «Аль-Кураиш», 1
-  ay_mln_2: [ {w:2, rule:'madd_muttasil'}, {w:3, rule:'madd_lin'} ],   // «Аль-Кураиш», 2
   ay_mln_3: [ {w:3, rule:'madd_lin'} ],   // «Аль-Кураиш», 3
   ay_mln_4: [ {w:0, rule:'madd_munfasil'}, {w:6, rule:'madd_lin'} ],   // «Аль-Кураиш», 4
+
+  // ── Разметка склеенных отрывков ──
+  ay_j_adiyat_1_3: [ {w:1, rule:'madd_iwad'}, {w:4, rule:'madd_iwad'}, {w:7, rule:'madd_iwad'} ],   // Аль-‘Адият, 1–3
+  ay_j_haqqa_1_3: [ {w:0, rule:'madd_lazim'}, {w:3, rule:'madd_lazim'}, {w:5, rule:'madd_munfasil'}, {w:8, rule:'madd_lazim'} ],   // Аль-Хакка, 1–3
+  ay_j_duha_1_2: [ {w:0, rule:'madd_tabii'}, {w:3, rule:'madd_tabii'}, {w:4, rule:'madd_tabii'} ],   // Ад-Духа, 1–2
+  ay_j_tin_1_2: [ {w:1, rule:'madd_arid'}, {w:3, rule:'madd_tabii'}, {w:4, rule:'madd_tabii'} ],   // Ат-Тин, 1–2
+  ay_j_tariq_1_2: [ {w:0, rule:'madd_muttasil'}, {w:3, rule:'madd_munfasil'} ],   // Ат-Тарик, 1–2
+  ay_j_quraysh_1_2: [ {w:1, rule:'madd_lin'}, {w:5, rule:'madd_muttasil'}, {w:6, rule:'madd_lin'} ],   // Аль-Кураиш, 1–2
+  ay_j_baqara_1_2: [ {w:0, rule:'madd_lazim_harfi'}, {w:7, rule:'idgham_nun'}, {w:8, rule:'madd_arid'} ],   // Аль-Бакара, 1–2
+  ay_j_yasin_1_2: [ {w:0, rule:'madd_lazim_harfi'}, {w:3, rule:'madd_arid'} ],   // Йа-Син, 1–2
+  ay_j_qalam_1: [ {w:0, rule:'madd_lazim_harfi'}, {w:2, rule:'madd_tabii'}, {w:3, rule:'madd_arid'} ],   // Аль-Калям, 1
+  ay_j_sad_1: [ {w:0, rule:'madd_lazim_harfi'}, {w:3, rule:'madd_arid'} ],   // Сад, 1
 };
 
 if (typeof window !== 'undefined') window.AYAH_MARKS = AYAH_MARKS;
