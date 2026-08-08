@@ -2337,9 +2337,21 @@ body { margin: 0; }
       if (!requireLogin()) loadDashboard();
       return;
     }
-    StorageAPI.auth.refresh().then(function () {
-      if (!requireLogin()) loadDashboard();
-    });
+    /* Продлеваем пропуск, а затем ПРОВЕРЯЕМ, что он вправду действует.
+       Без проверки истёкший вход выглядел как пустая платформа: база
+       отвечает без ошибки, но ничего не отдаёт, и панель показывала
+       «Пока нет результатов» при полной таблице работ. */
+    StorageAPI.auth.refresh()
+      .then(function () { return StorageAPI.auth.check(); })
+      .then(function (ok) {
+        if (!ok) {
+          StorageAPI.auth.signOut();
+          $('login-screen').style.display = 'flex';
+          showLoginError('Вход устарел. Войдите заново.');
+          return;
+        }
+        loadDashboard();
+      });
   })();
 })();
 </script>

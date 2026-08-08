@@ -421,6 +421,21 @@
       // молча продлить вход — вызывается панелью при запуске
       refresh: refreshToken,
       isSignedIn: function () { return !!savedToken(); },
+
+      /* Действителен ли пропуск ПРЯМО СЕЙЧАС.
+         Нужна отдельная проверка, потому что истёкший пропуск не даёт
+         ошибки: база честно отвечает «200» и пустым списком — правило
+         доступа просто не выполняется. Панель принимала это за «работ
+         нет» и показывала пустые разделы, хотя работы были на месте. */
+      check: function () {
+        const t = savedToken();
+        if (!t) return Promise.resolve(false);
+        return fetch(SUPABASE_URL + '/auth/v1/user', {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + t },
+        })
+          .then(r => r.ok)
+          .catch(() => false);
+      },
     },
 
     // Служебное: доступно ли хранилище
