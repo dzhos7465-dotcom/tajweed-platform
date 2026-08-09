@@ -176,6 +176,10 @@ body { margin: 0; }
 .res-group-stat { margin-left: auto; }
 .res-shot-btn { background: transparent; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm); padding: 4px 10px; line-height: 1; }
 .res-shot-btn:hover { background: var(--paper-sunken); }
+/* Кнопка документа у ученика. Появляется только когда балл окончателен. */
+.res-doc-btn { background: transparent; border: none; cursor: pointer; font-size: var(--text-base);
+  padding: 2px 6px; line-height: 1; opacity: .6; }
+.res-doc-btn:hover { opacity: 1; }
 .res-group-name { font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); }
 .res-group-stat { font-size: var(--text-xs); color: var(--ink-faint); }
 .res-row { display: grid; grid-template-columns: 1fr auto auto 56px; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
@@ -513,6 +517,7 @@ body { margin: 0; }
 <!-- tasks.js нужен панели ради настоящих списков правил (FIND_GROUPS и др.):
      без него в панели заводились копии, переписанные руками, и отставали -->
 <script src="tasks.js"></script>
+<script src="work-doc.js"></script>
 <script src="storage.js"></script>
 <script>
 (function () {
@@ -652,6 +657,7 @@ body { margin: 0; }
       var ses = both[0] || [], acts = both[1] || [];
       var actTitle = {};
       acts.forEach(function (a) { actTitle[a.id] = a.title || 'Без названия'; });
+      _actTitles = actTitle;                     // пригодится при открытии новой сессии
       if (ses.failed) { $('sessions-list').textContent = 'Не удалось связаться с таблицей.'; return; }
       if (!ses.length) { $('sessions-list').textContent = 'Пока нет сессий.'; return; }
       // новые сверху
@@ -667,12 +673,22 @@ body { margin: 0; }
         const delBtn = '<button class="btn btn-quiet ses-del-btn" data-id="' + s.id + '" data-group="' + (s.group || '') + '" style="padding:4px 12px; color:var(--err); border-color:var(--err-tint);">Удалить</button>';
         const linkBtn = '<button class="btn btn-quiet ses-link-btn" data-id="' + s.id +
           '" style="padding:4px 12px;">Ссылка</button>';
+        /* Сессия, открытая давно, — источник путаницы: ученики заходят по
+           старой ссылке, и работы падают в прошлое задание. Мягко напоминаем. */
+        var days = (s.status === 'open' && s.openedAt)
+          ? Math.floor((Date.now() - new Date(s.openedAt).getTime()) / 86400000) : 0;
+        const staleTag = days >= 1
+          ? '<span style="font-size:var(--text-xs); color:var(--warn, #9a6a1e); ' +
+            'background:var(--amber-tint, #faf3e0); border:1px solid var(--warn, #9a6a1e); ' +
+            'border-radius:var(--radius-pill); padding:2px 8px;">открыта ' + days +
+            (days === 1 ? ' день' : (days < 5 ? ' дня' : ' дней')) + ' — закрыть?</span>'
+          : '';
         // «Группа» не приписываем, если преподаватель уже назвал группу так
         const grpLabel = groupLabel(s.group);
         return '<div class="list-row"><b>' + grpLabel + '</b>' +
           '<span style="color:var(--ink-soft); font-size:var(--text-sm);">' +
             (actTitle[s.activityId] || '—') + '</span>' +
-          '<span class="pill ' + cls + '">' + label + '</span>' +
+          '<span class="pill ' + cls + '">' + label + '</span>' + staleTag +
           '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + opened + closed + '</span>' +
           '<span style="flex:1"></span>' + linkBtn + closeBtn + delBtn + '</div>';
       }).join('');
@@ -730,9 +746,28 @@ body { margin: 0; }
     if (!activityId) { alert('Выберите активность'); return; }
     if (!group) { alert('Укажите группу'); return; }
 
-    $('ses-open').textContent = 'Открываю…';
+    /* Прежняя сессия той же группы остаётся открытой — и ученики заходят
+       по старой ссылке, а работы падают в прошлое задание. Заметить это
+       трудно: у ребёнка всё выглядит как обычно.
+       Поэтому перед открытием новой спрашиваем про старые. */
+    $('ses-open').textContent = 'Проверяю…';
     $('ses-open').disabled = true;
-    StorageAPI.sessions.open(activityId, group).then(function (res) {
+
+    StorageAPI.sessions.list().then(function (list) {
+      var same = (list || []).filter(function (x) {
+        return x.status === 'open' && String(x.group || '') === group;
+      });
+      if (!same.length) return null;
+      var names = same.map(function (x) { return activityTitle(x.activityId); }).join(', ');
+      var ask = 'У группы ' + group + ' уже открыта сессия: ' + names +
+                '.\n\nЗакрыть её? Тогда старая ссылка перестанет работать, ' +
+                'и ученики не попадут в прошлое задание по ошибке.';
+      if (!confirm(ask)) return null;
+      return Promise.all(same.map(function (x) { return StorageAPI.sessions.close(x.id); }));
+    }).then(function () {
+      $('ses-open').textContent = 'Открываю…';
+      return StorageAPI.sessions.open(activityId, group);
+    }).then(function (res) {
       $('ses-open').textContent = 'Открыть сессию';
       $('ses-open').disabled = false;
       if (!res || !res.ok || !res.session) {
@@ -749,6 +784,10 @@ body { margin: 0; }
      в любой момент, а не только сразу после открытия. Раньше ссылка
      показывалась один раз и, если страницу закрыли, добыть её было нельзя:
      приходилось открывать новую сессию. Отсюда и накопились дубли. */
+  /* Название активности по её id — для понятного вопроса при закрытии. */
+  var _actTitles = {};
+  function activityTitle(id) { return _actTitles[id] || 'без названия'; }
+
   function sessionLink(sessionId) {
     /* Ссылка для учеников всегда ведёт на экзамен, как бы ни называлась
        сама панель. Раньше подставлялось только «panel.html», и при работе
@@ -1014,6 +1053,12 @@ body { margin: 0; }
           const checkbox = resSelectMode
             ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + '>'
             : '';
+          /* Документ можно скачать, только когда балл окончателен: ждёт
+             чтения — кнопки нет. Иначе ученик получит число, которое
+             потом изменится. */
+          const docBtn = (typeof WorkDoc !== 'undefined' && WorkDoc.ready(x))
+            ? '<button class="res-doc-btn" data-idx="' + x._idx + '" title="Скачать документ">📄</button>'
+            : '';
           return '<div class="res-row' + (resSelectMode ? ' picking' : '') +
               '" data-idx="' + x._idx + '" style="cursor:pointer">' +
               checkbox +
@@ -1021,6 +1066,7 @@ body { margin: 0; }
               '<div class="res-meta">' + shortWhen(x.date, x.time) + '</div>' +
               pendingTag +
               '<div class="res-score" style="color:' + scoreColor + '">' + (score != null ? score : '—') + '</div>' +
+              docBtn +
             '</div>';
         }).join('');
 
@@ -1030,10 +1076,51 @@ body { margin: 0; }
               '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
                 (avg != null ? ' · средний ' + avg : '') + '</span>' +
               '<button class="res-shot-btn" data-group="' + g + '" title="Сохранить картинкой">📷</button>' +
+              (students.some(function (x) { return typeof WorkDoc !== 'undefined' && WorkDoc.ready(x); })
+                ? '<button class="res-shot-btn res-docs-btn" data-group="' + g +
+                  '" title="Скачать документы всех учеников">📄 Все</button>' : '') +
             '</div>' +
             rows +
           '</div>';
       }).join('');
+      /* Документ одного ученика. Нажатие не должно открывать разбор —
+         поэтому останавливаем всплытие. */
+      $('results-list').querySelectorAll('.res-doc-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var r = (window._resultsCache || [])[parseInt(btn.getAttribute('data-idx'), 10)];
+          if (!r) return;
+          btn.textContent = '…'; btn.disabled = true;
+          WorkDoc.save(r, TEACHER_NAME).then(function (res) {
+            btn.textContent = '📄'; btn.disabled = false;
+            if (!res.ok) alert('Не удалось собрать документ. Попробуйте ещё раз.');
+          });
+        });
+      });
+
+      // Документы всех учеников этой работы — одним нажатием
+      $('results-list').querySelectorAll('.res-docs-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var key = btn.getAttribute('data-group');
+          var list = (window._resultsCache || []).filter(function (r) {
+            var k = r.sessionId ? ('s:' + r.sessionId) : ('g:' + (r.group || '—'));
+            return k === key;
+          });
+          var ready = list.filter(WorkDoc.ready);
+          if (!ready.length) { alert('Пока нет работ с окончательным баллом.'); return; }
+          if (!confirm('Скачать документы: ' + ready.length + ' шт.?\n' +
+                       'Браузер может спросить разрешение на несколько файлов.')) return;
+          btn.disabled = true;
+          WorkDoc.saveAll(list, TEACHER_NAME, function (n, total, name) {
+            btn.textContent = n + '/' + total;
+          }).then(function (res) {
+            btn.textContent = '📄 Все'; btn.disabled = false;
+            if (res.failed) alert('Готово: ' + res.done + '. Не удалось: ' + res.failed + '.');
+          });
+        });
+      });
+
       // клики по строкам
       $('results-list').querySelectorAll('.res-row').forEach(function (row) {
         row.addEventListener('click', function (e) {
@@ -1169,7 +1256,10 @@ body { margin: 0; }
 
   // Сохранить карточку группы картинкой
   // Имя преподавателя для подписи на постере (можно поменять здесь).
-  var TEACHER_SIGNATURE = 'Преподаватель таджвида';
+  /* Имя преподавателя. Стоит в постере группы и в документе ученика.
+     Меняется здесь, в одном месте. */
+  var TEACHER_NAME = 'Садулаев Джохар';
+  var TEACHER_SIGNATURE = TEACHER_NAME + ' · преподаватель таджвида';
 
   function screenshotGroup(group, btn) {
     snapStart(btn);

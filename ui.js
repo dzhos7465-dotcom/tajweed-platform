@@ -631,12 +631,14 @@
       /* Ученик ДОЛЖЕН видеть, дошла ли работа. Раньше неудача уходила в
          служебный журнал, которого никто не читает: ребёнок был уверен,
          что сдал, а у преподавателя работы не было. */
+      showDocButton(result);
       showSendState('sending');
       sendResultToSheets(result).then(function (r) {
         if (r.sent) { showSendState('sent'); return; }
         if (r.reason === 'no-url') { showSendState(null); return; }
         function retry() {
-          showSendState('sending');
+          showDocButton(result);
+      showSendState('sending');
           sendResultToSheets(result).then(function (again) {
             showSendState(again.sent ? 'sent' : 'failed', retry);
           });
@@ -645,6 +647,44 @@
       });
       sendAllRecordings(result);
     }
+  }
+
+  /* Кнопка «скачать мою работу».
+     Показываем ТОЛЬКО если в работе не было чтения: тогда балл, который
+     ученик видит, — окончательный. Если чтение было, документ соберёт и
+     раздаст преподаватель, уже с оценкой за чтение. Иначе ребёнок сохранит
+     число, которое потом изменится, и покажет его дома. */
+  function showDocButton(result) {
+    var box = document.getElementById('doc-box');
+    var wait = document.getElementById('doc-wait');
+    if (!box || !wait) return;
+
+    var hasRecite = (result.details || []).some(function (d) { return d.type === TASK_TYPES.RECITE; });
+    if (hasRecite) { wait.style.display = ''; return; }
+    if (typeof WorkDoc === 'undefined') return;
+
+    box.style.display = '';
+    var btn = document.getElementById('doc-save');
+    btn.addEventListener('click', function () {
+      btn.disabled = true; btn.textContent = 'Собираю…';
+      // документ ждёт те же поля, что панель показывает в разборе
+      var r = {
+        fullName: session.student.name, group: session.student.group,
+        date: new Date().toLocaleDateString('ru'),
+        exam: (typeof getOpenActivity === 'function' ? getOpenActivity().title : '') || 'Работа по таджвиду',
+        autoScore: result.auto.percent,
+        _total: Math.round(result.auto.percent),
+        _reading: null, _waiting: false,
+        review: (result.details || []).map(function (d) {
+          return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
+                   ok: d.correct, p: d.pending, pt: d.partial, an: d.answered };
+        }),
+      };
+      WorkDoc.save(r, 'Садулаев Джохар').then(function (res) {
+        btn.disabled = false; btn.textContent = 'Скачать мою работу';
+        if (!res.ok) alert('Не удалось собрать документ. Попробуйте ещё раз.');
+      });
+    });
   }
 
   /* Полоска о судьбе работы на экране результата. */

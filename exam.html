@@ -375,6 +375,15 @@
       <div class="cap" id="r-cap">результат автоматической проверки</div>
       <!-- Судьба работы: дошла до преподавателя или нет -->
       <div id="send-state" class="send-state" style="display:none;"></div>
+      <!-- Документ работы. Появляется, только если чтения не было: тогда
+           балл окончателен. С чтением документ раздаёт преподаватель. -->
+      <div id="doc-box" style="display:none; margin-top:var(--space-4); text-align:center;">
+        <button class="btn btn-primary" id="doc-save">Скачать мою работу</button>
+      </div>
+      <div id="doc-wait" style="display:none; margin-top:var(--space-4); text-align:center;
+           font-size:var(--text-sm); color:var(--ink-soft);">
+        Работу с разбором пришлёт преподаватель после проверки чтения.
+      </div>
       <div class="cap" id="r-how" style="margin-top:var(--space-1); font-size:var(--text-xs); color:var(--ink-faint);"></div>
     </div>
     <div class="pending" id="r-pending">
@@ -409,6 +418,7 @@
 <script src="ayah-marks.js"></script>
 <script src="storage.js"></script>
 <script src="tasks.js"></script>
+<script src="work-doc.js"></script>
 <script src="engine.js"></script>
 <script src="ui.js"></script>
 <script>
