@@ -39,6 +39,79 @@ const TASK_TYPES = {
   RECITE: 'recite',   // запись собственного чтения        (Блок 4, ручная)
 };
 
+/* Как показывать варианты ответа. НЕ новый тип задания: выбор одного
+   ответа остаётся выбором одного ответа, движок и проверка те же.
+   Меняется только вид — русская подпись или арабский знак крупно. */
+const OPTION_STYLE = {
+  TEXT:   'text',     // «Изхар», «Хамза» — как сейчас
+  LETTER: 'letter',   // буква арабским, крупно: ب ص ط
+};
+
+/* ──────────────────────────────────────────────────────────────────────
+   ВОПРОСЫ О БУКВАХ  (нулевой курс)
+   ──────────────────────────────────────────────────────────────────────
+   Не пишутся руками по одному. Каждый шаблон говорит, ПО КАКОМУ свойству
+   спрашивать, а платформа берёт одну подходящую букву и две неподходящие.
+   Значит вопросов хватит на любое число прохождений, и у каждого ученика
+   свой набор — в отличие от готовой формы, где тридцать вопросов навсегда.
+
+   negative: true — вопрос наоборот: «какая НЕ является межзубной».
+   Тогда верный ответ тот, у кого свойства НЕТ.
+────────────────────────────────────────────────────────────────────── */
+const LETTER_TEMPLATES = [
+  { id: 'lq_connect_both', prop: 'connects', ask: 'Какая из этих букв соединяется <b>с обеих</b> сторон?' },
+  { id: 'lq_connect_no',   prop: 'connects', negative: true,
+    ask: 'Какая из этих букв <b>НЕ</b> соединяется с последующей?' },
+  { id: 'lq_interdental',  prop: 'interdental', ask: 'Какая из этих букв является межзубной?' },
+  { id: 'lq_interdental_no', prop: 'interdental', negative: true,
+    ask: 'Какая из этих букв <b>НЕ</b> является межзубной?' },
+  { id: 'lq_heavy',        prop: 'heavy', ask: 'Какая буква читается твёрдо (с оттенком «о»)?' },
+  { id: 'lq_heavy_no',     prop: 'heavy', negative: true,
+    ask: 'Какая из этих букв <b>НЕ</b> является твёрдой?' },
+  { id: 'lq_madd',         prop: 'madd',  ask: 'Какая из этих букв является буквой мадда?' },
+  { id: 'lq_throat',       prop: 'throat', ask: 'Какая из этих букв горловая?' },
+];
+
+/* Собрать один вопрос о букве: верный ответ и два неверных. */
+function buildLetterTask(tpl, rng, nextId) {
+  if (typeof LETTERS === 'undefined') return null;
+  const pick1 = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+
+  const yes = lettersWith(tpl.prop, true);
+  const no  = lettersWith(tpl.prop, false);
+  // при вопросе наоборот верный — тот, У КОГО свойства нет
+  const rightPool = tpl.negative ? no : yes;
+  const wrongPool = tpl.negative ? yes : no;
+  if (rightPool.length < 1 || wrongPool.length < 2) return null;
+
+  const right = pick1(rightPool);
+  const wrong = [];
+  const seen = { [right.id]: 1 };
+  let guard = 0;
+  while (wrong.length < 2 && guard++ < 200) {
+    const w = pick1(wrongPool);
+    if (!seen[w.id]) { seen[w.id] = 1; wrong.push(w); }
+  }
+  if (wrong.length < 2) return null;
+
+  const opts = shuffleWith([right].concat(wrong), rng).map(function (l) {
+    return { id: l.id, label: l.ch, sub: l.name };   // подпись — сама буква
+  });
+
+  return {
+    id: nextId('t_letter'),
+    theme: 'letters',
+    stage: 'course0',
+    type: TASK_TYPES.SINGLE,
+    optionStyle: OPTION_STYLE.LETTER,
+    prompt: tpl.ask,
+    options: opts,
+    answer: right.id,
+    check: CHECK.AUTO,
+    weight: TASK_WEIGHTS.single,
+  };
+}
+
 /* Способы проверки — два класса, зафиксированы как закон архитектуры.
    Заложены с Блока 1, даже пока ручных заданий нет. */
 const CHECK = {

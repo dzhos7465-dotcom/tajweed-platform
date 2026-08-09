@@ -272,6 +272,15 @@
 .mushaf::after { bottom: 8px; left: 8px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
 /* Коранические скобки вокруг аята — только оформление, в данных их нет. */
 .ayah-br { color: var(--gold, #b8912f); padding: 0 4px; }
+/* Варианты-буквы: три карточки в ряд, буква крупно, под ней название.
+   На узком экране ряд остаётся: три буквы помещаются всегда. */
+.opts-letters { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.opt-letter { flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--space-4) var(--space-2); min-height: 118px; text-align: center; }
+.opt-letter-ch { font-family: var(--font-arabic); font-size: 3.2rem; line-height: 1.2;
+  color: var(--ink); display: block; }
+.opt-letter-sub { font-size: var(--text-xs); color: var(--ink-faint); margin-top: 6px; display: block; }
+.opt-letter.on .opt-letter-ch { color: var(--seal); }
 /* Полоска о судьбе работы. Ребёнок должен видеть своими глазами, дошла
    ли работа: иначе он уверен, что сдал, а у преподавателя её нет. */
 .send-state { margin: var(--space-4) auto 0; max-width: 460px; padding: var(--space-3) var(--space-4);
@@ -412,6 +421,8 @@
   </div>
 </div>
 
+<!-- Буквы алфавита: основа нулевого курса -->
+<script src="letters.js"></script>
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>

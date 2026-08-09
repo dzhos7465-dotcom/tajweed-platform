@@ -133,10 +133,20 @@
     const isTraining = session.mode && session.mode.showAnswersImmediately;
     const alreadyAnswered = chosen !== undefined;
 
+    /* Варианты-буквы показываем крупно арабским, а не строкой: ребёнок
+       узнаёт букву по начертанию, и мелкая подпись тут ничего не даёт.
+       Под буквой её название — чтобы связать вид и звучание. */
+    const asLetters = task.optionStyle === 'letter';
+    if (asLetters) wrap.classList.add('opts-letters');
+    else wrap.classList.remove('opts-letters');
+
     task.options.forEach(opt => {
       const btn = document.createElement('button');
-      btn.className = 'opt' + (chosen === opt.id ? ' on' : '');
-      btn.innerHTML = '<span class="dot"></span><span>' + opt.label + '</span>';
+      btn.className = 'opt' + (chosen === opt.id ? ' on' : '') + (asLetters ? ' opt-letter' : '');
+      btn.innerHTML = asLetters
+        ? '<span class="opt-letter-ch">' + opt.label + '</span>' +
+          (opt.sub ? '<span class="opt-letter-sub">' + opt.sub + '</span>' : '')
+        : '<span class="dot"></span><span>' + opt.label + '</span>';
 
       // В тренировке после ответа — подсветка верного/неверного и блокировка
       if (isTraining && alreadyAnswered) {
