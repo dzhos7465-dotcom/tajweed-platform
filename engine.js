@@ -387,6 +387,12 @@ function computeResult() {
       /* Что именно было показано ученику. Без этого работу нельзя
          восстановить: в разборе оставались тема и ответ, а само слово
          терялось — и документ выходил сухим списком вместо экзамена. */
+      /* Признаки выбранного и верного варианта. Названия сохраняются
+         отдельно (studentAnswer), но по названию нельзя опознать кнопку
+         в документе — там нужен признак. Из-за этого в документе ни один
+         вариант не отмечался: было видно «ошибка», но не видно, где. */
+      answerId: (answer !== undefined && answer !== null) ? answer : null,
+      correctId: (task.answer !== undefined) ? task.answer : null,
       exampleRef: (task.exampleRefs && task.exampleRefs[0]) || task.exampleRef || null,
       ayahRef: task.ayahRef || null,
       items: task.items || null,          // для распределения — слова по коробкам
@@ -606,7 +612,7 @@ function buildResultPayload(result) {
                ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
                // чтобы работу можно было показать такой, какой её видел ученик
                ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt,
-               it: d.items, gr: d.groups };
+               it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId };
     })),
   };
 }

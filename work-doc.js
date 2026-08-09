@@ -85,14 +85,17 @@
 
   /* Рамка-мусхаф вокруг арабского текста — та же, что видит ученик на
      экране: кремовый лист, золотая двойная рамка, коранические скобки. */
-  function mushaf(text, size) {
+  function mushaf(text, size, isAyah) {
     if (!text) return '';
+    // Коранические скобки ставим ТОЛЬКО вокруг аята. Отдельное слово —
+    // не аят, и обрамлять его так было бы неправдой.
+    const open = isAyah ? '<span style="color:' + GOLD + ';">\uFD3F</span> ' : '';
+    const close = isAyah ? ' <span style="color:' + GOLD + ';">\uFD3E</span>' : '';
     return '<div style="background:#fdfbf4;border:1.5px solid ' + GOLD + ';border-radius:10px;' +
-        'padding:16px 20px;margin:10px 0;text-align:center;box-shadow:inset 0 0 0 3px #fdfbf4, inset 0 0 0 4px #e6d9b8;">' +
+        'padding:10px 16px;margin:8px 0;text-align:center;box-shadow:inset 0 0 0 3px #fdfbf4, inset 0 0 0 4px #e6d9b8;">' +
       '<span style="font-family:' + AR + ';direction:rtl;font-size:' + (size || 30) + 'px;' +
-        'line-height:2;color:' + INK + ';">' +
-        '<span style="color:' + GOLD + ';">\uFD3F</span> ' + esc(text) +
-        ' <span style="color:' + GOLD + ';">\uFD3E</span></span></div>';
+        'line-height:1.9;color:' + INK + ';">' +
+        open + esc(text) + close + '</span></div>';
   }
 
   /* Варианты ответа — такими же кнопками, как в экзамене. Выбранный
@@ -108,7 +111,7 @@
     if (isChosen && !isRight) { border = ERR; bg = '#f8ecec'; color = ERR; mark = '✗'; }
 
     return '<div style="display:flex;align-items:center;gap:10px;border:1.5px solid ' + border +
-        ';background:' + bg + ';border-radius:999px;padding:8px 16px;margin-bottom:6px;">' +
+        ';background:' + bg + ';border-radius:999px;padding:6px 14px;margin-bottom:5px;">' +
       '<span style="width:13px;height:13px;border-radius:50%;border:2px solid ' +
         (isChosen ? color : '#cfc6b6') + ';background:' + (isChosen ? color : 'transparent') + ';"></span>' +
       '<span style="flex:1;font-size:14px;color:' + color + ';font-weight:' +
@@ -125,7 +128,13 @@
     const chosen = fullTheme(d.a, d.t);
 
     let head, badge, badgeColor;
-    if (isRecite) { badge = 'проверяет преподаватель'; badgeColor = GOLD; }
+    if (isRecite) {
+      /* Документ собирается ПОСЛЕ проверки — значит балл уже есть, и
+         писать «проверяет преподаватель» неправду нельзя. Балл общий на
+         все аяты чтения: он ставится за чтение в целом. */
+      badge = (d.rg != null) ? ('чтение: ' + d.rg + ' из 10') : 'чтение';
+      badgeColor = GOLD;
+    }
     else if (ok) { badge = 'верно'; badgeColor = OK; }
     else { badge = 'ошибка'; badgeColor = ERR; }
 
@@ -145,10 +154,12 @@
     let body = '';
 
     if (d.ty === 'single') {
-      body = mushaf(exampleText(d.ex), 32) +
-        (Array.isArray(d.op) ? d.op.map(function (o) { return optionRow(o, d.a, d.c); }).join('') : '');
+      body = mushaf(exampleText(d.ex), 32, false) +
+        (Array.isArray(d.op)
+          ? d.op.map(function (o) { return optionRow(o, d.ai, d.ci); }).join('')
+          : '');
     } else if (d.ty === 'find') {
-      body = mushaf(ayahText(d.ay), 26) +
+      body = mushaf(ayahText(d.ay), 26, true) +
         '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';">' +
           (d.pt ? 'Найдено верно: ' + d.pt.right + ' из ' + d.pt.total +
             (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') : '') + '</div>';
@@ -163,7 +174,7 @@
             }).join('') + '</div>'
           : '');
     } else if (isRecite) {
-      body = mushaf(ayahText(d.ay), 26);
+      body = mushaf(ayahText(d.ay), 26, true);
     }
 
     // объяснение — только там, где ошибся: смотреть надо туда
@@ -179,7 +190,7 @@
       '</div>';
     }
 
-    return '<div style="padding:16px 18px;margin-bottom:14px;background:#fdfbf6;' +
+    return '<div style="padding:13px 16px;margin-bottom:11px;background:#fdfbf6;' +
         'border:1px solid #ece3cf;border-radius:12px;break-inside:avoid;">' +
       head + question + body + expl +
     '</div>';
@@ -265,6 +276,17 @@
     let review = [];
     if (Array.isArray(r.review)) review = r.review;
     else { try { review = r.review ? JSON.parse(r.review) : []; } catch (e) { review = []; } }
+
+    /* Балл за чтение приходит из панели уже посчитанным (среднее по всем
+       аятам, из 100). Возвращаем его к десятибалльному виду и кладём в
+       каждое задание на чтение — чтобы в карточке стояло число, а не
+       обещание проверить. */
+    if (r._reading != null) {
+      const g = Math.round(r._reading / 10);
+      review = review.map(function (d) {
+        return (d.ty === 'recite') ? Object.assign({}, d, { rg: g }) : d;
+      });
+    }
 
     // Первая страница: шапка, балл, полоска правил, сколько влезет заданий.
     // Дальше — по 11 заданий на страницу.
