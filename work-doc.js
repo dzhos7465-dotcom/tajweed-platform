@@ -74,59 +74,114 @@
   }
 
   const TYPE_LABEL = { sort: 'Распределение', find: 'Найди в аяте', recite: 'Чтение вслух' };
+  const AR = "Amiri, 'Scheherazade New', serif";
 
-  /* ── Разметка одной карточки задания ── */
+  function exampleText(id) {
+    return (typeof EXAMPLE_BY_ID !== 'undefined' && EXAMPLE_BY_ID[id]) ? EXAMPLE_BY_ID[id].text : '';
+  }
+  function ayahText(id) {
+    return (typeof AYAH_BY_ID !== 'undefined' && AYAH_BY_ID[id]) ? AYAH_BY_ID[id].text : '';
+  }
+
+  /* Рамка-мусхаф вокруг арабского текста — та же, что видит ученик на
+     экране: кремовый лист, золотая двойная рамка, коранические скобки. */
+  function mushaf(text, size) {
+    if (!text) return '';
+    return '<div style="background:#fdfbf4;border:1.5px solid ' + GOLD + ';border-radius:10px;' +
+        'padding:16px 20px;margin:10px 0;text-align:center;box-shadow:inset 0 0 0 3px #fdfbf4, inset 0 0 0 4px #e6d9b8;">' +
+      '<span style="font-family:' + AR + ';direction:rtl;font-size:' + (size || 30) + 'px;' +
+        'line-height:2;color:' + INK + ';">' +
+        '<span style="color:' + GOLD + ';">\uFD3F</span> ' + esc(text) +
+        ' <span style="color:' + GOLD + ';">\uFD3E</span></span></div>';
+  }
+
+  /* Варианты ответа — такими же кнопками, как в экзамене. Выбранный
+     подсвечен, верный отмечен галочкой. Ребёнок узнаёт свой экран. */
+  function optionRow(opt, chosenId, rightId) {
+    const id = (typeof opt === 'object') ? opt.id : opt;
+    const label = (typeof opt === 'object') ? (opt.label || opt.id) : ruleName(opt);
+    const isChosen = String(id) === String(chosenId);
+    const isRight = String(id) === String(rightId);
+
+    let border = '#e6ded1', bg = '#fdfbf6', color = INK, mark = '';
+    if (isRight) { border = OK; bg = '#e8f2ec'; color = OK; mark = '✓'; }
+    if (isChosen && !isRight) { border = ERR; bg = '#f8ecec'; color = ERR; mark = '✗'; }
+
+    return '<div style="display:flex;align-items:center;gap:10px;border:1.5px solid ' + border +
+        ';background:' + bg + ';border-radius:999px;padding:8px 16px;margin-bottom:6px;">' +
+      '<span style="width:13px;height:13px;border-radius:50%;border:2px solid ' +
+        (isChosen ? color : '#cfc6b6') + ';background:' + (isChosen ? color : 'transparent') + ';"></span>' +
+      '<span style="flex:1;font-size:14px;color:' + color + ';font-weight:' +
+        (isChosen || isRight ? '600' : '400') + ';">' + esc(label) + '</span>' +
+      '<span style="font-size:15px;color:' + color + ';font-weight:700;">' + mark + '</span>' +
+    '</div>';
+  }
+
+  /* ── Одно задание, как оно выглядело на экране ── */
   function taskBlock(d, i) {
-    const typeLabel = TYPE_LABEL[d.ty];
-    const right = fullTheme(d.c, d.t);
-    const chosen = fullTheme(d.a, d.t);
     const isRecite = d.ty === 'recite';
     const ok = d.ok === true;
+    const right = fullTheme(d.c, d.t);
+    const chosen = fullTheme(d.a, d.t);
 
-    let mark, markColor;
-    if (isRecite) { mark = 'чтение'; markColor = GOLD; }
-    else if (ok) { mark = '✓'; markColor = OK; }
-    else { mark = '✗'; markColor = ERR; }
+    let head, badge, badgeColor;
+    if (isRecite) { badge = 'проверяет преподаватель'; badgeColor = GOLD; }
+    else if (ok) { badge = 'верно'; badgeColor = OK; }
+    else { badge = 'ошибка'; badgeColor = ERR; }
+
+    head = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+        '<span style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:' + TEAL +
+          ';font-weight:600;">Задание ' + (i + 1) + '</span>' +
+        '<span style="flex:1;"></span>' +
+        '<span style="font-size:11px;color:' + badgeColor + ';border:1px solid ' + badgeColor +
+          ';border-radius:999px;padding:2px 10px;">' + badge + '</span>' +
+      '</div>';
+
+    // сам вопрос — тем же текстом, что видел ученик
+    const q = String(d.q || '').replace(/\*\*(.+?)\*\*/g,
+      '<span style="color:' + ERR + ';text-decoration:underline;">$1</span>');
+    const question = q ? '<div style="font-size:15px;font-weight:600;margin-bottom:6px;">' + q + '</div>' : '';
 
     let body = '';
-    if (isRecite) {
-      body = '<div style="color:' + SOFT + ';font-size:13px;">Оценивает преподаватель</div>';
-    } else if (d.pt && d.pt.total) {
-      body = '<div style="color:' + (d.pt.right === d.pt.total ? SOFT : ERR) + ';font-size:13px;">' +
-        'верно ' + d.pt.right + ' из ' + d.pt.total +
-        (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') + '</div>';
-    } else if (!ok) {
-      body =
-        '<div style="font-size:13px;margin-bottom:2px;">' +
-          '<span style="color:' + ERR + ';">Твой ответ: ' + esc(d.a || 'нет ответа') + '</span>' +
-        '</div>' +
-        '<div style="font-size:13px;"><span style="color:' + OK + ';">Верно: ' +
-          esc(ruleName(right)) + '</span></div>' +
-        (ruleSign(right)
-          ? '<div style="margin-top:6px;padding:8px 10px;background:#f3efe6;border-radius:6px;' +
-            'font-size:12px;color:' + SOFT + ';line-height:1.5;">' + esc(ruleSign(right)) +
-            (chosen && chosen !== right && ruleSign(chosen)
-              ? '<br><br>Ты выбрал «' + esc(ruleName(chosen)) + '»: ' + esc(ruleSign(chosen))
-              : '') +
-            '</div>'
+
+    if (d.ty === 'single') {
+      body = mushaf(exampleText(d.ex), 32) +
+        (Array.isArray(d.op) ? d.op.map(function (o) { return optionRow(o, d.a, d.c); }).join('') : '');
+    } else if (d.ty === 'find') {
+      body = mushaf(ayahText(d.ay), 26) +
+        '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';">' +
+          (d.pt ? 'Найдено верно: ' + d.pt.right + ' из ' + d.pt.total +
+            (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') : '') + '</div>';
+    } else if (d.ty === 'sort') {
+      body = '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';margin-bottom:8px;">' +
+          (d.pt ? 'Разложено верно: ' + d.pt.right + ' из ' + d.pt.total : '') + '</div>' +
+        (Array.isArray(d.it)
+          ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + d.it.map(function (it) {
+              return '<span style="font-family:' + AR + ';direction:rtl;font-size:19px;' +
+                'background:#fdfbf4;border:1px solid #e6ded1;border-radius:8px;padding:4px 12px;">' +
+                esc(exampleText(it.exampleRef)) + '</span>';
+            }).join('') + '</div>'
           : '');
-    } else {
-      body = '<div style="font-size:13px;color:' + SOFT + ';">' + esc(d.a || '') + '</div>';
+    } else if (isRecite) {
+      body = mushaf(ayahText(d.ay), 26);
     }
 
-    const title = typeLabel || ruleName(d.t);
-    const color = typeLabel ? TEAL : ruleColor(d.t);
+    // объяснение — только там, где ошибся: смотреть надо туда
+    let expl = '';
+    if (!ok && !isRecite && ruleSign(right)) {
+      expl = '<div style="margin-top:8px;padding:10px 12px;background:#f3efe6;border-radius:8px;' +
+          'font-size:12px;color:' + SOFT + ';line-height:1.55;">' +
+        '<b style="color:' + OK + ';">' + esc(ruleName(right)) + '.</b> ' + esc(ruleSign(right)) +
+        (chosen && chosen !== right && ruleSign(chosen)
+          ? '<br><br><b style="color:' + ERR + ';">Ты выбрал «' + esc(ruleName(chosen)) + '».</b> ' +
+            esc(ruleSign(chosen))
+          : '') +
+      '</div>';
+    }
 
-    return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #ece3cf;">' +
-      '<div style="width:26px;color:' + FAINT + ';font-size:13px;flex-shrink:0;">' + (i + 1) + '</div>' +
-      '<div style="flex:1;">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
-          '<span style="width:9px;height:9px;border-radius:50%;background:' + color + ';"></span>' +
-          '<b style="font-size:14px;color:' + INK + ';">' + esc(title) + '</b>' +
-        '</div>' + body +
-      '</div>' +
-      '<div style="width:52px;text-align:right;color:' + markColor + ';font-weight:700;' +
-        'font-size:' + (isRecite ? '12px' : '17px') + ';flex-shrink:0;">' + mark + '</div>' +
+    return '<div style="padding:16px 18px;margin-bottom:14px;background:#fdfbf6;' +
+        'border:1px solid #ece3cf;border-radius:12px;break-inside:avoid;">' +
+      head + question + body + expl +
     '</div>';
   }
 
@@ -213,7 +268,9 @@
 
     // Первая страница: шапка, балл, полоска правил, сколько влезет заданий.
     // Дальше — по 11 заданий на страницу.
-    const FIRST = 6, REST = 11;
+    /* Карточки крупные — арабское слово в рамке, варианты ответа, объяснение.
+       На первую страницу помещается меньше: там ещё шапка и балл. */
+    const FIRST = 2, REST = 3;
     const pages = [];
     pages.push(
       header(r, teacherName, r.exam) +

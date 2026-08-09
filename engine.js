@@ -384,6 +384,15 @@ function computeResult() {
       // Для распределения и «найди» одного «верно/неверно» мало: работа
       // почти всегда частичная. Передаём, сколько из скольких.
       partial: result.partial || null,
+      /* Что именно было показано ученику. Без этого работу нельзя
+         восстановить: в разборе оставались тема и ответ, а само слово
+         терялось — и документ выходил сухим списком вместо экзамена. */
+      exampleRef: (task.exampleRefs && task.exampleRefs[0]) || task.exampleRef || null,
+      ayahRef: task.ayahRef || null,
+      items: task.items || null,          // для распределения — слова по коробкам
+      groups: task.groups || null,        // и сами коробки
+      options: task.options || null,
+      prompt: task.prompt || null,
     });
   });
 
@@ -594,7 +603,10 @@ function buildResultPayload(result) {
     // тема, тип, ответ ученика, правильный ответ, верно ли.
     review: JSON.stringify((result.details || []).map(function (d) {
       return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
-               ok: d.correct, p: d.pending, pt: d.partial, an: d.answered };
+               ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
+               // чтобы работу можно было показать такой, какой её видел ученик
+               ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt,
+               it: d.items, gr: d.groups };
     })),
   };
 }
