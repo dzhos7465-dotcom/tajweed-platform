@@ -165,9 +165,9 @@ function startExam(student, config) {
   // Если конфиг несёт темы из активности (activityThemes) — собираем по ним,
   // иначе по встроенным шаблонам. Движок не знает, откуда темы.
   if (typeof rebuildTasks === 'function') {
-    rebuildTasks(session.mode.randomizeExamples, activeConfig.activityThemes || null,
-                 activeConfig.activityRecite || null, activeConfig.activitySort || null,
-                 activeConfig.activityFind || null);
+    // Рецептом целиком: движок не разбирает конфиг на части и потому не
+    // может забыть новый раздел заданий (см. asRecipe в tasks.js).
+    rebuildTasks(session.mode.randomizeExamples, activeConfig);
     // запоминаем, каким «номером билета» собрана работа: он уйдёт в черновик
     session.seed = (typeof LAST_SEED !== 'undefined') ? LAST_SEED : null;
   }
@@ -394,6 +394,10 @@ function computeResult() {
       answerId: (answer !== undefined && answer !== null) ? answer : null,
       correctId: (task.answer !== undefined) ? task.answer : null,
       exampleRef: (task.exampleRefs && task.exampleRefs[0]) || task.exampleRef || null,
+      /* Что показывали крупно, когда примера из библиотеки нет: слог, знак,
+         отдельная буква. Без этого работа нулевого курса в разборе выглядела
+         бы как вопрос без вопроса. */
+      hero: task.hero || null,
       ayahRef: task.ayahRef || null,
       items: task.items || null,          // для распределения — слова по коробкам
       groups: task.groups || null,        // и сами коробки
@@ -471,9 +475,7 @@ function restoreDraft(draft) {
   if (draft.seed != null && typeof rebuildTasks === 'function' && session.mode) {
     var cfg = (typeof window !== 'undefined' && window.SESSION_EXAM_CONFIG)
       ? window.SESSION_EXAM_CONFIG : EXAM_CONFIG;
-    rebuildTasks(session.mode.randomizeExamples, cfg.activityThemes || null,
-                 cfg.activityRecite || null, cfg.activitySort || null,
-                 cfg.activityFind || null, draft.seed);
+    rebuildTasks(session.mode.randomizeExamples, cfg, draft.seed);
     session.seed = draft.seed;
   }
   session.student = draft.student;
@@ -611,7 +613,7 @@ function buildResultPayload(result) {
       return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
                ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
                // чтобы работу можно было показать такой, какой её видел ученик
-               ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt,
+               ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt, h: d.hero,
                it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId };
     })),
   };

@@ -423,6 +423,7 @@
 
 <!-- Буквы алфавита: основа нулевого курса -->
 <script src="letters.js"></script>
+<script src="signs.js"></script>
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
@@ -506,12 +507,19 @@
     if (window.SESSION_ACTIVITY_ID && StorageAPI.activities && StorageAPI.activities.get) {
       StorageAPI.activities.get(window.SESSION_ACTIVITY_ID).then(function (activity) {
         if (!activity) { failToLoad(); return; }   // не пришла — не подменяем шаблонами
-        if (activity && activity.themes && activity.themes.length) {
+        /* Работа считается заданной, если преподаватель выбрал хоть что-то:
+           темы-правила ИЛИ блоки нулевого курса. По прежнему условию работа
+           из одних букв не признавалась активностью и подменялась встроенным
+           набором. */
+        var hasThemes = !!(activity.themes && activity.themes.length);
+        var hasCourse0 = !!(activity.course0 && activity.course0.length);
+        if (hasThemes || hasCourse0) {
           // Собрать конфиг на основе встроенного EXAM_CONFIG, подменив темы и время.
           // Движок соберёт задания по activityThemes (см. buildTasksFromTemplates).
           var cfg = JSON.parse(JSON.stringify(EXAM_CONFIG));
           cfg.title = activity.title || cfg.title;
-          cfg.activityThemes = activity.themes;      // ← рецепт преподавателя
+          cfg.activityThemes = activity.themes || [];   // ← рецепт преподавателя
+          cfg.activityCourse0 = activity.course0 || [];  // блоки нулевого курса
           /* Пустой список — это НЕ «выбери сам», а «чтения не будет».
              Раньше здесь ставился null, и сборщик считал, что аяты просто
              не заданы, и подставлял случайные — задание чтения появлялось

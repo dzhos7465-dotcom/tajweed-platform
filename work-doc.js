@@ -154,7 +154,10 @@
     let body = '';
 
     if (d.ty === 'single') {
-      body = mushaf(exampleText(d.ex), 32, false) +
+      /* У заданий нулевого курса примера из библиотеки нет: показанный слог
+         или знак собирается на месте и сохраняется в работе полем h.
+         Без этого документ выходил бы с пустой рамкой вместо вопроса. */
+      body = mushaf(exampleText(d.ex) || d.h || '', 32, false) +
         (Array.isArray(d.op)
           ? d.op.map(function (o) { return optionRow(o, d.ai, d.ci); }).join('')
           : '');

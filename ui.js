@@ -101,10 +101,15 @@
     const exampleCard = document.querySelector('.example');
 
     if (task.type === TASK_TYPES.SINGLE) {
-      // Одиночный: пример — герой в карточке, ниже варианты
-      exampleCard.style.display = '';
+      /* Одиночный: пример — герой в карточке, ниже варианты.
+         Примера из библиотеки может не быть: у нулевого курса герой — слог,
+         знак или отдельная буква, собранная на месте. А бывает, что героя
+         нет вовсе («что такое танвин») — тогда карточку прячем, иначе над
+         вопросом висела бы пустая рамка. */
       const examples = resolveExamples(task);
-      $('q-example').textContent = examples.map(e => e.text).join('   ');
+      const heroText = examples.length ? examples.map(e => e.text).join('   ') : (task.hero || '');
+      exampleCard.style.display = heroText ? '' : 'none';
+      $('q-example').textContent = heroText;
       renderSingle(task, wrap);
     } else if (task.type === TASK_TYPES.SORT) {
       // Распределение: героя-примера нет, есть объекты и группы
@@ -1013,10 +1018,11 @@
         /* Сначала СОБРАТЬ задания по активности, потом считать. Без этого
            считались встроенные шаблоны — те самые 43–45 заданий, которых
            преподаватель не задавал. */
-        if (typeof rebuildTasks === 'function' && cfg.activityThemes) {
-          rebuildTasks(session.mode.randomizeExamples, cfg.activityThemes || null,
-                       cfg.activityRecite || null, cfg.activitySort || null,
-                       cfg.activityFind || null);
+        /* Считать число заданий можно только по СОБРАННОЙ работе.
+           Прежнее условие требовало тем-правил, поэтому работа из одних
+           букв показывала бы на входе чужое число. */
+        if (typeof rebuildTasks === 'function') {
+          rebuildTasks(session.mode.randomizeExamples, cfg);
         }
         n = buildTaskOrder(cfg).length;
       }

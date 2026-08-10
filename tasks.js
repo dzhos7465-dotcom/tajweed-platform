@@ -48,68 +48,462 @@ const OPTION_STYLE = {
 };
 
 /* ──────────────────────────────────────────────────────────────────────
-   ВОПРОСЫ О БУКВАХ  (нулевой курс)
+   НУЛЕВОЙ КУРС: БУКВЫ И ЗНАКИ
    ──────────────────────────────────────────────────────────────────────
-   Не пишутся руками по одному. Каждый шаблон говорит, ПО КАКОМУ свойству
-   спрашивать, а платформа берёт одну подходящую букву и две неподходящие.
-   Значит вопросов хватит на любое число прохождений, и у каждого ученика
-   свой набор — в отличие от готовой формы, где тридцать вопросов навсегда.
+   Вопросы не пишутся руками по одному. Каждый БЛОК — это умение, которое
+   проверяется; внутри блока лежит несколько видов вопросов на это умение,
+   и платформа каждый раз берёт другой вид и другие буквы. Значит вопросов
+   хватит на любое число прохождений, и у каждого ученика свой набор —
+   в отличие от готовой формы, где тридцать вопросов навсегда.
 
-   negative: true — вопрос наоборот: «какая НЕ является межзубной».
-   Тогда верный ответ тот, у кого свойства НЕТ.
+   ПОЧЕМУ БЛОК, А НЕ ВОПРОС. В панели преподаватель думает умениями
+   («проверить огласовки»), а не формулировками. Если бы каждый вид стал
+   отдельной строкой, список вырос бы вдвое, а прямой и обратный вопрос
+   («какая межзубная» / «какая НЕ межзубная») всё равно осмысленны только
+   вместе.
+
+   УЗНАВАНИЕ И ПРИМЕНЕНИЕ. Там, где можно, блок спрашивает не название,
+   а работу: не «что такое танвин», а «как прозвучит это окончание».
+   Название запоминается со слуха и угадывается по длине ответа;
+   применение — нет.
+
+   ГОРЛОВЫХ ЗДЕСЬ НЕТ намеренно: на занятиях эта категория не вводится.
+   Свойство throat в библиотеке остаётся — оно нужно для изхара нуна.
 ────────────────────────────────────────────────────────────────────── */
-const LETTER_TEMPLATES = [
-  { id: 'lq_connect_both', prop: 'connects', ask: 'Какая из этих букв соединяется <b>с обеих</b> сторон?' },
-  { id: 'lq_connect_no',   prop: 'connects', negative: true,
-    ask: 'Какая из этих букв <b>НЕ</b> соединяется с последующей?' },
-  { id: 'lq_interdental',  prop: 'interdental', ask: 'Какая из этих букв является межзубной?' },
-  { id: 'lq_interdental_no', prop: 'interdental', negative: true,
-    ask: 'Какая из этих букв <b>НЕ</b> является межзубной?' },
-  { id: 'lq_heavy',        prop: 'heavy', ask: 'Какая буква читается твёрдо (с оттенком «о»)?' },
-  { id: 'lq_heavy_no',     prop: 'heavy', negative: true,
-    ask: 'Какая из этих букв <b>НЕ</b> является твёрдой?' },
-  { id: 'lq_madd',         prop: 'madd',  ask: 'Какая из этих букв является буквой мадда?' },
-  { id: 'lq_throat',       prop: 'throat', ask: 'Какая из этих букв горловая?' },
-];
 
-/* Собрать один вопрос о букве: верный ответ и два неверных. */
-function buildLetterTask(tpl, rng, nextId) {
-  if (typeof LETTERS === 'undefined') return null;
-  const pick1 = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+/* Буквы, которыми можно набрать неверные варианты к вопросу о названии.
+   Сначала похожие по написанию, потом — чем добрать, если похожих мало. */
+function c0Distractors(right, rng, howMany) {
+  const out = [];
+  const seen = {};
+  seen[right.id] = 1;
+  const take = function (list) {
+    shuffleWith(list, rng).forEach(function (l) {
+      if (out.length < howMany && l && !seen[l.id]) { seen[l.id] = 1; out.push(l); }
+    });
+  };
+  take(similarLetters(right));
+  if (out.length < howMany) take(alphabet());
+  return out;
+}
 
-  const yes = lettersWith(tpl.prop, true);
-  const no  = lettersWith(tpl.prop, false);
-  // при вопросе наоборот верный — тот, У КОГО свойства нет
-  const rightPool = tpl.negative ? no : yes;
-  const wrongPool = tpl.negative ? yes : no;
-  if (rightPool.length < 1 || wrongPool.length < 2) return null;
-
-  const right = pick1(rightPool);
-  const wrong = [];
-  const seen = { [right.id]: 1 };
-  let guard = 0;
-  while (wrong.length < 2 && guard++ < 200) {
-    const w = pick1(wrongPool);
-    if (!seen[w.id]) { seen[w.id] = 1; wrong.push(w); }
-  }
-  if (wrong.length < 2) return null;
-
-  const opts = shuffleWith([right].concat(wrong), rng).map(function (l) {
-    return { id: l.id, label: l.ch, sub: l.name };   // подпись — сама буква
-  });
-
+/* Собрать вопрос с одним ответом. Всё, что отличает вопросы нулевого
+   курса друг от друга, задаётся здесь параметрами — сам вид задания
+   остаётся тем же SINGLE, который движок уже умеет проверять. */
+function c0Task(nextId, blockId, spec) {
   return {
-    id: nextId('t_letter'),
-    theme: 'letters',
+    id: nextId('t_' + blockId),
+    theme: blockId,
     stage: 'course0',
     type: TASK_TYPES.SINGLE,
-    optionStyle: OPTION_STYLE.LETTER,
-    prompt: tpl.ask,
-    options: opts,
-    answer: right.id,
+    optionStyle: spec.optionStyle || OPTION_STYLE.TEXT,
+    prompt: spec.prompt,
+    hero: spec.hero || null,        // что показать крупно над вариантами
+    options: spec.options,
+    answer: spec.answer,
+    explain: spec.explain || '',    // разбор для тренировки
     check: CHECK.AUTO,
     weight: TASK_WEIGHTS.single,
   };
+}
+
+/* Вопрос о свойстве буквы: одна подходящая и две неподходящие. */
+function c0PropQuestion(nextId, blockId, rng, prop, ask, negative, explain) {
+  const yes = lettersWith(prop, true);
+  const no = lettersWith(prop, false);
+  const rightPool = negative ? no : yes;
+  const wrongPool = negative ? yes : no;
+  if (!rightPool.length || wrongPool.length < 2) return null;
+
+  const right = pickWith(rightPool, 1, rng)[0];
+  const wrong = pickWith(wrongPool, 2, rng);
+  if (wrong.length < 2) return null;
+
+  const opts = shuffleWith([right].concat(wrong), rng).map(function (l) {
+    return { id: l.id, label: l.ch, sub: l.name };
+  });
+  return c0Task(nextId, blockId, {
+    optionStyle: OPTION_STYLE.LETTER,
+    prompt: ask,
+    options: opts,
+    answer: right.id,
+    explain: explain(right),
+  });
+}
+
+/* Вопрос из готовых словесных вариантов. */
+function c0TextQuestion(nextId, blockId, rng, prompt, hero, right, wrongs, explain) {
+  const opts = shuffleWith(
+    [{ id: 'ok', label: right }].concat(wrongs.map(function (w, i) {
+      return { id: 'w' + i, label: w };
+    })), rng);
+  return c0Task(nextId, blockId, {
+    prompt: prompt, hero: hero, options: opts, answer: 'ok', explain: explain,
+  });
+}
+
+/* Вопрос, где варианты — арабские знаки крупно, без подписей.
+   Подпись под знаком была бы ответом. */
+function c0GlyphQuestion(nextId, blockId, rng, prompt, hero, rightCh, wrongChs, explain) {
+  const opts = shuffleWith(
+    [{ id: 'ok', label: rightCh }].concat(wrongChs.map(function (c, i) {
+      return { id: 'w' + i, label: c };
+    })), rng);
+  return c0Task(nextId, blockId, {
+    optionStyle: OPTION_STYLE.LETTER,
+    prompt: prompt, hero: hero, options: opts, answer: 'ok', explain: explain,
+  });
+}
+
+/* Случайная лёгкая буква для слога. Твёрдые и меняющие звук сюда не
+   попадают: у них фатха даёт оттенок «о», и запись «са» была бы ложью. */
+function c0SyllableLetter(rng) {
+  const pool = (typeof syllableLetters === 'function') ? syllableLetters() : [];
+  return pool.length ? pickWith(pool, 1, rng)[0] : null;
+}
+
+const C0_VOWELS = ['fatha', 'kasra', 'damma'];
+
+const COURSE0_BLOCKS = [
+  /* ── БУКВЫ: свойства ───────────────────────────────────────────── */
+  {
+    id: 'c0_connect', title: 'Соединение букв',
+    hint: 'соединяется ли буква с соседней',
+    kinds: [
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_connect', rng, 'connects',
+          'Какая из этих букв соединяется <b>с обеих</b> сторон?', false,
+          function (l) { return 'Это <b>' + l.name + '</b>. Она соединяется и справа, и слева, поэтому в середине слова у неё есть срединная форма.'; });
+      },
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_connect', rng, 'connects',
+          'Какая из этих букв <b>НЕ</b> соединяется с последующей?', true,
+          function (l) { return 'Это <b>' + l.name + '</b>. Таких букв шесть: ا د ذ ر ز و — после них следующая буква начинается заново.'; });
+      },
+    ],
+  },
+  {
+    id: 'c0_interdental', title: 'Межзубные буквы',
+    hint: 'ث ذ ظ — кончик языка между зубами',
+    kinds: [
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_interdental', rng, 'interdental',
+          'Какая из этих букв является межзубной?', false,
+          function (l) { return 'Это <b>' + l.name + '</b>. Межзубных три: ث ذ ظ — кончик языка выходит между зубами.'; });
+      },
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_interdental', rng, 'interdental',
+          'Какая из этих букв <b>НЕ</b> является межзубной?', true,
+          function (l) { return 'Это <b>' + l.name + '</b>, язык за зубами не выходит. Межзубные только ث ذ ظ.'; });
+      },
+    ],
+  },
+  {
+    id: 'c0_heavy', title: 'Твёрдые буквы',
+    hint: 'читаются с оттенком «о»',
+    kinds: [
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_heavy', rng, 'heavy',
+          'Какая буква читается твёрдо (с оттенком «о»)?', false,
+          function (l) { return 'Это <b>' + l.name + '</b> — твёрдая буква, звук идёт с поднятым корнем языка.'; });
+      },
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_heavy', rng, 'heavy',
+          'Какая из этих букв <b>НЕ</b> является твёрдой?', true,
+          function (l) { return 'Это <b>' + l.name + '</b> — мягкая буква, оттенка «о» в ней нет.'; });
+      },
+    ],
+  },
+  {
+    id: 'c0_madd_letters', title: 'Буквы мадда',
+    hint: 'ا و ي — какая какой звук тянет',
+    kinds: [
+      function (nextId, rng) {
+        return c0PropQuestion(nextId, 'c0_madd_letters', rng, 'madd',
+          'Какая из этих букв является буквой мадда?', false,
+          function (l) { return 'Это <b>' + l.name + '</b>. Букв мадда три: ا و ي — они тянут звук.'; });
+      },
+      /* Какая тянет именно этот звук: неверные варианты — две другие буквы
+         мадда, а не случайные. Иначе ответить можно, не зная разницы. */
+      function (nextId, rng) {
+        const pairs = [
+          { id: 'alif', vowel: 'а' }, { id: 'waw', vowel: 'у' }, { id: 'ya', vowel: 'и' },
+        ];
+        const right = pickWith(pairs, 1, rng)[0];
+        const wrongs = pairs.filter(function (p) { return p.id !== right.id; });
+        const opts = shuffleWith([right].concat(wrongs), rng).map(function (p) {
+          const l = LETTER_BY_ID[p.id];
+          return { id: p.id, label: l.ch, sub: l.name };
+        });
+        return c0Task(nextId, 'c0_madd_letters', {
+          optionStyle: OPTION_STYLE.LETTER,
+          prompt: 'Какая буква удлиняет звук «' + right.vowel + '»?',
+          options: opts,
+          answer: right.id,
+          explain: 'Звук «' + right.vowel + '» тянет <b>' + LETTER_BY_ID[right.id].name +
+                   '</b>. Алиф тянет «а», вав — «у», йа — «и».',
+        });
+      },
+    ],
+  },
+  {
+    id: 'c0_letter_name', title: 'Названия букв',
+    hint: 'узнать букву по начертанию (варианты — похожие)',
+    kinds: [
+      function (nextId, rng) {
+        const right = pickWith(alphabet(), 1, rng)[0];
+        const wrong = c0Distractors(right, rng, 2);
+        if (wrong.length < 2) return null;
+        const opts = shuffleWith([right].concat(wrong), rng).map(function (l) {
+          return { id: l.id, label: l.name };
+        });
+        return c0Task(nextId, 'c0_letter_name', {
+          prompt: 'Как называется эта буква?',
+          hero: right.ch,
+          options: opts,
+          answer: right.id,
+          explain: 'Это <b>' + right.name + '</b> — ' + right.ch +
+                   '. Смотри на точки: похожие буквы различаются именно ими.',
+        });
+      },
+      /* Обратный ход: названо имя — найди букву среди похожих. */
+      function (nextId, rng) {
+        const right = pickWith(alphabet(), 1, rng)[0];
+        const wrong = c0Distractors(right, rng, 2);
+        if (wrong.length < 2) return null;
+        const opts = shuffleWith([right].concat(wrong), rng).map(function (l) {
+          return { id: l.id, label: l.ch };   // без подписи: подпись была бы ответом
+        });
+        return c0Task(nextId, 'c0_letter_name', {
+          optionStyle: OPTION_STYLE.LETTER,
+          prompt: 'Где буква <b>' + right.name + '</b>?',
+          options: opts,
+          answer: right.id,
+          explain: '<b>' + right.name + '</b> пишется так: ' + right.ch + '.',
+        });
+      },
+    ],
+  },
+  {
+    id: 'c0_alphabet', title: 'Алфавит',
+    hint: 'сколько букв',
+    kinds: [
+      function (nextId, rng) {
+        /* Число берём из библиотеки, а не пишем руками: добавится буква —
+           верный ответ изменится сам. */
+        const n = alphabet().length;
+        return c0TextQuestion(nextId, 'c0_alphabet', rng,
+          'Сколько букв в арабском алфавите?', null,
+          String(n), [String(n - 2), String(n + 2)],
+          'В арабском алфавите <b>' + n + '</b> букв. Хамза, та-марбута и лям-алиф в это число не входят.');
+      },
+    ],
+  },
+  {
+    id: 'c0_special', title: 'Особые знаки',
+    hint: 'хамза, хамзатуль-васль, та-марбута, лям-алиф',
+    kinds: [
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_special', rng,
+          'Как называется этот знак?', LETTER_BY_ID.hamza.ch,
+          'Хамза', ['Хамзатуль-васль', 'Алиф'],
+          'Это <b>хамза</b>. У хамзатуль-васль сверху есть головка сад (ٱ), а алиф — просто палочка.');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_special', rng,
+          'Как называется эта буква?', LETTER_BY_ID.ta_marbuta.ch,
+          'Та-марбута (закрытая та)', ['Хамзатуль-васль', 'Лям-алиф'],
+          'Это <b>та-марбута</b>. Похожа на ха, но с двумя точками сверху.');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_special', rng,
+          'Что такое лям-алиф?', LETTER_BY_ID.lam_alif.ch,
+          'Две буквы вместе', ['Одна буква', 'Огласовка'],
+          'Это <b>две буквы вместе</b>: лям и алиф. Отдельной буквой алфавита лям-алиф не считается.');
+      },
+      /* Применение вместо названия: та-марбута меняет звук при остановке. */
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_special', rng,
+          'Как читается та-марбута <b>при остановке</b>?',
+          LETTER_BY_ID.ta_marbuta.ch,
+          'Как ه', ['Как ت', 'Не читается'],
+          'При остановке та-марбута звучит как <b>ه</b>, а при продолжении — как ت.');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_special', rng,
+          'Когда хамзатуль-васль <b>НЕ</b> читается?', LETTER_BY_ID.hamza_wasl.ch,
+          'В середине речи', ['В начале речи', 'Всегда'],
+          'Хамзатуль-васль читается только в начале речи. В середине она соединяет слова и сама не звучит.');
+      },
+    ],
+  },
+
+  /* ── ЗНАКИ: огласовки и остальное ──────────────────────────────── */
+  {
+    id: 'c0_harakat', title: 'Огласовки',
+    hint: 'фатха, касра, дамма — и как читается слог',
+    kinds: [
+      /* Применение: прочитать слог. Согласный во всех вариантах один,
+         отличается только гласный — подмены звука не происходит. */
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        const vid = pickWith(C0_VOWELS, 1, rng)[0];
+        const right = SIGN_BY_ID[vid];
+        const others = C0_VOWELS.filter(function (v) { return v !== vid; })
+          .map(function (v) { return l.tr + SIGN_BY_ID[v].vowel; });
+        return c0TextQuestion(nextId, 'c0_harakat', rng,
+          'Как читается этот слог?', syllable(l, vid),
+          l.tr + right.vowel, others,
+          'Здесь <b>' + right.name.toLowerCase() + '</b> — она даёт звук «' + right.vowel + '».');
+      },
+      function (nextId, rng) {
+        const vid = pickWith(C0_VOWELS, 1, rng)[0];
+        const right = SIGN_BY_ID[vid];
+        const others = C0_VOWELS.filter(function (v) { return v !== vid; });
+        return c0TextQuestion(nextId, 'c0_harakat', rng,
+          'Как называется огласовка, которая даёт звук «' + right.vowel + '»?',
+          signAlone(right),
+          right.name, others.map(function (v) { return SIGN_BY_ID[v].name; }),
+          '<b>' + right.name + '</b> — ' + right.does + '.');
+      },
+      function (nextId, rng) {
+        const vid = pickWith(C0_VOWELS, 1, rng)[0];
+        const right = SIGN_BY_ID[vid];
+        const others = C0_VOWELS.filter(function (v) { return v !== vid; });
+        return c0GlyphQuestion(nextId, 'c0_harakat', rng,
+          'Какой знак даёт звук «' + right.vowel + '»?', null,
+          signAlone(right), others.map(function (v) { return signAlone(v); }),
+          'Это <b>' + right.name.toLowerCase() + '</b>: ' + right.does + '.');
+      },
+    ],
+  },
+  {
+    id: 'c0_sukun', title: 'Сукун',
+    hint: 'буква без гласного',
+    kinds: [
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        return c0GlyphQuestion(nextId, 'c0_sukun', rng,
+          'В каком слоге буква читается <b>без гласного</b>?', null,
+          syllable(l, 'sukun'), [syllable(l, 'fatha'), syllable(l, 'damma')],
+          'Знак сукун (кружок) значит, что гласного нет: звучит только сама буква — «' + l.tr + '».');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_sukun', rng,
+          'Как называется этот знак?', signAlone('sukun'),
+          'Сукун', ['Шадда', 'Хамза'],
+          'Это <b>сукун</b>: ' + SIGN_BY_ID.sukun.does + '.');
+      },
+    ],
+  },
+  {
+    id: 'c0_shadda', title: 'Шадда',
+    hint: 'удвоение буквы',
+    kinds: [
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        return c0GlyphQuestion(nextId, 'c0_shadda', rng,
+          'В каком слоге буква <b>удваивается</b>?', null,
+          syllable(l, ['shadda', 'fatha']), [syllable(l, 'fatha'), syllable(l, 'sukun')],
+          'Шадда значит, что буква читается дважды: «' + l.tr + l.tr + 'а».');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_shadda', rng,
+          'Что означает знак шадда?', signAlone('shadda'),
+          'Удвоение', ['Удлинение', 'Пауза'],
+          'Шадда — <b>удвоение</b>: буква произносится дважды, одна на сукуне и одна с огласовкой.');
+      },
+    ],
+  },
+  {
+    id: 'c0_tanwin', title: 'Танвин',
+    hint: 'двойная огласовка в конце слова',
+    kinds: [
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        const map = { tanwin_fath: 'fatha', tanwin_kasr: 'kasra', tanwin_damm: 'damma' };
+        const tid = pickWith(Object.keys(map), 1, rng)[0];
+        const t = SIGN_BY_ID[tid];
+        const other = C0_VOWELS.filter(function (v) { return v !== map[tid]; })[0];
+        return c0TextQuestion(nextId, 'c0_tanwin', rng,
+          'Как читается это окончание?', syllable(l, tid),
+          l.tr + t.vowel + 'н', [l.tr + t.vowel, l.tr + SIGN_BY_ID[other].vowel + 'н'],
+          'Танвин — двойная огласовка: к звуку «' + t.vowel + '» добавляется <b>н</b>.');
+      },
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        return c0GlyphQuestion(nextId, 'c0_tanwin', rng,
+          'Где в конце добавится звук <b>«н»</b>?', null,
+          syllable(l, 'tanwin_fath'), [syllable(l, 'fatha'), syllable(l, 'sukun')],
+          'Две одинаковые огласовки подряд — это танвин, он добавляет «н».');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_tanwin', rng,
+          'Что такое танвин?', null,
+          'Двойная огласовка в конце слова', ['Удлинение', 'Сукун'],
+          'Танвин — <b>двойная огласовка в конце слова</b>, читается с добавлением «н».');
+      },
+    ],
+  },
+  {
+    id: 'c0_madd_read', title: 'Удлинение',
+    hint: 'что такое мадд и где тянется звук',
+    kinds: [
+      function (nextId, rng) {
+        const l = c0SyllableLetter(rng);
+        if (!l) return null;
+        return c0GlyphQuestion(nextId, 'c0_madd_read', rng,
+          'В каком слоге звук <b>тянется</b>?', null,
+          longSyllable(l), [syllable(l, 'fatha'), syllable(l, 'sukun')],
+          'После огласовки стоит буква мадда — звук тянется: «' + l.tr + 'аа».');
+      },
+      function (nextId, rng) {
+        return c0TextQuestion(nextId, 'c0_madd_read', rng,
+          'Что такое мадд?', null,
+          'Удлинение', ['Огласовка', 'Остановка'],
+          'Мадд — это <b>удлинение</b> звука буквами ا و ي.');
+      },
+    ],
+  },
+];
+
+const COURSE0_BY_ID = {};
+COURSE0_BLOCKS.forEach(function (b) { COURSE0_BY_ID[b.id] = b; });
+
+/* Название блока по его id — чтобы панель в разборе работы не держала
+   свой список подписей. Пять раз в этом проекте переписанный руками
+   список отставал от библиотеки; здесь этого не повторяем. */
+function course0Name(blockId) {
+  return COURSE0_BY_ID[blockId] ? COURSE0_BY_ID[blockId].title : '';
+}
+
+/* Собрать одно задание блока: вид вопроса выбирается случайно.
+   Если вид не собрался (не хватило букв) — пробуем другие. */
+function buildCourse0Task(blockId, rng, nextId, order, at) {
+  const block = COURSE0_BY_ID[blockId];
+  if (!block || typeof LETTERS === 'undefined' || typeof SIGNS === 'undefined') return null;
+  /* Виды вопросов ПЕРЕБИРАЮТСЯ по кругу, а не выбираются заново каждый раз.
+     При случайном выборе на трёх заданиях блока легко выпадал трижды один
+     и тот же вид — блок «Огласовки» спрашивал название три раза подряд,
+     а прочитать слог ученику так и не предлагали. */
+  const kinds = order || shuffleWith(block.kinds, rng);
+  const from = at || 0;
+  for (let i = 0; i < kinds.length; i++) {
+    const task = kinds[(from + i) % kinds.length](nextId, rng);
+    if (task) return task;
+  }
+  return null;
+}
+
+/* Порядок видов вопросов внутри блока — перемешивается один раз на работу. */
+function course0KindOrder(blockId, rng) {
+  const block = COURSE0_BY_ID[blockId];
+  return block ? shuffleWith(block.kinds, rng) : [];
 }
 
 /* Способы проверки — два класса, зафиксированы как закон архитектуры.
@@ -510,7 +904,40 @@ function ayahsWithGroup(rules) {
    перезагрузки собрать РОВНО ТУ ЖЕ работу, а не новую. */
 let LAST_SEED = null;
 
-function buildTasksFromTemplates(randomize, activityThemes, activityRecite, activitySort, activityFind, seed) {
+/* ── РЕЦЕПТ РАБОТЫ ────────────────────────────────────────────────────
+   Раньше сюда передавалось шесть отдельных аргументов по порядку, и три
+   места в других файлах должны были помнить этот порядок. Каждый новый
+   вид заданий означал правку в четырёх файлах — ровно тот путь, которым
+   в проекте уже не раз получались загадочные поломки.
+
+   Теперь передаётся ОДИН объект — тот самый конфиг, который собирается
+   в exam.html. Старый порядок аргументов продолжает работать: если вторым
+   пришёл список тем, а не объект, мы соберём рецепт сами. */
+function asRecipe(a, recite, sort, find, course0) {
+  if (a && !Array.isArray(a) && typeof a === 'object') {
+    return {
+      themes: a.activityThemes || a.themes || null,
+      recite: a.activityRecite || a.recite || null,
+      sort: a.activitySort || a.sort || null,
+      find: a.activityFind || a.find || null,
+      course0: a.activityCourse0 || a.course0 || null,
+    };
+  }
+  return { themes: a || null, recite: recite || null, sort: sort || null,
+           find: find || null, course0: course0 || null };
+}
+
+function buildTasksFromTemplates(randomize, recipeArg, reciteArg, sortArg, findArg, seed, course0Arg) {
+  const recipe = asRecipe(recipeArg, reciteArg, sortArg, findArg, course0Arg);
+  const activityThemes = recipe.themes;
+  const activityRecite = recipe.recite;
+  const activitySort = recipe.sort;
+  const activityFind = recipe.find;
+  const activityCourse0 = recipe.course0;
+  /* Рецептом вызывают коротко: (randomize, cfg, seed). Тогда «номер билета»
+     приходит третьим аргументом, а не шестым. */
+  if (recipeArg && !Array.isArray(recipeArg) && typeof recipeArg === 'object' &&
+      seed == null && typeof reciteArg === 'number') seed = reciteArg;
   /* Для контрольной seed постоянный — «билет» стабилен для всей группы.
      Для остальных режимов свежий при каждом запуске.
 
@@ -531,13 +958,21 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
 
   // Источник тем: если пришли темы из активности — берём их, иначе встроенные.
   // Движок не знает, откуда список — из файла или из панели. Граница соблюдена.
+  /* Рецепт пришёл из панели, если задан хоть один его раздел. Отличать это
+     от «вызвали без рецепта» обязательно: у работы нулевого курса тем-правил
+     нет вовсе, и по прежнему условию она молча набирала весь встроенный
+     учебный набор — 43 чужих задания вместо букв. */
+  const byActivity = !!(activityThemes || activitySort || activityFind || activityCourse0);
+
   let ruleTemplates;
   if (activityThemes && activityThemes.length) {
     ruleTemplates = activityThemes.map(function (t) {
       return { theme: t.theme, count: t.count || 1, answer: answerForTheme(t.theme) };
     });
+  } else if (byActivity) {
+    ruleTemplates = [];              // преподаватель тем не выбрал — вопросов о правилах нет
   } else {
-    ruleTemplates = RULE_TEMPLATES;
+    ruleTemplates = RULE_TEMPLATES;  // вызов без рецепта — учебный набор по умолчанию
   }
 
   // 1. Вопросы «какое правило?»
@@ -559,11 +994,38 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
     });
   });
 
+  // 1.5 Вопросы нулевого курса (буквы и знаки).
+  //     Преподаватель отмечает УМЕНИЯ, а не формулировки; вид вопроса
+  //     внутри блока платформа выбирает сама, каждый раз другой.
+  if (Array.isArray(activityCourse0) && activityCourse0.length &&
+      typeof buildCourse0Task === 'function') {
+    activityCourse0.forEach(function (row) {
+      const blockId = row.block || row.id;
+      const count = Math.max(1, parseInt(row.count, 10) || 1);
+      const seenPrompts = {};
+      const kindOrder = course0KindOrder(blockId, rng);
+      let guard = 0;
+      let made = 0;
+      /* Один и тот же вопрос дважды в одной работе — впустую потраченное
+         задание. Повторов избегаем по тексту вопроса вместе с показанным
+         знаком: «как называется эта буква» про разные буквы — это разные
+         вопросы, а про одну и ту же — один и тот же. */
+      while (made < count && guard++ < count * 12) {
+        const task = buildCourse0Task(blockId, rng, nextId, kindOrder, made);
+        if (!task) break;
+        const key = task.prompt + '|' + (task.hero || '') + '|' + task.answer;
+        if (seenPrompts[key]) continue;
+        seenPrompts[key] = 1;
+        built.push(task);
+        made++;
+      }
+    });
+  }
+
   // 2. Sort-задания (распределение).
   //    Встроенный экзамен: все SORT_TEMPLATES.
   //    По активности: только те, что преподаватель отметил галочкой
   //      (sortMim → sort_mim, sortNun → sort_nun).
-  const byActivity = !!(activityThemes && activityThemes.length);
   SORT_TEMPLATES.forEach(tpl => {
     // какой набор выбранных правил у этого распределения (из активности)
     var selKey = tpl.id === 'sort_mim' ? 'mimRules' : (tpl.id === 'sort_nun' ? 'nunRules' : 'maddRules');
@@ -732,9 +1194,13 @@ function buildTasksFromTemplates(randomize, activityThemes, activityRecite, acti
    при старте попытки; здесь — начальное построение для совместимости. */
 let TASKS = buildTasksFromTemplates(false);  // старт — фиксированный набор
 
-function rebuildTasks(randomize, activityThemes, activityRecite, activitySort, activityFind, seed) {
-  TASKS = buildTasksFromTemplates(!!randomize, activityThemes || null, activityRecite || null,
-                                  activitySort || null, activityFind || null, seed);
+function rebuildTasks(randomize, recipeOrThemes, reciteOrSeed, sort, find, seed, course0) {
+  /* Два способа вызова:
+       rebuildTasks(randomize, cfg, seed)                        — новый, рецептом
+       rebuildTasks(randomize, themes, recite, sort, find, seed) — прежний
+     Второй оставлен, чтобы старые вызовы не пришлось искать по всем файлам. */
+  TASKS = buildTasksFromTemplates(!!randomize, recipeOrThemes || null, reciteOrSeed,
+                                  sort || null, find || null, seed, course0 || null);
   return TASKS;
 }
 
@@ -855,6 +1321,15 @@ function nameOf(themeId) {
 function getExplanation(task, userAnswer, checkResult) {
   if (checkResult && checkResult.pending) {
     return 'Это задание проверит преподаватель.';
+  }
+
+  /* Задание нулевого курса несёт объяснение при себе: правила таджвида
+     тут ни при чём, и спрашивать THEMES о букве нечего. */
+  if (task && task.explain) {
+    if (checkResult && checkResult.correct === true) return task.explain;
+    var chosenOpt = (task.options || []).filter(function (o) { return o.id === userAnswer; })[0];
+    return task.explain + (chosenOpt
+      ? '<br><br>Ты выбрал: <b>' + chosenOpt.label + '</b>.' : '');
   }
 
   // Вопрос с одним ответом — здесь противопоставление работает лучше всего.

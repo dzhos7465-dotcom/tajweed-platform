@@ -14,7 +14,23 @@
      madd        — буква мадда (ا و ي)
      throat      — горловая (ء ه ع ح غ خ) — те же, что в изхаре нуна
      special     — не обычная буква алфавита: хамза, та-марбута, лам-алиф
+     similar     — на какие буквы похожа ПО НАПИСАНИЮ
+     tr          — согласный звук по-русски, для сборки слогов
      sound       — путь к записи названия буквы в хранилище
+
+   ПРО ПОХОЖИЕ БУКВЫ. Дети путают буквы глазами, а не ухом: различаются
+   точками и мелкими деталями. Если в вопросе «как называется эта буква»
+   поставить неверными вариантами случайные буквы, ребёнок ответит, не
+   глядя на начертание, — задание проверит удачу, а не знание. Поэтому
+   неверные варианты берутся отсюда. Список открыт: преподаватель видит
+   на занятиях, на чём именно спотыкаются, и правит здесь.
+
+   ПРО tr. Русскими буквами арабский звук передать нельзя, и «са» стоит
+   и у ث, и у س. Но в вопросе «как читается بَ» варианты отличаются только
+   ГЛАСНЫМ (ба / би / бу) — согласный во всех один и тот же, и подмены не
+   происходит. Поэтому tr годится ровно для слогов и больше ни для чего.
+   У твёрдых букв и у тех, где звук меняется, tr не ставим: там фатха даёт
+   оттенок «о», и запись «са» была бы неправдой.
 
    ПРО ЗВУК. Поле sound пока пустое у всех — место заложено заранее.
    Русскими буквами арабский звук не передать: «са» для ث и для س
@@ -31,43 +47,75 @@
 
 const LETTERS = [
   // ── алфавит по порядку ──
-  { id: 'alif',  ch: 'ا', name: 'алиф',  connects: false, madd: true },
-  { id: 'ba',    ch: 'ب', name: 'ба',    connects: true },
-  { id: 'ta',    ch: 'ت', name: 'та',    connects: true },
-  { id: 'tha',   ch: 'ث', name: 'са',    connects: true,  interdental: true },
-  { id: 'jim',   ch: 'ج', name: 'джим',  connects: true },
-  { id: 'hha',   ch: 'ح', name: 'ха',    connects: true,  throat: true },
-  { id: 'kha',   ch: 'خ', name: 'хха',   connects: true,  throat: true, heavy: true },
-  { id: 'dal',   ch: 'د', name: 'даль',  connects: false },
-  { id: 'dhal',  ch: 'ذ', name: 'заль',  connects: false, interdental: true },
-  { id: 'ra',    ch: 'ر', name: 'ра',    connects: false, heavyVaries: true },
-  { id: 'zay',   ch: 'ز', name: 'зай',   connects: false },
-  { id: 'sin',   ch: 'س', name: 'син',   connects: true },
-  { id: 'shin',  ch: 'ش', name: 'шин',   connects: true },
-  { id: 'sad',   ch: 'ص', name: 'сад',   connects: true,  heavy: true },
-  { id: 'dad',   ch: 'ض', name: 'дад',   connects: true,  heavy: true },
-  { id: 'tta',   ch: 'ط', name: 'та (твёрдая)', connects: true, heavy: true },
-  { id: 'zza',   ch: 'ظ', name: 'за (твёрдая)', connects: true, heavy: true, interdental: true },
-  { id: 'ayn',   ch: 'ع', name: 'айн',   connects: true,  throat: true },
-  { id: 'ghayn', ch: 'غ', name: 'гайн',  connects: true,  throat: true, heavy: true },
-  { id: 'fa',    ch: 'ف', name: 'фа',    connects: true },
-  { id: 'qaf',   ch: 'ق', name: 'каф (твёрдая)', connects: true, heavy: true },
-  { id: 'kaf',   ch: 'ك', name: 'кяф',   connects: true },
-  { id: 'lam',   ch: 'ل', name: 'лям',   connects: true,  heavyVaries: true },
-  { id: 'mim',   ch: 'م', name: 'мим',   connects: true },
-  { id: 'nun',   ch: 'ن', name: 'нун',   connects: true },
-  { id: 'ha',    ch: 'ه', name: 'ха (мягкая)', connects: true, throat: true },
-  { id: 'waw',   ch: 'و', name: 'вав',   connects: false, madd: true },
-  { id: 'ya',    ch: 'ي', name: 'йа',    connects: true,  madd: true },
+  { id: 'alif',  ch: 'ا', name: 'алиф',  connects: false, madd: true,
+    similar: ['lam', 'hamza'] },
+  { id: 'ba',    ch: 'ب', name: 'ба',    connects: true,  tr: 'б',
+    similar: ['ta', 'tha', 'nun', 'ya'] },
+  { id: 'ta',    ch: 'ت', name: 'та',    connects: true,  tr: 'т',
+    similar: ['ba', 'tha', 'nun', 'ya'] },
+  { id: 'tha',   ch: 'ث', name: 'са',    connects: true,  interdental: true, tr: 'с',
+    similar: ['ta', 'ba', 'shin', 'nun'] },
+  { id: 'jim',   ch: 'ج', name: 'джим',  connects: true,  tr: 'дж',
+    similar: ['hha', 'kha'] },
+  { id: 'hha',   ch: 'ح', name: 'ха',    connects: true,  throat: true,
+    similar: ['jim', 'kha', 'ayn'] },
+  { id: 'kha',   ch: 'خ', name: 'хха',   connects: true,  throat: true, heavy: true,
+    similar: ['jim', 'hha', 'ghayn'] },
+  { id: 'dal',   ch: 'د', name: 'даль',  connects: false, tr: 'д',
+    similar: ['dhal', 'ra'] },
+  { id: 'dhal',  ch: 'ذ', name: 'заль',  connects: false, interdental: true, tr: 'з',
+    similar: ['dal', 'zay'] },
+  { id: 'ra',    ch: 'ر', name: 'ра',    connects: false, heavyVaries: true,
+    similar: ['zay', 'dal', 'waw'] },
+  { id: 'zay',   ch: 'ز', name: 'зай',   connects: false, tr: 'з',
+    similar: ['ra', 'dhal'] },
+  { id: 'sin',   ch: 'س', name: 'син',   connects: true,  tr: 'с',
+    similar: ['shin', 'sad'] },
+  { id: 'shin',  ch: 'ش', name: 'шин',   connects: true,  tr: 'ш',
+    similar: ['sin', 'tha', 'dad'] },
+  { id: 'sad',   ch: 'ص', name: 'сад',   connects: true,  heavy: true,
+    similar: ['dad', 'sin'] },
+  { id: 'dad',   ch: 'ض', name: 'дад',   connects: true,  heavy: true,
+    similar: ['sad', 'shin'] },
+  { id: 'tta',   ch: 'ط', name: 'та (твёрдая)', connects: true, heavy: true,
+    similar: ['zza'] },
+  { id: 'zza',   ch: 'ظ', name: 'за (твёрдая)', connects: true, heavy: true, interdental: true,
+    similar: ['tta', 'dad'] },
+  { id: 'ayn',   ch: 'ع', name: 'айн',   connects: true,  throat: true,
+    similar: ['ghayn', 'hha'] },
+  { id: 'ghayn', ch: 'غ', name: 'гайн',  connects: true,  throat: true, heavy: true,
+    similar: ['ayn', 'kha'] },
+  { id: 'fa',    ch: 'ف', name: 'фа',    connects: true,  tr: 'ф',
+    similar: ['qaf', 'waw'] },
+  { id: 'qaf',   ch: 'ق', name: 'каф (твёрдая)', connects: true, heavy: true,
+    similar: ['fa', 'nun'] },
+  { id: 'kaf',   ch: 'ك', name: 'кяф',   connects: true,  tr: 'к',
+    similar: ['lam'] },
+  { id: 'lam',   ch: 'ل', name: 'лям',   connects: true,  heavyVaries: true,
+    similar: ['kaf', 'alif'] },
+  { id: 'mim',   ch: 'م', name: 'мим',   connects: true,  tr: 'м',
+    similar: ['ha', 'waw'] },
+  { id: 'nun',   ch: 'ن', name: 'нун',   connects: true,  tr: 'н',
+    similar: ['ba', 'ta', 'ya', 'tha'] },
+  { id: 'ha',    ch: 'ه', name: 'ха (мягкая)', connects: true, throat: true, tr: 'х',
+    similar: ['mim', 'ta_marbuta'] },
+  { id: 'waw',   ch: 'و', name: 'вав',   connects: false, madd: true,
+    similar: ['fa', 'ra', 'mim'] },
+  { id: 'ya',    ch: 'ي', name: 'йа',    connects: true,  madd: true,
+    similar: ['ta', 'ba', 'nun', 'tha'] },
 
   // ── особые знаки: в алфавит не входят, но спрашиваются ──
-  { id: 'hamza',      ch: 'ء',  name: 'хамза',            connects: false, throat: true, special: true },
+  { id: 'hamza',      ch: 'ء',  name: 'хамза',            connects: false, throat: true, special: true,
+    similar: ['hamza_wasl', 'alif'] },
   { id: 'hamza_wasl', ch: 'ٱ',  name: 'хамзатуль-васль',  connects: false, special: true,
+    similar: ['hamza', 'alif'],
     note: 'Соединительная хамза. Стоит в начале слова. В начале речи читается, в середине — нет.' },
   { id: 'ta_marbuta', ch: 'ة',  name: 'та-марбута (закрытая та)', connects: false, special: true,
+    similar: ['ha', 'ta'],
     note: 'При остановке читается как ه, при продолжении — как ت.' },
   { id: 'lam_alif',   ch: 'لا', name: 'лям-алиф',         connects: false, special: true,
-    isPair: true, note: 'Не одна буква, а две вместе: лям и алиф.' },
+    isPair: true, similar: ['lam', 'alif'],
+    note: 'Не одна буква, а две вместе: лям и алиф.' },
 ];
 
 const LETTER_BY_ID = {};
@@ -121,6 +169,23 @@ function alphabet() {
   return LETTERS.filter(function (l) { return !l.special; });
 }
 
+/* Буквы, похожие на данную по написанию. Если у буквы список не заполнен,
+   возвращаем пусто — вызывающий сам решит, чем добрать. Молча подставлять
+   случайные здесь нельзя: тогда не видно, что список неполон. */
+function similarLetters(letter) {
+  const l = (typeof letter === 'string') ? LETTER_BY_ID[letter] : letter;
+  if (!l || !Array.isArray(l.similar)) return [];
+  return l.similar.map(function (id) { return LETTER_BY_ID[id]; }).filter(Boolean);
+}
+
+/* Буквы, из которых можно собрать слог с честной русской записью:
+   не твёрдые, не с меняющимся звуком, не сами буквы мадда. */
+function syllableLetters() {
+  return LETTERS.filter(function (l) {
+    return !l.special && !l.madd && !l.heavy && !l.heavyVaries && l.tr;
+  });
+}
+
 if (typeof window !== 'undefined') {
   window.LETTERS = LETTERS;
   window.LETTER_BY_ID = LETTER_BY_ID;
@@ -130,4 +195,6 @@ if (typeof window !== 'undefined') {
   window.throatLetters = throatLetters;
   window.lettersWithout = lettersWithout;
   window.alphabet = alphabet;
+  window.similarLetters = similarLetters;
+  window.syllableLetters = syllableLetters;
 }
