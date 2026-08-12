@@ -141,7 +141,7 @@ const AYAHS = [
   { id: 'ay_j_tin_1_2', text: 'وَٱلتِّينِ وَٱلزَّيۡتُونِ ۝١ وَطُورِ سِينِينَ ۝٢', rules: ['madd_arid', 'madd_tabii'], usage: ['recite', 'find'] },   // Ат-Тин, 1–2
   { id: 'ay_j_tariq_1_2', text: 'وَٱلسَّمَآءِ وَٱلطَّارِقِ ۝١ وَمَآ أَدۡرَىٰكَ مَا ٱلطَّارِقُ ۝٢', rules: ['madd_munfasil', 'madd_muttasil'], usage: ['recite', 'find'] },   // Ат-Тарик, 1–2
   { id: 'ay_j_quraysh_1_2', text: 'لِإِيلَـٰفِ قُرَيۡشٍ ۝١ إِۦلَـٰفِهِمۡ رِحۡلَةَ ٱلشِّتَآءِ وَٱلصَّيۡفِ ۝٢', rules: ['madd_lin', 'madd_muttasil'], usage: ['recite', 'find'] },   // Аль-Кураиш, 1–2
-  { id: 'ay_j_baqara_1_2', text: 'الٓـمٓ ۝١ ذَـٰلِكَ ٱلۡكِتَـٰبُ لَا رَيۡبَ فِيهِ هُدࣰى لِّلۡمُتَّقِينَ ۝٢', rules: ['idgham_nun', 'madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Бакара, 1–2
+  { id: 'ay_j_baqara_1_2', text: 'الٓـمٓ ۝١ ذَ ٰلِكَ ٱلۡكِتَـٰبُ لَا رَيۡبَ فِيهِ هُدࣰى لِّلۡمُتَّقِينَ ۝٢', rules: ['idgham_nun', 'madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Аль-Бакара, 1–2
   { id: 'ay_j_yasin_1_2', text: 'يـسٓ ۝١ وَٱلۡقُرۡءَانِ ٱلۡحَكِيمِ ۝٢', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Йа-Син, 1–2
   { id: 'ay_j_qalam_1', text: 'نٓ وَٱلۡقَلَمِ وَمَا يَسۡطُرُونَ ۝١', rules: ['madd_arid', 'madd_lazim_harfi', 'madd_tabii'], usage: ['recite', 'find'] },   // Аль-Калям, 1
   { id: 'ay_j_sad_1', text: 'صٓ وَٱلۡقُرۡءَانِ ذِى ٱلذِّكۡرِ ۝١', rules: ['madd_arid', 'madd_lazim_harfi'], usage: ['recite', 'find'] },   // Сад, 1
