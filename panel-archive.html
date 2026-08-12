@@ -528,7 +528,7 @@ body { margin: 0; }
      без него в панели заводились копии, переписанные руками, и отставали -->
 <script src="tasks.js"></script>
 <script src="work-doc.js"></script>
-<script src="storage-supabase.js"></script>
+<script src="storage.js"></script>
 <script>
 (function () {
   'use strict';
@@ -547,7 +547,7 @@ body { margin: 0; }
     loadSection(sec);
   });
 
-  // ── Загрузка данных раздела через слой хранилища (панель не знает, где база) ──
+  // ── Загрузка данных раздела через storage.js (панель не знает про Google) ──
   function loadSection(sec) {
     if (sec === 'dashboard') loadDashboard();
     if (sec === 'activities') loadActivities();
@@ -802,7 +802,7 @@ body { margin: 0; }
     /* Ссылка для учеников всегда ведёт на экзамен, как бы ни называлась
        сама панель. Раньше подставлялось только «panel.html», и при работе
        из panel-new.html ссылка вела обратно в панель. */
-    const base = window.location.href.replace(/[^\/]*\.html.*$/, '') + 'exam.html';
+    const base = window.location.href.replace(/[^\/]*\.html.*$/, '') + 'exam-archive.html';
     return base + '?session=' + sessionId;
   }
 
