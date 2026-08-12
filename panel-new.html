@@ -339,13 +339,6 @@ body { margin: 0; }
         </div>
 
         <div class="collapse" data-collapse>
-          <div class="collapse-head"><span class="collapse-arrow">▸</span> Нулевой курс: буквы и знаки <span class="collapse-hint" id="cnt-course0"></span></div>
-          <div class="collapse-body">
-            <div id="af-course0" class="themes-picker"></div>
-          </div>
-        </div>
-
-        <div class="collapse" data-collapse>
           <div class="collapse-head"><span class="collapse-arrow">▸</span> Аяты для чтения вслух <span class="collapse-hint" id="cnt-ayahs"></span></div>
           <div class="collapse-body">
             <div id="af-ayahs" class="ayahs-picker"></div>
@@ -519,7 +512,6 @@ body { margin: 0; }
 
 <!-- Буквы алфавита: основа нулевого курса -->
 <script src="letters.js"></script>
-<script src="signs.js"></script>
 <script src="knowledge.js"></script>
 <script src="pedagogy.js"></script>
 <script src="ayahs.js"></script>
@@ -966,32 +958,49 @@ body { margin: 0; }
         } catch (e) { return 0; }
       }
 
-      function readingScoreFor(r) {
+      /* Балл за чтение.
+         Делим на число ЗАДАННЫХ аятов, а не присланных. Раньше делили на
+         присланные: ученик сдавал одну запись из двух, получал за неё 7 —
+         и среднее выходило 7, как будто он прочитал оба аята на семь.
+         Несданный аят — ноль, ровно как несданное чтение целиком. */
+      function readingScoreFor(r, expected) {
         var key = (r.sessionId || '') + '|' + (r.fullName || '');
         var mine = recsLatest.filter(function (rec) {
           return ((rec.sessionId || '') + '|' + (rec.fullName || '')) === key;
         });
-        if (!mine.length) return { grade: null, hasRec: false, allGraded: false };
+        if (!mine.length) return { grade: null, hasRec: false, allGraded: false, missing: expected || 0 };
+
         var graded = mine.map(function (m) { return m.grade; })
           .filter(function (g) { return g != null && g !== ''; })
           .map(Number).filter(function (n) { return !isNaN(n); });
+
+        // ждём оценки, пока не проверены все ПРИСЛАННЫЕ записи
         var allGraded = graded.length === mine.length;
-        var avg = graded.length ? (graded.reduce(function (a, b) { return a + b; }, 0) / graded.length) : null;
+
+        // а делим на число заданных аятов: несданные идут нулями
+        var parts = Math.max(expected || 0, mine.length);
+        var sum = graded.reduce(function (a, b) { return a + b; }, 0);
+        var avg = parts ? (sum / parts) : null;
+
         // балл ставится из 10 → приводим к 100 для смешивания
         if (avg != null) avg = Math.min(100, (avg / READING_MAX) * 100);
-        return { grade: avg, hasRec: true, allGraded: allGraded };
+        return {
+          grade: avg, hasRec: true, allGraded: allGraded,
+          missing: Math.max(0, (expected || 0) - mine.length),
+        };
       }
 
       // посчитать общий балл для каждого результата
       res.forEach(function (x, idx) {
         x._idx = idx; x._key = whenKey(x);
         var test = (x.autoScore != null && x.autoScore !== '') ? Number(x.autoScore) : null;
-        var rd = readingScoreFor(x);
         var expected = reciteExpected(x);
+        var rd = readingScoreFor(x, expected);
         x._test = test;
         x._reading = rd.grade;
         x._hasRec = rd.hasRec;
         x._reciteExpected = expected;
+        x._missingRec = rd.missing || 0;
         x._notSubmitted = false;
 
         /* ВАЖНО: «не сдано» ставим, только если список записей ДЕЙСТВИТЕЛЬНО
@@ -1060,7 +1069,9 @@ body { margin: 0; }
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
             : (x._notSubmitted
                 ? '<span class="res-tag" style="background:var(--err-tint); color:var(--err); border:1px solid var(--err);">чтение не сдано</span>'
-                : '<span class="res-tag res-tag-done">проверено</span>');
+                : (x._missingRec
+                    ? '<span class="res-tag" style="background:var(--amber-tint, #faf3e0); color:var(--warn, #9a6a1e); border:1px solid var(--warn, #9a6a1e);">не сдано записей: ' + x._missingRec + '</span>'
+                    : '<span class="res-tag res-tag-done">проверено</span>'));
           const checkbox = resSelectMode
             ? '<input type="checkbox" class="res-check" data-idx="' + x._idx + '"' + (resSelected[x._idx] ? ' checked' : '') + '>'
             : '';
@@ -1194,12 +1205,8 @@ body { margin: 0; }
       rows = review.map(function (d, i) {
         // Для распределения и «найди» тема — служебная (задание охватывает
         // много правил), поэтому показываем тип задания.
-        /* Подпись строки: тип задания, потом правило таджвида, потом блок
-           нулевого курса. Ни один из списков здесь не переписан руками —
-           имена спрашиваются у библиотек. */
         const typeLabel = TASK_TYPE_LABELS[d.ty];
-        const c0Label = (typeof course0Name === 'function') ? course0Name(d.t) : '';
-        const themeName = typeLabel || c0Label || ruleName(d.t) || '';
+        const themeName = typeLabel || ruleName(d.t) || '';
         let statusIcon, statusColor;
         if (d.p) {
           /* Задание на чтение. Если записи от ученика нет — он его не сдал,
@@ -1308,6 +1315,8 @@ body { margin: 0; }
         '<div style="flex:1;font-size:17px;color:#23252e;font-weight:500;">' + (r.fullName || '—') + '</div>' +
         (r._waiting ? '<div style="font-size:12px;color:#b8912f;margin-right:14px;">ждёт чтения</div>' : '') +
         (r._notSubmitted ? '<div style="font-size:12px;color:#a53a3a;margin-right:14px;">чтение не сдано</div>' : '') +
+        (r._missingRec ? '<div style="font-size:12px;color:#9a6a1e;margin-right:14px;">не сдано записей: ' +
+          r._missingRec + ' — они считаются нулём</div>' : '') +
         '<div style="font-size:22px;font-weight:700;color:' + col + ';min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">' + scoreText + '</div>' +
       '</div>';
     }).join('');
@@ -1598,47 +1607,6 @@ body { margin: 0; }
     });
   }
 
-  /* Блоки нулевого курса. Список НЕ переписан руками: он спрашивается у
-     библиотеки заданий. Появится новое умение — строка возникнет сама. */
-  function buildCourse0Picker() {
-    const wrap = $('af-course0');
-    if (!wrap || typeof COURSE0_BLOCKS === 'undefined') return;
-    wrap.innerHTML = '';
-    COURSE0_BLOCKS.forEach(function (b) {
-      const row = document.createElement('div');
-      row.className = 'theme-pick';
-      row.innerHTML =
-        '<input type="checkbox" class="c0-check" data-block="' + b.id + '">' +
-        '<span class="tp-dot" style="background:var(--seal)"></span>' +
-        '<span class="tp-name">' + b.title +
-          (b.hint ? '<span style="display:block; font-size:var(--text-xs); color:var(--ink-faint);">' + b.hint + '</span>' : '') +
-        '</span>' +
-        '<input type="number" class="c0-count" min="1" value="2" disabled>';
-      const check = row.querySelector('.c0-check');
-      const count = row.querySelector('.c0-count');
-      check.addEventListener('change', function () {
-        row.classList.toggle('on', check.checked);
-        count.disabled = !check.checked;
-      });
-      wrap.appendChild(row);
-    });
-  }
-
-  function collectCourse0() {
-    const out = [];
-    const wrap = $('af-course0');
-    if (!wrap) return out;
-    wrap.querySelectorAll('.theme-pick').forEach(function (row) {
-      const check = row.querySelector('.c0-check');
-      if (!check || !check.checked) return;
-      out.push({
-        block: check.getAttribute('data-block'),
-        count: parseInt(row.querySelector('.c0-count').value, 10) || 1,
-      });
-    });
-    return out;
-  }
-
   /* Выбор аятов для чтения — сгруппированы по правилу.
      Порядок правил берём из библиотеки, а не из переписанного списка:
      тот отстал и не знал про мадд, из-за чего 58 аятов из 94 нельзя было
@@ -1790,11 +1758,9 @@ body { margin: 0; }
     if ($('cnt-themes')) $('cnt-themes').textContent = nThemes ? 'выбрано: ' + nThemes : '';
     if ($('cnt-ayahs')) $('cnt-ayahs').textContent = nAyahs ? 'выбрано: ' + nAyahs : '';
     if ($('cnt-sort')) $('cnt-sort').textContent = nSort ? 'включено: ' + nSort : '';
-    var nC0 = $('af-course0') ? $('af-course0').querySelectorAll('.c0-check:checked').length : 0;
-    if ($('cnt-course0')) $('cnt-course0').textContent = nC0 ? 'выбрано: ' + nC0 : '';
   }
   // Обновлять при любом изменении в форме
-  ['af-themes','af-course0','af-ayahs'].forEach(function (id) {
+  ['af-themes','af-ayahs'].forEach(function (id) {
     var el = $(id);
     if (el) el.addEventListener('change', updateCollapseHints);
   });
@@ -1852,7 +1818,6 @@ body { margin: 0; }
       if (rb) { rb.innerHTML = ''; rb.style.display = 'none'; }
     });
     buildThemePicker();
-    buildCourse0Picker();
     buildAyahPicker();
     // Свернуть все блоки, кроме первого (Вопросы) — он основной
     var blocks = document.querySelectorAll('.collapse[data-collapse]');
@@ -1876,7 +1841,6 @@ body { margin: 0; }
     $('af-spread').checked = act.spreadThemes !== false;
     $('af-time').value = (act.timeLimit != null ? act.timeLimit : 20);
     buildThemePicker();
-    buildCourse0Picker();
     buildAyahPicker();
     // Отметить темы активности и проставить их количество
     (act.themes || []).forEach(function (t) {
@@ -1888,18 +1852,6 @@ body { margin: 0; }
         const count = rowEl.querySelector('.tp-count');
         count.disabled = false;
         count.value = t.count || 3;
-      }
-    });
-    // Отметить блоки нулевого курса
-    (act.course0 || []).forEach(function (b) {
-      const c = $('af-course0') && $('af-course0').querySelector('.c0-check[data-block="' + b.block + '"]');
-      if (c) {
-        c.checked = true;
-        const rowEl = c.closest('.theme-pick');
-        rowEl.classList.add('on');
-        const cnt = rowEl.querySelector('.c0-count');
-        cnt.disabled = false;
-        cnt.value = b.count || 2;
       }
     });
     // Отметить выбранные аяты
@@ -1961,9 +1913,8 @@ body { margin: 0; }
     // Открыть блоки, где что-то выбрано (чтобы сразу видеть настройки)
     var blocks = document.querySelectorAll('.collapse[data-collapse]');
     if (blocks[0]) blocks[0].classList.add('open');  // вопросы всегда
-    if (blocks[1]) blocks[1].classList.toggle('open', (act.course0 || []).length > 0);
-    if (blocks[2]) blocks[2].classList.toggle('open', (act.recite || []).length > 0);
-    if (blocks[3]) blocks[3].classList.toggle('open', !!act.sortMim || !!act.sortNun);
+    if (blocks[1]) blocks[1].classList.toggle('open', (act.recite || []).length > 0);
+    if (blocks[2]) blocks[2].classList.toggle('open', !!act.sortMim || !!act.sortNun);
     updateCollapseHints();
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }
@@ -2000,15 +1951,7 @@ body { margin: 0; }
     const title = $('af-title').value.trim();
     if (!title) { alert('Введите название активности'); return; }
     const themes = collectThemes();
-    const course0 = collectCourse0();
-    /* Раньше требовалась хотя бы одна тема-правило. Работа нулевого курса
-       состоит из букв и знаков, тем-правил в ней нет вовсе — и сохранить её
-       было нельзя. Проверяем то, что важно на деле: чтобы работа не вышла
-       пустой. */
-    if (!themes.length && !course0.length) {
-      alert('Выберите хотя бы одну тему или блок нулевого курса');
-      return;
-    }
+    if (!themes.length) { alert('Выберите хотя бы одну тему'); return; }
 
     const activity = {
       title: title,
@@ -2018,7 +1961,6 @@ body { margin: 0; }
       spreadThemes: $('af-spread').checked,
       timeLimit: parseInt($('af-time').value, 10) || 0,
       themes: themes,
-      course0: course0,            // блоки нулевого курса (буквы и знаки)
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
       sortMim: $('af-sort-mim').checked,   // распределение по миму
       sortNun: $('af-sort-nun').checked,   // распределение по нуну
