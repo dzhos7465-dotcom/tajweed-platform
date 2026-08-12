@@ -91,11 +91,125 @@
     // не аят, и обрамлять его так было бы неправдой.
     const open = isAyah ? '<span style="color:' + GOLD + ';">\uFD3F</span> ' : '';
     const close = isAyah ? ' <span style="color:' + GOLD + ';">\uFD3E</span>' : '';
+    /* НАПРАВЛЕНИЕ СТАВИМ НА РАМКУ, А НЕ НА СТРОЧНЫЙ ЭЛЕМЕНТ.
+       Раньше direction:rtl висело на <span>. На строчном элементе оно само
+       по себе не переставляет соседние элементы — нужен ещё unicode-bidi.
+       Из-за этого скобки в документе выходили развёрнутыми: открывающая
+       оказывалась слева, закрывающая справа, то есть наоборот. На экране
+       всё было верно, потому что там направление задано блоку. */
     return '<div style="background:#fdfbf4;border:1.5px solid ' + GOLD + ';border-radius:10px;' +
-        'padding:10px 16px;margin:8px 0;text-align:center;box-shadow:inset 0 0 0 3px #fdfbf4, inset 0 0 0 4px #e6d9b8;">' +
-      '<span style="font-family:' + AR + ';direction:rtl;font-size:' + (size || 30) + 'px;' +
+        'padding:10px 16px;margin:8px 0;text-align:center;direction:rtl;' +
+        'box-shadow:inset 0 0 0 3px #fdfbf4, inset 0 0 0 4px #e6d9b8;">' +
+      '<span style="font-family:' + AR + ';direction:rtl;unicode-bidi:isolate;' +
+        'font-size:' + (size || 30) + 'px;' +
         'line-height:1.9;color:' + INK + ';">' +
         open + esc(text) + close + '</span></div>';
+  }
+
+  /* ── АЯТ С ОТМЕТКАМИ УЧЕНИКА ──────────────────────────────────────────
+     В задании «найди в аяте» одной строчки «верно 2 из 3» мало: по ней не
+     видно, ГДЕ ученик ошибся. Здесь аят показан так, как он его разметил.
+
+     Три вида черты под словом:
+       сплошная зелёная — отметил верно;
+       волнистая красная — отметил там, где правила нет, или назвал не то;
+       пунктирная       — место, которое он пропустил.
+
+     Данные для этого уже приходят в разборе: ai — черты ученика
+     [{words:[индексы], rule}], ci — карта верных мест {слово: [правила]}.
+     Ничего досчитывать не нужно, только показать. */
+  function findTargets(d) {
+    const raw = d.ci || {};
+    const map = {};
+    Object.keys(raw).forEach(function (w) {
+      const v = raw[w];
+      map[w] = Array.isArray(v) ? v : [v];
+    });
+    return map;
+  }
+
+  function findMarked(d) {
+    const ayah = ayahText(d.ay);
+    if (!ayah) return '';
+    const words = ayah.split(' ');
+    const targets = findTargets(d);
+    const strokes = Array.isArray(d.ai) ? d.ai : [];
+
+    // что ученик отметил на каждом слове и верно ли
+    const marks = {};      // индекс слова → {rule, ok}
+    strokes.forEach(function (s) {
+      if (!s || !Array.isArray(s.words)) return;
+      s.words.forEach(function (w) {
+        const here = targets[w] || [];
+        const good = here.indexOf(s.rule) !== -1;
+        // если на слове уже стоит верная отметка, не затираем её ошибочной
+        if (marks[w] && marks[w].ok) return;
+        marks[w] = { rule: s.rule, ok: good };
+      });
+    });
+
+    // места, которые ученик не тронул вовсе
+    const missed = {};
+    Object.keys(targets).forEach(function (w) { if (!marks[w]) missed[w] = true; });
+
+    const html = words.map(function (word, i) {
+      const key = String(i);
+      const m = marks[key];
+      let style = '';
+      let tail = '';
+      if (m && m.ok) {
+        const c = ruleColor(m.rule);
+        style = 'border-bottom:3px solid ' + c + ';padding-bottom:2px;';
+        tail = '<span style="font-family:sans-serif;font-size:11px;color:' + c +
+               ';vertical-align:super;">✓</span>';
+      } else if (m) {
+        style = 'border-bottom:3px wavy solid ' + ERR + ';padding-bottom:2px;color:' + ERR + ';';
+        tail = '<span style="font-family:sans-serif;font-size:11px;color:' + ERR +
+               ';vertical-align:super;">✗</span>';
+      } else if (missed[key]) {
+        style = 'border-bottom:3px dashed ' + FAINT + ';padding-bottom:2px;';
+      }
+      return '<span style="' + style + '">' + esc(word) + '</span>' + tail;
+    }).join(' ');
+
+    return '<div style="background:' + PAPER + ';border:1.5px solid ' + GOLD + ';border-radius:10px;' +
+        'padding:10px 16px;margin:8px 0;text-align:center;direction:rtl;' +
+        'box-shadow:inset 0 0 0 3px ' + PAPER + ', inset 0 0 0 4px #e6d9b8;">' +
+      '<span style="font-family:' + AR + ';direction:rtl;unicode-bidi:isolate;font-size:26px;' +
+        'line-height:2.4;color:' + INK + ';">' +
+        '<span style="color:' + GOLD + ';">\uFD3F</span> ' + html +
+        ' <span style="color:' + GOLD + ';">\uFD3E</span></span></div>';
+  }
+
+  /* Подпись под аятом: какое правило ученик назвал на каждой черте.
+     Цвет черты сам по себе ничего не говорит — важно, ЧТО он там увидел. */
+  function findLegend(d) {
+    const targets = findTargets(d);
+    const strokes = Array.isArray(d.ai) ? d.ai : [];
+    const rows = [];
+
+    strokes.forEach(function (s) {
+      if (!s || !Array.isArray(s.words)) return;
+      const good = s.words.some(function (w) { return (targets[w] || []).indexOf(s.rule) !== -1; });
+      rows.push('<span style="color:' + (good ? OK : ERR) + ';">' +
+        (good ? '✓ ' : '✗ ') + esc(ruleName(s.rule)) + '</span>');
+    });
+
+    // пропущенное
+    const marked = {};
+    strokes.forEach(function (s) {
+      if (s && Array.isArray(s.words)) s.words.forEach(function (w) { marked[w] = true; });
+    });
+    Object.keys(targets).forEach(function (w) {
+      if (marked[w]) return;
+      targets[w].forEach(function (r) {
+        rows.push('<span style="color:' + FAINT + ';">— пропущено: ' + esc(ruleName(r)) + '</span>');
+      });
+    });
+
+    if (!rows.length) return '';
+    return '<div style="font-size:12px;color:' + SOFT + ';margin-top:4px;' +
+      'display:flex;flex-wrap:wrap;gap:10px;">' + rows.join('') + '</div>';
   }
 
   /* Варианты ответа — такими же кнопками, как в экзамене. Выбранный
@@ -162,10 +276,11 @@
           ? d.op.map(function (o) { return optionRow(o, d.ai, d.ci); }).join('')
           : '');
     } else if (d.ty === 'find') {
-      body = mushaf(ayahText(d.ay), 26, true) +
+      body = findMarked(d) +
         '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';">' +
           (d.pt ? 'Найдено верно: ' + d.pt.right + ' из ' + d.pt.total +
-            (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') : '') + '</div>';
+            (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') : '') + '</div>' +
+        findLegend(d);
     } else if (d.ty === 'sort') {
       body = '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';margin-bottom:8px;">' +
           (d.pt ? 'Разложено верно: ' + d.pt.right + ' из ' + d.pt.total : '') + '</div>' +
@@ -352,6 +467,9 @@
 
   /* ── Публичная граница ── */
   window.WorkDoc = {
+    /* Только для проверки: отдать разметку задания «найди» как HTML. */
+    _findPreview: function (d) { return findMarked(d) + findLegend(d); },
+
     /* Готов ли документ: балл должен быть окончательным.
        Ждёт чтения или чтение не сдано — документа нет. */
     ready: function (r) {

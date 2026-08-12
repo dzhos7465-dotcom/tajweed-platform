@@ -588,6 +588,41 @@ function familyOfTheme(themeId) {
   return (themeId.indexOf('mim') !== -1) ? 'mim' : 'nun';
 }
 
+/* ── ЧТО ЕЩЁ ВИДНО В ПРИМЕРЕ, КРОМЕ ЗАЯВЛЕННОГО ПРАВИЛА ─────────────────
+   Поле alsoShows заполняется вручную и потому неизбежно отстаёт. Но два
+   правила — «нун с шаддой» и «мим с шаддой» — видны прямо в буквах: это
+   ن или م со знаком шадды. Их можно распознать в самом тексте, ничего
+   не размечая.
+
+   Зачем. В примере جَنَّـٰتࣲ وَعُيُونٍ проверяется идгам нуна, но в слове
+   جَنَّات стоит نّ. Ребёнок, выбравший «нун с шаддой», по-своему прав —
+   а платформа засчитывала ошибку и объясняла, почему он неправ. Такой
+   вопрос учит недоверию к себе, а не правилу.
+
+   Считаем только то, что видно наверняка по буквам. Остальные наложения
+   правил — дело преподавателя: он объявляет их в alsoShows. */
+const RE_SHADDA_NUN = /\u0646[\u064B-\u0650\u0652\u0670\u06E1]*\u0651/;
+const RE_SHADDA_MIM = /\u0645[\u064B-\u0650\u0652\u0670\u06E1]*\u0651/;
+
+function rulesVisibleInText(text) {
+  const out = [];
+  const t = String(text || '');
+  if (RE_SHADDA_NUN.test(t)) out.push('shadda_nun');
+  if (RE_SHADDA_MIM.test(t)) out.push('shadda_mim');
+  return out;
+}
+
+/* Всё спорное для примера: объявленное преподавателем плюс увиденное
+   в буквах. Одно место, к которому обращаются и вопросы, и распределение. */
+function disputedRules(example) {
+  if (!example) return [];
+  const declared = example.alsoShows || [];
+  const seen = rulesVisibleInText(example.text);
+  const out = declared.slice();
+  seen.forEach(function (r) { if (out.indexOf(r) === -1) out.push(r); });
+  return out;
+}
+
 /* Построить 4 варианта для вопроса: правильный + 3 похожих отвлекающих.
    Похожие берём из того же семейства; если не хватает — добираем из общего
    списка. Порядок вариантов перемешиваем детерминированно (через rng). */
@@ -607,8 +642,15 @@ function buildFourOptions(correctId, themeId, rng, exclude) {
   let famDistract = shuffleWith(fam.filter(allowed), rng);
 
   let distractors = famDistract.slice(0, 3);
-  // если в семействе меньше 3 — добрать из общего списка (тоже перемешав)
-  if (distractors.length < 3) {
+
+  /* Если в семействе не набралось трёх — вопрос выходит с тремя вариантами,
+     и это нормально. Раньше недостающее добиралось из ОБЩЕГО списка, и в
+     вопросе про мим мог появиться вариант из правил нуна: он виден за
+     версту и подсказывает, что верный ответ не он. Лучше три честных
+     варианта, чем четыре с пустышкой.
+     К общему списку обращаемся только в крайнем случае — когда иначе
+     выбирать будет не из чего. */
+  if (distractors.length < 1) {
     const rest = shuffleWith(
       RULE_OPTIONS.map(o => o.id).filter(id => allowed(id) && distractors.indexOf(id) === -1),
       rng
@@ -616,7 +658,7 @@ function buildFourOptions(correctId, themeId, rng, exclude) {
     distractors = distractors.concat(rest).slice(0, 3);
   }
 
-  // собрать 4 варианта (верный + 3) и перемешать порядок
+  // собрать варианты (верный + отвлекающие) и перемешать порядок
   const four = [correctId].concat(distractors).map(id => byId[id]).filter(Boolean);
   return shuffleWith(four, rng);
 }
@@ -856,8 +898,9 @@ function examplesOfTheme(themeId) {
 function examplesForSort(themeId, boxIds) {
   const all = examplesOfTheme(themeId);
   const fit = all.filter(function (e) {
-    if (!e.alsoShows || !e.alsoShows.length) return true;
-    return !e.alsoShows.some(function (r) { return boxIds.indexOf(r) !== -1; });
+    const disputed = disputedRules(e);
+    if (!disputed.length) return true;
+    return !disputed.some(function (r) { return boxIds.indexOf(r) !== -1; });
   });
   return fit.length ? fit : all;
 }
@@ -1023,7 +1066,7 @@ function buildTasksFromTemplates(randomize, recipeArg, reciteArg, sortArg, findA
         type: TASK_TYPES.SINGLE,
         exampleRefs: [ex.id],
         prompt: promptForTheme(tpl.theme),
-        options: buildFourOptions(tpl.answer, tpl.theme, rng, ex.alsoShows),  // верный + 3 похожих, без спорных
+        options: buildFourOptions(tpl.answer, tpl.theme, rng, disputedRules(ex)),  // верный + похожие, без спорных
         answer: tpl.answer,          // правильный ответ принадлежит заданию
         check: CHECK.AUTO,
         weight: TASK_WEIGHTS.single,
