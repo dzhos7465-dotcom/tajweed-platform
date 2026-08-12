@@ -115,6 +115,38 @@ function buildTaskOrder(config) {
   var order = [], placed = {};
   var push = function (arr) { arr.forEach(function (t) { order.push(t.id); placed[t.id] = true; }); };
 
+  /* ── ДВЕ СТУПЕНИ ИДУТ ДРУГ ЗА ДРУГОМ ──────────────────────────────
+     Нулевой курс (буквы и знаки) и первый (правила таджвида) — не два
+     раздела одной работы, а две ступени. Если смешать их вперемешку,
+     ребёнок прыгает с «какая буква межзубная» на «какое правило нуна»
+     и обратно, и каждый раз перестраивается заново.
+
+     Поэтому: сперва ВЕСЬ нулевой курс, потом весь первый.
+
+     Внутри нулевого курса разброса тем НЕТ намеренно. Там задания идут
+     по порядку изучения: свойства букв → названия → знаки над буквами.
+     Разброс, полезный для правил (чтобы не отвечали по инерции), здесь
+     только мешает: соседние вопросы одного блока — это не подсказка,
+     а продолжение одной мысли. */
+  var isC0 = function (t) { return t.stage === 'course0'; };
+  var course0Tasks = TASKS.filter(isC0);
+  var mainTasks = TASKS.filter(function (t) { return !isC0(t); });
+
+  if (course0Tasks.length) {
+    var seq = course0Tasks.slice().sort(function (a, b) {
+      var oa = (typeof course0Order === 'function') ? course0Order(a.theme) : 0;
+      var ob = (typeof course0Order === 'function') ? course0Order(b.theme) : 0;
+      if (oa !== ob) return oa - ob;
+      return 0;   // внутри блока — в том порядке, в каком собраны
+    });
+    push(seq.filter(function (t) { return !(reciteLast && t.type === TASK_TYPES.RECITE); }));
+  }
+
+  /* Дальше — прежняя расстановка, но уже только для первого курса.
+     Ни одна строка ниже про ступени не знает. */
+  var TASKS_ALL = TASKS;
+  TASKS = mainTasks;
+
   if (orderMode === 'byTheme') {
     // как было раньше: все задания одной темы вместе
     var themeSequence = [].concat(config.themeOrder);
@@ -140,7 +172,10 @@ function buildTaskOrder(config) {
     });
   }
 
-  // Чтение — в конец (если так задано)
+  TASKS = TASKS_ALL;   // вернуть полный список: дальше он нужен целиком
+
+  // Чтение — в конец (если так задано). Оно общее для обеих ступеней:
+  // одна запись голоса на работу, как и договаривались.
   if (reciteLast) push(TASKS.filter(function (t) { return t.type === TASK_TYPES.RECITE && !placed[t.id]; }));
 
   // ЗАЩИТА: ни одно построенное задание не должно потеряться.
