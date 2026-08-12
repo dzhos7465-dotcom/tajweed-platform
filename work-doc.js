@@ -244,10 +244,11 @@
     let head, badge, badgeColor;
     if (isRecite) {
       /* Документ собирается ПОСЛЕ проверки — значит балл уже есть, и
-         писать «проверяет преподаватель» неправду нельзя. Балл общий на
-         все аяты чтения: он ставится за чтение в целом. */
-      badge = (d.rg != null) ? ('чтение: ' + d.rg + ' из 10') : 'чтение';
-      badgeColor = GOLD;
+         писать «проверяет преподаватель» неправду нельзя. У каждого аята
+         балл свой; несданная запись — ноль, и об этом сказано прямо, чтобы
+         ноль не выглядел как строгая оценка за прочитанное. */
+      if (d.rmiss) { badge = 'чтение не сдано: 0 из 10'; badgeColor = ERR; }
+      else { badge = (d.rg != null) ? ('чтение: ' + d.rg + ' из 10') : 'чтение'; badgeColor = GOLD; }
     }
     else if (ok) { badge = 'верно'; badgeColor = OK; }
     else { badge = 'ошибка'; badgeColor = ERR; }
@@ -395,14 +396,32 @@
     if (Array.isArray(r.review)) review = r.review;
     else { try { review = r.review ? JSON.parse(r.review) : []; } catch (e) { review = []; } }
 
-    /* Балл за чтение приходит из панели уже посчитанным (среднее по всем
-       аятам, из 100). Возвращаем его к десятибалльному виду и кладём в
-       каждое задание на чтение — чтобы в карточке стояло число, а не
-       обещание проверить. */
-    if (r._reading != null) {
-      const g = Math.round(r._reading / 10);
+    /* Балл за чтение — У КАЖДОГО АЯТА СВОЙ.
+       Преподаватель слушает записи по отдельности и ставит разные баллы;
+       раньше документ подставлял во все карточки одно среднее число, и
+       работа с оценками 7 и 8 показывала «8 из 10» дважды. Смысл раздельной
+       проверки при этом пропадал.
+
+       Берём балл по аяту задания. Если для аята записи нет — ученик его не
+       сдал, и это ноль, а не «ждёт проверки»: то же правило, что и в общем
+       подсчёте. Если поаятных баллов нет вовсе (старая работа), возвращаемся
+       к среднему — иначе документы прошлых работ остались бы без оценки. */
+    const byAyah = r._readingByAyah || {};
+    const hasPerAyah = Object.keys(byAyah).length > 0;
+    const avgGrade = (r._reading != null) ? Math.round(r._reading / 10) : null;
+
+    if (hasPerAyah || avgGrade != null) {
       review = review.map(function (d) {
-        return (d.ty === 'recite') ? Object.assign({}, d, { rg: g }) : d;
+        if (d.ty !== 'recite') return d;
+        let g = null, missing = false;
+        if (hasPerAyah) {
+          if (d.ay && byAyah[d.ay] != null) g = byAyah[d.ay];
+          else if (d.ay) { g = 0; missing = true; }
+          else g = avgGrade;                 // аят не записан в разборе
+        } else {
+          g = avgGrade;
+        }
+        return Object.assign({}, d, { rg: g, rmiss: missing });
       });
     }
 
