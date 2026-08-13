@@ -213,6 +213,11 @@
 .opt-correct .dot { border-color: var(--ok) !important; background: var(--ok) !important; }
 .opt-wrong { border-color: var(--err) !important; background: var(--err-tint) !important; }
 .opt-wrong .dot { border-color: var(--err) !important; background: var(--err) !important; }
+/* Разбор всегда во всю ширину.
+   Варианты нулевого курса стоят сеткой в три столбца (.opts-letters), и
+   разбор, попадая в ту же сетку, становился её ячейкой — текст сжимался
+   в узкий столбик по слову в строке. Растягиваем на все столбцы. */
+.feedback { grid-column: 1 / -1; }
 .feedback {
   margin-top: var(--space-4);
   border-radius: var(--radius);

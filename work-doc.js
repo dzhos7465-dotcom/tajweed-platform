@@ -40,7 +40,24 @@
     if (typeof window.jspdf === 'undefined') {
       need.push(loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'));
     }
-    return Promise.all(need);
+    return Promise.all(need).then(waitForFonts);
+  }
+
+  /* ДОЖДАТЬСЯ ШРИФТА ПЕРЕД ПЕЧАТЬЮ.
+     Документ рисуется снимком страницы. Если Amiri в этот миг ещё не
+     загрузился, снимок делается запасным шрифтом — а он арабскую вязь не
+     соединяет, и буквы выходят порознь. Отсюда «иногда бывает»: успел
+     шрифт подгрузиться или нет, зависело от связи, и на телефоне не
+     успевал чаще. Просим браузер загрузить оба нужных начертания и ждём;
+     если он такого не умеет — идём дальше, хуже не станет. */
+  function waitForFonts() {
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    const wanted = ['19px Amiri', '24px Amiri', '32px Amiri'];
+    return Promise.all(wanted.map(function (f) {
+      try { return document.fonts.load(f, 'ابجد'); } catch (e) { return Promise.resolve(); }
+    }))
+    .then(function () { return document.fonts.ready; })
+    .catch(function () { return null; });
   }
 
   function esc(s) {
@@ -50,7 +67,15 @@
   }
 
   function ruleName(id) {
-    return (typeof THEMES !== 'undefined' && THEMES[id]) ? THEMES[id].name : id;
+    if (typeof THEMES !== 'undefined' && THEMES[id]) return THEMES[id].name;
+    /* Блоки нулевого курса — не правила таджвида, их имена лежат в другой
+       библиотеке. Без этой строки в документе стояло «c0_harakat» вместо
+       «Огласовки»: внутреннее имя утекало на глаза ученику. */
+    if (typeof course0Name === 'function') {
+      const n = course0Name(id);
+      if (n) return n;
+    }
+    return id;
   }
 
   function ruleColor(id) {
@@ -214,11 +239,27 @@
 
   /* Варианты ответа — такими же кнопками, как в экзамене. Выбранный
      подсвечен, верный отмечен галочкой. Ребёнок узнаёт свой экран. */
+  /* Есть ли в строке арабские буквы или знаки. */
+  const RE_ARABIC = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
   function optionRow(opt, chosenId, rightId) {
     const id = (typeof opt === 'object') ? opt.id : opt;
     const label = (typeof opt === 'object') ? (opt.label || opt.id) : ruleName(opt);
+    const sub = (typeof opt === 'object' && opt.sub) ? opt.sub : '';
     const isChosen = String(id) === String(chosenId);
     const isRight = String(id) === String(rightId);
+
+    /* ВАРИАНТ МОЖЕТ БЫТЬ АРАБСКИМ.
+       В заданиях о правилах вариант — русское слово («Ихфа»), и шрифт
+       интерфейса подходит. В нулевом курсе вариантом бывает сама буква,
+       знак или целое слово. Обычный шрифт арабскую вязь не соединяет, а
+       огласовок в нём часто нет вовсе — в документе выходили разорванные
+       буквы и пустые прямоугольники, из-за чего казалось, что заданий не
+       видно. Арабскую строку рисуем шрифтом мусхафа и крупнее. */
+    const arabic = RE_ARABIC.test(String(label));
+    const labelStyle = arabic
+      ? 'font-family:' + AR + ';direction:rtl;unicode-bidi:isolate;font-size:24px;line-height:1.7;'
+      : 'font-size:14px;';
 
     let border = '#e6ded1', bg = '#fdfbf6', color = INK, mark = '';
     if (isRight) { border = OK; bg = '#e8f2ec'; color = OK; mark = '✓'; }
@@ -228,8 +269,10 @@
         ';background:' + bg + ';border-radius:999px;padding:6px 14px;margin-bottom:5px;">' +
       '<span style="width:13px;height:13px;border-radius:50%;border:2px solid ' +
         (isChosen ? color : '#cfc6b6') + ';background:' + (isChosen ? color : 'transparent') + ';"></span>' +
-      '<span style="flex:1;font-size:14px;color:' + color + ';font-weight:' +
-        (isChosen || isRight ? '600' : '400') + ';">' + esc(label) + '</span>' +
+      '<span style="flex:1;' + labelStyle + 'color:' + color + ';font-weight:' +
+        (isChosen || isRight ? '600' : '400') + ';">' + esc(label) +
+        (sub ? '<span style="font-size:12px;color:' + FAINT + ';margin-right:8px;"> ' +
+               esc(sub) + '</span>' : '') + '</span>' +
       '<span style="font-size:15px;color:' + color + ';font-weight:700;">' + mark + '</span>' +
     '</div>';
   }
