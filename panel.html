@@ -1650,18 +1650,24 @@ body { margin: 0; }
     COURSE0_BLOCKS.forEach(function (b) {
       const row = document.createElement('div');
       row.className = 'theme-pick';
+      /* У распределения число вопросов не спрашиваем: оно всегда одно
+         задание, где разложить надо все буквы сразу. Пустое поле рядом
+         только сбивало бы с толку — вместо него стоит пометка. */
+      const isSort = !!b.prop;
       row.innerHTML =
         '<input type="checkbox" class="c0-check" data-block="' + b.id + '">' +
         '<span class="tp-dot" style="background:var(--seal)"></span>' +
         '<span class="tp-name">' + b.title +
           (b.hint ? '<span style="display:block; font-size:var(--text-xs); color:var(--ink-faint);">' + b.hint + '</span>' : '') +
         '</span>' +
-        '<input type="number" class="c0-count" min="1" value="2" disabled>';
+        (isSort
+          ? '<span style="font-size:var(--text-xs); color:var(--ink-faint); white-space:nowrap;">одно задание</span>'
+          : '<input type="number" class="c0-count" min="1" value="2" disabled>');
       const check = row.querySelector('.c0-check');
       const count = row.querySelector('.c0-count');
       check.addEventListener('change', function () {
         row.classList.toggle('on', check.checked);
-        count.disabled = !check.checked;
+        if (count) count.disabled = !check.checked;
       });
       wrap.appendChild(row);
     });
@@ -1674,9 +1680,10 @@ body { margin: 0; }
     wrap.querySelectorAll('.theme-pick').forEach(function (row) {
       const check = row.querySelector('.c0-check');
       if (!check || !check.checked) return;
+      const cnt = row.querySelector('.c0-count');
       out.push({
         block: check.getAttribute('data-block'),
-        count: parseInt(row.querySelector('.c0-count').value, 10) || 1,
+        count: cnt ? (parseInt(cnt.value, 10) || 1) : 1,
       });
     });
     return out;
@@ -1968,8 +1975,7 @@ body { margin: 0; }
         const rowEl = c.closest('.theme-pick');
         rowEl.classList.add('on');
         const cnt = rowEl.querySelector('.c0-count');
-        cnt.disabled = false;
-        cnt.value = b.count || 2;
+        if (cnt) { cnt.disabled = false; cnt.value = b.count || 2; }
       }
     });
     // Отметить выбранные аяты

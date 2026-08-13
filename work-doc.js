@@ -332,7 +332,7 @@
           ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + d.it.map(function (it) {
               return '<span style="font-family:' + AR + ';direction:rtl;font-size:19px;' +
                 'background:#fdfbf4;border:1px solid #e6ded1;border-radius:8px;padding:4px 12px;">' +
-                esc(exampleText(it.exampleRef)) + '</span>';
+                esc(it.text || exampleText(it.exampleRef)) + '</span>';
             }).join('') + '</div>'
           : '');
     } else if (isRecite) {

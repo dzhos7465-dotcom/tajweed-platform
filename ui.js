@@ -219,7 +219,11 @@
     const groupsWrap = document.createElement('div');
     groupsWrap.className = 'sort-groups';
 
+    /* Предмет распределения — обычно пример из библиотеки, но в нулевом
+       курсе это буква, которой в библиотеке примеров нет. Тогда текст
+       лежит в самом предмете. */
     function itemText(it) {
+      if (it.text) return it.text;
       const ex = EXAMPLE_BY_ID[it.exampleRef];
       return ex ? ex.text : '?';
     }

@@ -202,6 +202,13 @@ const COURSE0_BLOCKS = [
     ],
   },
   {
+    id: 'c0sort_connect', title: 'Распределение: соединение',
+    hint: 'разложить буквы по тому, соединяются ли они',
+    prop: 'connects', perBox: 3,
+    prompt: 'Разложите буквы: соединяется с последующей или нет?',
+    yes: 'Соединяется', no: 'Не соединяется',
+  },
+  {
     id: 'c0_interdental', title: 'Межзубные буквы',
     hint: 'ث ذ ظ — кончик языка между зубами',
     kinds: [
@@ -218,6 +225,13 @@ const COURSE0_BLOCKS = [
     ],
   },
   {
+    id: 'c0sort_interdental', title: 'Распределение: межзубные',
+    hint: 'разложить буквы на межзубные и обычные',
+    prop: 'interdental', perBox: 3,
+    prompt: 'Разложите буквы: межзубная или нет?',
+    yes: 'Межзубная', no: 'Не межзубная',
+  },
+  {
     id: 'c0_heavy', title: 'Твёрдые буквы',
     hint: 'читаются с оттенком «о»',
     kinds: [
@@ -232,6 +246,13 @@ const COURSE0_BLOCKS = [
           function (l) { return 'Это <b>' + l.name + '</b> — мягкая буква, оттенка «о» в ней нет.'; });
       },
     ],
+  },
+  {
+    id: 'c0sort_heavy', title: 'Распределение: твёрдые и мягкие',
+    hint: 'разложить буквы на твёрдые и мягкие',
+    prop: 'heavy', perBox: 3,
+    prompt: 'Разложите буквы: читается твёрдо или мягко?',
+    yes: 'Твёрдая', no: 'Мягкая',
   },
   {
     id: 'c0_madd_letters', title: 'Буквы мадда',
@@ -264,6 +285,13 @@ const COURSE0_BLOCKS = [
         });
       },
     ],
+  },
+  {
+    id: 'c0sort_madd', title: 'Распределение: буквы мадда',
+    hint: 'отделить буквы мадда от остальных',
+    prop: 'madd', perBox: 3,
+    prompt: 'Разложите буквы: буква мадда или обычная?',
+    yes: 'Буква мадда', no: 'Обычная буква',
   },
   {
     id: 'c0_letter_name', title: 'Названия букв',
@@ -550,6 +578,54 @@ const COURSE0_BLOCKS = [
     ],
   },
 ];
+
+/* ── РАСПРЕДЕЛЕНИЕ БУКВ ПО СВОЙСТВУ ────────────────────────────────
+   Тот же тип задания, что распределение слов по правилам, но предметы —
+   буквы, а коробки — свойство и его отсутствие.
+
+   Зачем оно, если про то же свойство уже есть вопрос. Вопрос показывает
+   три буквы и просит выбрать одну: угадать можно с одного раза из трёх,
+   а зная всего одну букву из трёх — почти наверняка. Распределение просит
+   решить про КАЖДУЮ букву отдельно, и угадать шесть раз подряд нельзя.
+   Одно такое задание закрывает столько же, сколько шесть вопросов.
+
+   Коробок всегда две: свойство есть или его нет. Третьей быть не может. */
+function buildCourse0Sort(block, rng, nextId) {
+  if (typeof lettersWith !== 'function') return null;
+  const yes = lettersWith(block.prop, true);
+  const no = lettersWith(block.prop, false);
+  const per = block.perBox || 3;
+  // берём поровну, но не больше, чем есть букв с редким свойством
+  const n = Math.min(per, yes.length, no.length);
+  if (n < 2) return null;
+
+  const items = [], answer = {};
+  let k = 0;
+  [['yes', pickWith(yes, n, rng)], ['no', pickWith(no, n, rng)]].forEach(function (pair) {
+    pair[1].forEach(function (l) {
+      const id = 'i' + (k++);
+      /* Только сама буква, без названия. Название выдало бы ответ: у ط оно
+         звучит «та (твёрдая)», и в распределении на твёрдые и мягкие
+         ребёнку осталось бы прочитать подпись. Смотреть надо на букву. */
+      items.push({ id: id, text: l.ch });
+      answer[id] = pair[0];
+    });
+  });
+
+  return {
+    id: nextId('t_' + block.id),
+    theme: block.id,
+    scoreGroup: block.id,
+    stage: 'course0',
+    type: TASK_TYPES.SORT,
+    prompt: block.prompt,
+    groups: [{ id: 'yes', name: block.yes }, { id: 'no', name: block.no }],
+    items: shuffleWith(items, rng),
+    answer: answer,
+    check: CHECK.AUTO,
+    weight: TASK_WEIGHTS.sort,
+  };
+}
 
 const COURSE0_BY_ID = {};
 COURSE0_BLOCKS.forEach(function (b) { COURSE0_BY_ID[b.id] = b; });
@@ -1142,6 +1218,16 @@ function buildTasksFromTemplates(randomize, recipeArg, reciteArg, sortArg, findA
       typeof buildCourse0Task === 'function') {
     activityCourse0.forEach(function (row) {
       const blockId = row.block || row.id;
+      const block = COURSE0_BY_ID[blockId];
+
+      /* Блок-распределение даёт РОВНО ОДНО задание: в нём и так все буквы
+         сразу, и число вопросов к нему неприменимо. */
+      if (block && block.prop) {
+        const sortTask = buildCourse0Sort(block, rng, nextId);
+        if (sortTask) built.push(sortTask);
+        return;
+      }
+
       const count = Math.max(1, parseInt(row.count, 10) || 1);
       const seenPrompts = {};
       const kindOrder = course0KindOrder(blockId, rng);
