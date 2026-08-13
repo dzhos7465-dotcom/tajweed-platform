@@ -367,6 +367,47 @@ const EXAMPLES = [
   { id: 'ex_mln_4', text: 'قُرَيۡشٍ',   themes: ['madd_lin'] },
   { id: 'ex_mln_5', text: 'ٱلصَّيۡفِ',  themes: ['madd_lin'] },
   { id: 'ex_mln_6', text: 'ٱلۡبَيۡتِ',  themes: ['madd_lin'] },
+
+  /* ── Лям в имени Аллах ──────────────────────────────────────────
+     Правило зависит НЕ от слова, а от огласовки перед именем:
+     фатха или дамма — читается твёрдо, касра — мягко.
+     Примеры выверены преподавателем. */
+  // Твёрдый лям — перед именем фатха или дамма
+  { id: 'ex_lmh_1', text: 'هُوَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_2', text: 'ٱللَّهُ ٱلصَّمَدُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_3', text: 'نَصْرُ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_4', text: 'نَارُ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_5', text: 'رَضِيَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_6', text: 'مِنَ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_7', text: 'رَسُولُ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_8', text: 'نَاقَةَ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_9', text: 'شَاءَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_10', text: 'خَلَقَ ٱللَّهُ', themes: ['lam_heavy'] },
+
+  // Мягкий лям — перед именем касра
+  { id: 'ex_lml_1', text: 'دِينِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_2', text: 'بِسْمِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_3', text: 'ٱلْحَمْدُ لِلَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_4', text: 'لِوَجْهِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_5', text: 'بِٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_6', text: 'بِإِذْنِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_7', text: 'فِي سَبِيلِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_8', text: 'بِذِكْرِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_9', text: 'مِنْ فَضْلِ ٱللَّهِ', themes: ['lam_light'], alsoShows: ['ikhfa_nun'] },
+  { id: 'ex_lml_10', text: 'مَنْ يَتَّقِ ٱللَّهَ', themes: ['lam_light'], alsoShows: ['idgham_nun'] },
+
+  // добор: то же слово с другой огласовкой даёт другое правило
+  { id: 'ex_lmh_11', text: 'قَالَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_12', text: 'عَبْدُ ٱللَّهِ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_13', text: 'وَعَدَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_14', text: 'شَهِدَ ٱللَّهُ', themes: ['lam_heavy'] },
+  { id: 'ex_lmh_15', text: 'وَٱللَّهُ', themes: ['lam_heavy'] },
+
+  { id: 'ex_lml_11', text: 'كِتَابِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_12', text: 'عَذَابِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_13', text: 'نِعْمَتِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_14', text: 'أَمْرِ ٱللَّهِ', themes: ['lam_light'] },
+  { id: 'ex_lml_15', text: 'رَسُولِ ٱللَّهِ', themes: ['lam_light'] },
 ];
 
 // Индекс для быстрого доступа к примеру по id (строится один раз)

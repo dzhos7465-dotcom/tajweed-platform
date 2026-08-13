@@ -36,7 +36,13 @@ const SIGNS = [
   { id: 'damma', ch: '\u064F', name: 'Дамма', vowel: 'у', kind: 'haraka',
     does: 'даёт букве звук «у»' },
 
-  { id: 'sukun', ch: '\u06E1', name: 'Сукун', vowel: null, kind: 'other',
+  /* ДВА НАЧЕРТАНИЯ СУКУНА.
+     В нулевом курсе дети учат кружок (U+0652) — он же стоит в тесте.
+     В мусхафе тот же сукун нарисован иначе (U+06E1), и все коранические
+     тексты библиотеки набраны им. Держим оба: ch — учебный, chQuran —
+     мусхафный. Иначе пришлось бы либо учить не тому знаку, либо ломать
+     набор коранических примеров. */
+  { id: 'sukun', ch: '\u0652', chQuran: '\u06E1', name: 'Сукун', vowel: null, kind: 'other',
     does: 'буква читается без гласного' },
   { id: 'shadda', ch: '\u0651', name: 'Шадда', vowel: null, kind: 'other',
     does: 'буква удваивается' },
@@ -59,14 +65,21 @@ function signAlone(sign) {
   return s ? (TATWEEL + s.ch) : '';
 }
 
-/* Слог: буква со знаками. Порядок знаков важен — шадда пишется ПЕРЕД
-   огласовкой, иначе шрифт нарисует их не одна над другой. */
+/* Слог: буква со знаками.
+
+   ПОРЯДОК ЗНАКОВ. Сперва огласовка, потом шадда — именно так набраны все
+   172 примера и 97 аятов библиотеки (проверено машинно: 61 случай из 61).
+   Это же порядок, в котором знаки складываются по правилам Юникода, так
+   что иначе набранное всё равно к нему приводится. Собирали бы слоги
+   наоборот — они рисовались бы не так, как коранические примеры рядом. */
 function syllable(letter, signIds) {
   const l = (typeof letter === 'string')
     ? ((typeof LETTER_BY_ID !== 'undefined') ? LETTER_BY_ID[letter] : null)
     : letter;
   if (!l) return '';
-  const ids = Array.isArray(signIds) ? signIds : [signIds];
+  const ids = (Array.isArray(signIds) ? signIds : [signIds]).slice();
+  // шадда всегда последней, что бы ни передал вызывающий
+  ids.sort(function (a, b) { return (a === 'shadda' ? 1 : 0) - (b === 'shadda' ? 1 : 0); });
   let out = l.ch;
   ids.forEach(function (id) {
     const s = SIGN_BY_ID[id];

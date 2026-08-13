@@ -164,6 +164,25 @@ function c0SyllableLetter(rng) {
 
 const C0_VOWELS = ['fatha', 'kasra', 'damma'];
 
+/* Почему хамза читается именно так. Объяснение строится из свойств слова,
+   а не пишется при каждом вопросе: правило одно, и звучать оно должно
+   одинаково, где бы ни встретилось. */
+function waslWhy(w) {
+  if (w.kind === 'moon') {
+    return 'Это определённый артикль <b>ٱلْ</b> — хамза в нём всегда читается на «а». ' +
+           'Буква после ляма лунная, поэтому сам лям читается.';
+  }
+  if (w.kind === 'sun') {
+    return 'Это определённый артикль <b>ٱلْ</b> — хамза в нём всегда читается на «а». ' +
+           'Буква после ляма солнечная: лям не читается, а следующая буква удваивается.';
+  }
+  const why = (w.vowel === 'у')
+    ? 'на третьей букве стоит <b>дамма</b>'
+    : 'на третьей букве стоит <b>касра</b> или <b>фатха</b>';
+  return 'Хамза читается на «' + w.vowel + '», потому что ' + why +
+         '. Смотреть надо не на саму хамзу — у неё своего звука нет, — а на третью букву слова.';
+}
+
 const COURSE0_BLOCKS = [
   /* ── БУКВЫ: свойства ───────────────────────────────────────────── */
   {
@@ -359,9 +378,42 @@ const COURSE0_BLOCKS = [
           'В середине речи', ['В начале речи', 'Всегда'],
           'При продолжении чтения она <b>пропускается</b>: соединяет слова и сама не звучит.');
       },
-      /* ЗДЕСЬ ПОКА ПУСТО: вопросы «на какой звук она читается в этом слове»
-         (в тесте это вопросы 28–29) требуют выверенного списка слов с
-         указанием огласовки. Коранические слова заносит преподаватель. */
+      /* Ниже — применение вместо названия: не «что такое хамзатуль-васль»,
+         а как её прочитать в живом слове. Это то, ради чего правило учат. */
+
+      // Показано слово — на какой звук читается хамза?
+      function (nextId, rng) {
+        if (typeof WASL_WORDS === 'undefined' || !WASL_WORDS.length) return null;
+        const w = pickWith(WASL_WORDS, 1, rng)[0];
+        const others = waslVowels().filter(function (v) { return v !== w.vowel; });
+        if (others.length < 2) return null;
+        return c0TextQuestion(nextId, 'c0_hamza_wasl', rng,
+          'На какой звук читается хамзатуль-васль в этом слове?', w.text,
+          '«' + w.vowel + '»', others.map(function (v) { return '«' + v + '»'; }),
+          waslWhy(w));
+      },
+
+      /* Обратный ход — так спрашивал исходный тест: назван звук, среди трёх
+         слов надо найти нужное. Неверные слова берутся с ДРУГИМ звуком,
+         иначе верных ответов оказалось бы несколько. */
+      function (nextId, rng) {
+        if (typeof WASL_WORDS === 'undefined' || !WASL_WORDS.length) return null;
+        const v = pickWith(waslVowels(), 1, rng)[0];
+        const right = pickWith(waslWordsWithVowel(v), 1, rng)[0];
+        const wrongPool = WASL_WORDS.filter(function (x) { return x.vowel !== v; });
+        const wrong = pickWith(wrongPool, 2, rng);
+        if (!right || wrong.length < 2) return null;
+        const opts = shuffleWith([right].concat(wrong), rng).map(function (x) {
+          return { id: x.id, label: x.text };
+        });
+        return c0Task(nextId, 'c0_hamza_wasl', {
+          optionStyle: OPTION_STYLE.LETTER,
+          prompt: 'В каком слове хамзатуль-васль читается на «' + v + '»?',
+          options: opts,
+          answer: right.id,
+          explain: waslWhy(right),
+        });
+      },
     ],
   },
 
@@ -572,6 +624,9 @@ const RULE_OPTIONS = [
   { id: 'madd_lazim_harfi', label: 'Лазим (буквенный)' },
   { id: 'madd_arid',        label: '‘Арид' },
   { id: 'madd_lin',         label: 'Мягкий (лин)' },
+  // варианты ляма
+  { id: 'lam_heavy', label: 'Твёрдый лям' },
+  { id: 'lam_light', label: 'Мягкий лям' },
 ];
 
 /* Семейства правил — чтобы отвлекающие варианты были ПОХОЖИМИ (того же
@@ -582,9 +637,15 @@ const OPTION_FAMILY = {
   nun: ['izhar', 'idgham', 'ikhfa', 'iqlab', 'shadda_nun'],
   madd: ['madd_tabii', 'madd_iwad', 'madd_muttasil', 'madd_munfasil',
          'madd_lazim', 'madd_lazim_harfi', 'madd_arid', 'madd_lin'],
+  /* У ляма ответов ровно два, и третьего быть не может: лям либо твёрдый,
+     либо мягкий. Вопрос выходит с двумя вариантами — так и должно быть.
+     Добирать третий из чужого раздела нельзя: «Икляб» рядом с «Твёрдый
+     лям» виден за версту и подсказывает, где искать верный ответ. */
+  lam: ['lam_heavy', 'lam_light'],
 };
 function familyOfTheme(themeId) {
   if (themeId.indexOf('madd') !== -1) return 'madd';
+  if (themeId.indexOf('lam') !== -1) return 'lam';
   return (themeId.indexOf('mim') !== -1) ? 'mim' : 'nun';
 }
 
@@ -1224,10 +1285,16 @@ function buildTasksFromTemplates(randomize, recipeArg, reciteArg, sortArg, findA
        то, что выбрал преподаватель. Ничего не выбрал — чтения не будет.
        Случайные аяты подставляем только когда активности нет вовсе:
        это учебный набор по умолчанию, а не работа преподавателя. */
-    var fromActivity = Array.isArray(activityRecite);
-    var selectedIds = fromActivity
+    /* «Активность есть» — это любой заданный раздел рецепта, не только
+       список аятов. Раньше проверялся один activityRecite: работа, где
+       преподаватель выбрал только темы, считалась «активности нет» и
+       получала случайные аяты для чтения в придачу. Ученику доставалось
+       задание, которого учитель не давал, а балл за чтение уходил в ноль. */
+    var fromActivity = Array.isArray(activityRecite) || byActivity;
+    var selectedIds = Array.isArray(activityRecite)
       ? activityRecite
-      : ((typeof getSelectedAyahIds === 'function') ? getSelectedAyahIds() : []);
+      : (byActivity ? []
+                    : ((typeof getSelectedAyahIds === 'function') ? getSelectedAyahIds() : []));
 
     if (fromActivity && !selectedIds.length) {
       // преподаватель не выбрал ни одного аята — заданий чтения нет
