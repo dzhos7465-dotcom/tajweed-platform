@@ -694,10 +694,8 @@
         autoScore: result.auto.percent,
         _total: Math.round(result.auto.percent),
         _reading: null, _waiting: false,
-        review: (result.details || []).map(function (d) {
-          return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
-                   ok: d.correct, p: d.pending, pt: d.partial, an: d.answered };
-        }),
+        // тот же сборщик, что уходит в базу: два списка полей разошлись бы
+        review: (typeof compactReview === 'function') ? compactReview(result.details) : [],
       };
       WorkDoc.save(r, 'Садулаев Джохар').then(function (res) {
         btn.disabled = false; btn.textContent = 'Скачать мою работу';
