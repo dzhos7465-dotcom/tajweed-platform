@@ -616,6 +616,25 @@ function sendRecording(student, ayahId, ayahText, blob, examMeta) {
 }
 
 
+/* ── РАЗБОР РАБОТЫ В КОМПАКТНОМ ВИДЕ ──────────────────────────────────
+   Один сборщик на всех. Разбор нужен в двух местах: он уходит в базу
+   вместе с результатом и он же скармливается документу, когда ученик
+   скачивает свою работу сразу после сдачи.
+
+   Раньше эти два места собирали список полей КАЖДОЕ ПО-СВОЕМУ, и второе
+   отстало: в нём не было ни текста вопроса, ни вариантов, ни примера.
+   Учитель скачивал полную работу, ученик — пустые карточки «Задание 1,
+   верно». Ровно та поломка, от которой спасает единый источник. */
+function compactReview(details) {
+  return (details || []).map(function (d) {
+    return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
+             ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
+             // чтобы работу можно было показать такой, какой её видел ученик
+             ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt, h: d.hero,
+             it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId };
+  });
+}
+
 function buildResultPayload(result) {
   // Локальная дата/время в читаемом виде
   const now = new Date();
@@ -644,13 +663,7 @@ function buildResultPayload(result) {
     hasPendingManual: result.hasPendingManual,
     // Компактный разбор для детального просмотра (самое необходимое):
     // тема, тип, ответ ученика, правильный ответ, верно ли.
-    review: JSON.stringify((result.details || []).map(function (d) {
-      return { t: d.theme, ty: d.type, a: d.studentAnswer, c: d.correctAnswer,
-               ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
-               // чтобы работу можно было показать такой, какой её видел ученик
-               ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt, h: d.hero,
-               it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId };
-    })),
+    review: JSON.stringify(compactReview(result.details)),
   };
 }
 
