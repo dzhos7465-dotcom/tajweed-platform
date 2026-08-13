@@ -619,7 +619,12 @@ function buildCourse0Sort(block, rng, nextId) {
     stage: 'course0',
     type: TASK_TYPES.SORT,
     prompt: block.prompt,
-    groups: [{ id: 'yes', name: block.yes }, { id: 'no', name: block.no }],
+    /* Поле называется label — так его читает экран и документ. С «name»
+       коробка выходила без подписи и показывала слово undefined. */
+    groups: [
+      { id: 'yes', label: block.yes, accent: 'var(--seal)' },
+      { id: 'no',  label: block.no,  accent: 'var(--gold, #b8912f)' },
+    ],
     items: shuffleWith(items, rng),
     answer: answer,
     check: CHECK.AUTO,

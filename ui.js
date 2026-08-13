@@ -244,8 +244,14 @@
       task.groups.forEach(g => {
         const box = document.createElement('button');
         box.className = 'sort-box';
-        box.style.setProperty('--box-accent', (typeof ruleAccent === 'function') ? ruleAccent(g.id) : 'var(--seal)');
-        box.innerHTML = '<span class="sort-box-title">' + g.label + '</span>';
+        /* Цвет коробки. У правил таджвида он свой у каждого — дети учат
+           правила по цветам. У распределения букв коробки не правила
+           («Твёрдая» / «Мягкая»), и ruleAccent красил обе одинаково: две
+           неразличимые коробки рядом. Поэтому задание может назвать цвет
+           само, а к правилам мы обращаемся только когда оно молчит. */
+        box.style.setProperty('--box-accent',
+          g.accent || ((typeof ruleAccent === 'function') ? ruleAccent(g.id) : 'var(--seal)'));
+        box.innerHTML = '<span class="sort-box-title">' + (g.label || '') + '</span>';
         const inner = document.createElement('div');
         inner.className = 'sort-box-items';
         task.items.forEach(it => {
