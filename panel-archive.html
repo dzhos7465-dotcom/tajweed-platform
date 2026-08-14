@@ -1875,7 +1875,9 @@ body { margin: 0; }
   function updateBalance() {
     var box = $('af-balance');
     if (!box || typeof TASK_WEIGHTS === 'undefined') return;
-    var c0w = (typeof COURSE0_WEIGHTS !== 'undefined') ? COURSE0_WEIGHTS : { single: 2, sort: 3 };
+    var c0w = (typeof COURSE0_WEIGHTS !== 'undefined') ? COURSE0_WEIGHTS : { single: 2, sort: 2.5 };
+    // вес нулевого курса дробный — округляем только при показе
+    var fmt = function (n) { return String(Math.round(n * 10) / 10).replace('.', ','); };
 
     var c0n = 0, c0p = 0, c1n = 0, c1p = 0, recite = 0;
 
@@ -1904,8 +1906,8 @@ body { margin: 0; }
     if (!total && !recite) { box.innerHTML = ''; return; }
 
     var parts = [];
-    if (c0n) parts.push('<b>Нулевой курс:</b> ' + c0n + ' зад. · ' + c0p + ' б.');
-    if (c1n) parts.push('<b>Правила:</b> ' + c1n + ' зад. · ' + c1p + ' б.');
+    if (c0n) parts.push('<b>Нулевой курс:</b> ' + c0n + ' зад. · ' + fmt(c0p) + ' б.');
+    if (c1n) parts.push('<b>Правила:</b> ' + c1n + ' зад. · ' + fmt(c1p) + ' б.');
     var line = parts.join(' &nbsp;·&nbsp; ');
 
     if (c0n && c1n) {
