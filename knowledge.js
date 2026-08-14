@@ -165,6 +165,11 @@ const EXAMPLES = [
   { id: 'ex_shm_3', text: 'لَـمَّا',                themes: ['shadda_mim'] },
   { id: 'ex_shm_4', text: 'مِّـمَّا',               themes: ['shadda_mim'] },
   { id: 'ex_shm_5', text: 'أَمَّةٌ',               themes: ['shadda_mim'] },
+  { id: 'ex_shm_6', text: 'مُحَمَّدٌ', themes: ['shadda_mim'] },
+  { id: 'ex_shm_7', text: 'تَمَّ', themes: ['shadda_mim'] },
+  { id: 'ex_shm_8', text: 'أَمَّا', themes: ['shadda_mim'] },
+  { id: 'ex_shm_9', text: 'هَمَّازٍ', themes: ['shadda_mim'] },
+  { id: 'ex_shm_10', text: 'ٱلۡأُمَّةِ', themes: ['shadda_mim'] },
 
   // ── Изхар нуна ──
   { id: 'ex_izn_1', text: 'مِنۡ هَادٍ',            themes: ['izhar_nun'] },
@@ -250,6 +255,10 @@ const EXAMPLES = [
   { id: 'ex_shn_4', text: 'جَنَّةٌ',               themes: ['shadda_nun'] },
   { id: 'ex_shn_5', text: 'ٱلنَّاسِ',              themes: ['shadda_nun'] },
   { id: 'ex_shn_6', text: 'ظَنَّ',                 themes: ['shadda_nun'] },
+  { id: 'ex_shn_7', text: 'ٱلۡجَنَّةِ', themes: ['shadda_nun'] },
+  { id: 'ex_shn_8', text: 'جَهَنَّمَ', themes: ['shadda_nun'] },
+  { id: 'ex_shn_9', text: 'مَنَّاعٍ', themes: ['shadda_nun'] },
+  { id: 'ex_shn_10', text: 'يَظُنُّونَ', themes: ['shadda_nun'] },
 
   // ── Примеры мадда (ровно из материала преподавателя) ──
   // Естественный мадд (табиий) — 2 хараката
@@ -367,6 +376,10 @@ const EXAMPLES = [
   { id: 'ex_mln_4', text: 'قُرَيۡشٍ',   themes: ['madd_lin'] },
   { id: 'ex_mln_5', text: 'ٱلصَّيۡفِ',  themes: ['madd_lin'] },
   { id: 'ex_mln_6', text: 'ٱلۡبَيۡتِ',  themes: ['madd_lin'] },
+  { id: 'ex_mln_7', text: 'ٱلۡخَوۡفِ', themes: ['madd_lin'] },
+  { id: 'ex_mln_8', text: 'شَيۡءٍ', themes: ['madd_lin'] },
+  { id: 'ex_mln_9', text: 'ٱلۡغَيۡبِ', themes: ['madd_lin'] },
+  { id: 'ex_mln_10', text: 'نَوۡمٌ', themes: ['madd_lin'] },
 
   /* ── Лям в имени Аллах ──────────────────────────────────────────
      Правило зависит НЕ от слова, а от огласовки перед именем:
