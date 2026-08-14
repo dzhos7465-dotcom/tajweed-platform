@@ -177,6 +177,11 @@
 .sort-chip.placed { border-style: solid; }
 
 .sort-groups { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Две коробки — выбор «или/или», и рядом он читается как выбор, а не как
+   список. Три и больше (правила мима, нуна) остаются столбиком: там в
+   коробку кладут длинные слова, и им нужна вся ширина. */
+.sort-groups.two { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+.sort-groups.two .sort-box { min-height: 110px; }
 .sort-box {
   width: 100%; text-align: start; cursor: pointer;
   background: var(--paper-raised);
@@ -286,6 +291,22 @@
   color: var(--ink); display: block; }
 .opt-letter-sub { font-size: var(--text-xs); color: var(--ink-faint); margin-top: 6px; display: block; }
 .opt-letter.on .opt-letter-ch { color: var(--seal); }
+
+/* ── Варианты-СЛОВА ────────────────────────────────────────────────
+   Разметка выше рассчитана на одну букву. Целое слово в три столбца по
+   3.2rem не помещается и вылезает за карточку. Слову даём один столбец
+   на строку и шрифт вдвое меньше — читается спокойно и на телефоне. */
+.opts-letters.opts-words { grid-template-columns: 1fr; }
+.opts-words .opt-letter-ch { font-size: 1.9rem; line-height: 1.9; }
+
+/* Amiri украшает некоторые сочетания букв: они наезжают друг на друга и
+   встают лесенкой. В книге это красиво, но ребёнку, который учится
+   узнавать буквы, слово становится нечитаемым. Просим шрифт не применять
+   украшающие связки. Обязательные (лям-алиф) остаются: они часть письма. */
+.arabic, .opt-letter-ch, .sort-chip-ar, .mushaf {
+  font-variant-ligatures: no-common-ligatures no-discretionary-ligatures;
+  font-feature-settings: "liga" 0, "dlig" 0, "clig" 0;
+}
 /* Полоска о судьбе работы. Ребёнок должен видеть своими глазами, дошла
    ли работа: иначе он уверен, что сдал, а у преподавателя её нет. */
 .send-state { margin: var(--space-4) auto 0; max-width: 460px; padding: var(--space-3) var(--space-4);

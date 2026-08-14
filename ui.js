@@ -100,6 +100,15 @@
     wrap.innerHTML = '';
     const exampleCard = document.querySelector('.example');
 
+    /* СБРОС ВИДА ВАРИАНТОВ.
+       Класс opts-letters ставит сетку в три столбца — он нужен вопросам,
+       где вариантами идут буквы. Снимался он только внутри renderSingle,
+       поэтому после вопроса о буквах распределение попадало в ту же
+       сетку: буквы выстраивались узким столбиком слева, коробки — вторым
+       столбцом. Выглядело как беда вёрстки распределения, а причиной был
+       чужой класс, оставшийся от прошлого задания. */
+    wrap.classList.remove('opts-letters', 'opts-words');
+
     if (task.type === TASK_TYPES.SINGLE) {
       /* Одиночный: пример — герой в карточке, ниже варианты.
          Примера из библиотеки может не быть: у нулевого курса герой — слог,
@@ -142,8 +151,16 @@
        узнаёт букву по начертанию, и мелкая подпись тут ничего не даёт.
        Под буквой её название — чтобы связать вид и звучание. */
     const asLetters = task.optionStyle === 'letter';
-    if (asLetters) wrap.classList.add('opts-letters');
-    else wrap.classList.remove('opts-letters');
+    if (asLetters) {
+      wrap.classList.add('opts-letters');
+      /* Вариантом бывает не только буква, но и целое слово. Слово в три
+         столбца не помещается и лезет за край, поэтому длинным вариантам
+         даём свою разметку: столбцов меньше, шрифт мельче. */
+      const longest = task.options.reduce(function (m, o) {
+        return Math.max(m, String(o.label || '').length);
+      }, 0);
+      if (longest > 3) wrap.classList.add('opts-words');
+    }
 
     task.options.forEach(opt => {
       const btn = document.createElement('button');
@@ -217,7 +234,7 @@
 
     // Контейнер групп
     const groupsWrap = document.createElement('div');
-    groupsWrap.className = 'sort-groups';
+    groupsWrap.className = 'sort-groups' + (task.groups.length === 2 ? ' two' : '');
 
     /* Предмет распределения — обычно пример из библиотеки, но в нулевом
        курсе это буква, которой в библиотеке примеров нет. Тогда текст
@@ -849,7 +866,12 @@
       if (!t || t.max === 0) return;
       const accent = (typeof ruleAccent === 'function') ? ruleAccent(key) : 'var(--ink-faint)';
       const names = (typeof SCORE_GROUP_NAMES !== 'undefined') ? SCORE_GROUP_NAMES : {};
-      const name = (THEMES[key] && THEMES[key].name) || names[key] || key;
+      /* Имя строки спрашиваем у всех библиотек по очереди. Без обращения
+         к нулевому курсу ученик видел внутренние имена: «c0_connect»,
+         «c0sort_heavy». Это третье место, где список имён должен быть
+         полным, — в документе и в панели уже поправлено. */
+      const c0 = (typeof course0Name === 'function') ? course0Name(key) : '';
+      const name = (THEMES[key] && THEMES[key].name) || names[key] || c0 || key;
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td class="name" style="--row-accent:' + accent + '">' + name + '</td>' +
