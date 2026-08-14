@@ -134,6 +134,19 @@ body { margin: 0; }
 .rec-card-top { display: flex; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-2); flex-wrap: wrap; }
 .rec-card-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink); }
 .rec-card-meta { font-size: var(--text-xs); color: var(--ink-faint); }
+/* ── Записи одной работы ─────────────────────────────────────────── */
+.rec-work { background: var(--paper-raised); border: 1px solid var(--line);
+  border-radius: var(--radius); margin-bottom: var(--space-3); overflow: hidden; }
+.rec-work-head { display: flex; align-items: baseline; gap: var(--space-3);
+  padding: var(--space-4); cursor: pointer; flex-wrap: wrap; }
+.rec-work-arrow { color: var(--ink-faint); transition: transform .15s; align-self: center; }
+.rec-work.open .rec-work-arrow { transform: rotate(90deg); }
+.rec-work-body { display: none; padding: 0 var(--space-4) var(--space-3); }
+.rec-work.open .rec-work-body { display: block; }
+/* Аят внутри работы: без своей рамки, отделён линией — карточка в карточке
+   выглядела бы коробкой в коробке. */
+.rec-card-inner { background: transparent; border: none; border-top: 1px solid var(--line);
+  border-radius: 0; padding: var(--space-3) 0 0; margin-bottom: var(--space-3); }
 .rec-card-ayah { font-family: var(--font-arabic); direction: rtl; text-align: right; font-size: 1.5rem; line-height: 1.8; color: var(--ink); margin: var(--space-2) 0; }
 .rec-audio { width: 100%; direction: ltr; margin: var(--space-2) 0; }
 .rec-audio-fail { font-size: var(--text-sm); color: var(--ink-soft); padding: var(--space-3);
@@ -2323,9 +2336,73 @@ body { margin: 0; }
       title.className = 'rec-group-title';
       title.textContent = groupLabel(g) + ' · ' + byGroup[g].length;
       $('rec-list').appendChild(title);
-      byGroup[g].slice().sort(function (a, b) { return b._key - a._key; })
-        .forEach(function (r) { $('rec-list').appendChild(recCard(r)); });
+      /* ── ЗАПИСИ ОДНОЙ РАБОТЫ — ОДНОЙ КАРТОЧКОЙ ─────────────────────
+         Ученик читает в работе несколько аятов, и каждая запись прежде
+         выходила отдельной карточкой со своим именем и датой. Три аята
+         выглядели как три разных ученика подряд, а сколько из них уже
+         оценено — приходилось считать глазами.
+
+         Собираем по РАБОТЕ, а не по имени: тот же ученик мог сдавать
+         контрольную на прошлой неделе и сегодня, и складывать это в одну
+         карточку нельзя. Работу опознаём по сессии; если её нет (старые
+         записи из прежнего хранилища) — по дню сдачи. */
+      var byWork = {}, workOrder = [];
+      byGroup[g].slice().sort(function (a, b) { return b._key - a._key; }).forEach(function (r) {
+        var wid = (r.fullName || '—') + '|' + (r.sessionId || ('d:' + String(r.date || '')));
+        if (!byWork[wid]) { byWork[wid] = []; workOrder.push(wid); }
+        byWork[wid].push(r);
+      });
+      workOrder.forEach(function (wid) {
+        $('rec-list').appendChild(workCard(byWork[wid]));
+      });
     });
+  }
+
+  /* Карточка одной работы: шапка с именем и счётчиком, внутри — аяты. */
+  function workCard(list) {
+    var first = list[0];
+    var isGraded = function (r) { return r.grade !== '' && r.grade != null; };
+    var done = list.filter(isGraded).length;
+    var all = done === list.length;
+
+    var box = document.createElement('div');
+    /* Проверенные работы свёрнуты, непроверенные раскрыты. В этот раздел
+       заходят, чтобы оценить несделанное, — пусть оно и будет на виду,
+       а сделанное не занимает экран. */
+    box.className = 'rec-work' + (all ? '' : ' open');
+
+    var head = document.createElement('div');
+    head.className = 'rec-work-head';
+    head.innerHTML =
+      '<span class="rec-work-arrow">▸</span>' +
+      '<span class="rec-card-name">' + (first.fullName || '—') + '</span>' +
+      '<span class="rec-grade-badge" style="' + badgeStyle(all) + '">' +
+        (list.length === 1
+          ? (all ? 'оценено · ' + first.grade : 'не оценено')
+          : 'оценено ' + done + ' из ' + list.length) + '</span>' +
+      '<span class="rec-card-meta">' + shortWhen(first.date, first.time) + '</span>';
+    head.addEventListener('click', function () { box.classList.toggle('open'); });
+    box.appendChild(head);
+
+    var badge = head.querySelector('.rec-grade-badge');
+    function refresh() {
+      var n = list.filter(isGraded).length;
+      var full = n === list.length;
+      badge.textContent = (list.length === 1)
+        ? (full ? 'оценено · ' + list[0].grade : 'не оценено')
+        : 'оценено ' + n + ' из ' + list.length;
+      badge.setAttribute('style', badgeStyle(full));
+    }
+
+    var body = document.createElement('div');
+    body.className = 'rec-work-body';
+    list.forEach(function (r) {
+      var c = recCard(r, true);
+      c._onGraded = refresh;      // балл поставили — счётчик в шапке следом
+      body.appendChild(c);
+    });
+    box.appendChild(body);
+    return box;
   }
 
   /* Значок состояния в шапке карточки: зелёный, когда балл уже стоит. */
@@ -2337,17 +2414,19 @@ body { margin: 0; }
       : 'background:var(--paper-sunken); color:var(--ink-faint); border:1px solid var(--line);');
   }
 
-  function recCard(r) {
+  function recCard(r, inWork) {
     var card = document.createElement('div');
-    card.className = 'rec-card';
+    /* Внутри карточки работы имя и дата уже стоят в шапке — повторять их
+       у каждого аята значит превращать список в частокол одинаковых строк. */
+    card.className = inWork ? 'rec-card rec-card-inner' : 'rec-card';
     var ayahText = r.ayahText || (window.AYAH_BY_ID && AYAH_BY_ID[r.ayahId] ? AYAH_BY_ID[r.ayahId].text : '');
     var graded = (r.grade !== '' && r.grade != null);
     card.innerHTML =
       '<div class="rec-card-top">' +
-        '<span class="rec-card-name">' + (r.fullName || '—') + '</span>' +
+        (inWork ? '' : '<span class="rec-card-name">' + (r.fullName || '—') + '</span>') +
         '<span class="rec-grade-badge" style="' + badgeStyle(graded) + '">' +
           (graded ? 'оценено · ' + r.grade : 'не оценено') + '</span>' +
-        '<span class="rec-card-meta">' + shortWhen(r.date, r.time) + '</span>' +
+        (inWork ? '' : '<span class="rec-card-meta">' + shortWhen(r.date, r.time) + '</span>') +
       '</div>' +
       (ayahText ? '<div class="rec-card-ayah"><span class="ayah-br">\uFD3F</span>' + ayahText +
         '<span class="ayah-br">\uFD3E</span></div>' : '') +
@@ -2480,6 +2559,7 @@ body { margin: 0; }
           saved.textContent = 'Отправлено · обновите список, чтобы проверить';
           badge.textContent = 'оценено · ' + val;
           badge.setAttribute('style', badgeStyle(true));
+          if (card._onGraded) card._onGraded();
           return;
         }
         r.grade = val;                       // обновить в памяти
@@ -2489,6 +2569,8 @@ body { margin: 0; }
         saved.textContent = 'Сохранено ✓';
         badge.textContent = 'оценено · ' + val;
         badge.setAttribute('style', badgeStyle(true));
+        // счётчик «оценено N из M» в шапке работы должен идти следом
+        if (card._onGraded) card._onGraded();
       });
     });
     return card;
