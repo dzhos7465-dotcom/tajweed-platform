@@ -627,6 +627,7 @@ body { margin: 0; }
           '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + fmtDate(a.createdAt) + '</span>' +
           '<span style="flex:1"></span>' +
           '<span style="color:var(--ink-faint); font-size:var(--text-xs);">' + nThemes + ' тем' + (nAyahs ? ' · ' + nAyahs + ' аят' : '') + '</span>' +
+          '<button class="btn btn-quiet act-view" data-id="' + a.id + '" style="padding:4px 12px;">Посмотреть</button>' +
           '<button class="btn btn-quiet act-edit" data-id="' + a.id + '" style="padding:4px 12px;">Изменить</button>' +
           '<button class="btn btn-quiet act-del" data-id="' + a.id + '" style="padding:4px 12px; color:var(--err); border-color:var(--err-tint);">Удалить</button>' +
           '</div>';
@@ -634,6 +635,17 @@ body { margin: 0; }
       // Кэш для редактирования (чтобы не запрашивать снова)
       window._activitiesCache = sorted;
       // повесить кнопки
+      /* «Посмотреть» открывает работу глазами ученика, не заводя сессию.
+         Ничего не отправляется: ни балл, ни записи голоса. До сих пор,
+         чтобы взглянуть на контрольную, приходилось запускать настоящую
+         сессию — и пробные работы преподавателя оседали в результатах
+         группы вперемешку с ученическими. */
+      $('activities-list').querySelectorAll('.act-view').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var base = window.location.href.replace(/[^\/]*\.html.*$/, '') + 'exam-archive.html';
+          window.open(base + '?preview=' + encodeURIComponent(btn.getAttribute('data-id')), '_blank');
+        });
+      });
       $('activities-list').querySelectorAll('.act-edit').forEach(function (btn) {
         btn.addEventListener('click', function () { editActivity(btn.getAttribute('data-id')); });
       });
