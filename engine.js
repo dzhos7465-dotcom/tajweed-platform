@@ -112,6 +112,61 @@ function buildTaskOrder(config) {
     return out;
   }
 
+  /* ── ПОРЯДОК ИЗУЧЕНИЯ ─────────────────────────────────────────────
+     Задания идут так, как темы идут в программе: мим → нун → мадд → лям.
+     Внутри темы — в том порядке, в каком собраны.
+
+     Раньше здесь работал «разброс»: соседние задания брались из разных
+     тем, чтобы ребёнок не отвечал по инерции. На деле выходило хуже.
+     Разброс раздаёт темы по кругу — сперва по одному заданию из каждой,
+     потом по второму. Работа с двумя вопросами на тему выглядела так,
+     будто все темы прошли дважды, а начиналась со случайной темы из
+     середины программы: ученик открывал контрольную и видел мадд лазим
+     раньше мима. Предсказуемый порядок важнее защиты от инерции —
+     тем более что инерции мешает и сам подбор вариантов. */
+  /* Разделы идут по программе, ВНУТРИ раздела — вперемешку.
+
+     Ученик проходит мим, потом нун, потом мадд — как их и учили. Но какое
+     правило раздела спросят первым, заранее не известно, и при новом
+     заходе порядок другой. Так проверяется знание раздела, а не память о
+     том, в каком месте списка стоит икляб.
+
+     Перемешиваем числом захода, а не номером билета: билет один на всех и
+     дал бы всем одинаковый порядок навсегда. Слова и состав работы он
+     по-прежнему определяет — меняются только места. */
+  function byGroupShuffled(list) {
+    var groupPos = {}, groupOf = {};
+    list.forEach(function (t) {
+      var th = (typeof THEMES !== 'undefined') ? THEMES[t.theme] : null;
+      var g = (th && th.group) ? th.group : '—';
+      var o = (th && th.order != null) ? th.order : 999;
+      groupOf[t.theme] = g;
+      if (groupPos[g] == null || o < groupPos[g]) groupPos[g] = o;
+    });
+
+    var buckets = {}, names = [];
+    list.forEach(function (t) {
+      var g = groupOf[t.theme] || '—';
+      if (!buckets[g]) { buckets[g] = []; names.push(g); }
+      buckets[g].push(t);
+    });
+    names.sort(function (a, b) { return (groupPos[a] || 999) - (groupPos[b] || 999); });
+
+    var out = [];
+    names.forEach(function (g) {
+      var inGroup = shuffle(buckets[g], attemptRng);
+      /* Галочка «не ставить подряд вопросы одного правила» — если она
+         стоит, внутри раздела ещё и разводим одинаковые темы. */
+      out = out.concat(spread ? spreadByTheme(inGroup) : inGroup);
+    });
+    return out;
+  }
+
+  /* Число захода: своё у каждого прохождения, сохраняется в черновике.
+     Если его ещё нет (старый черновик), берём номер билета — порядок
+     тогда будет постоянным, но работа соберётся. */
+  var attemptRng = makeRng(session.optSeed || st.seed || 1);
+
   var order = [], placed = {};
   var push = function (arr) { arr.forEach(function (t) { order.push(t.id); placed[t.id] = true; }); };
 
@@ -168,7 +223,7 @@ function buildTaskOrder(config) {
        заданием: телефон сразу просил доступ к микрофону, и это пугало. */
     [TASK_TYPES.SINGLE, TASK_TYPES.SORT, TASK_TYPES.FIND].forEach(function (ty) {
       var block = TASKS.filter(function (t) { return t.type === ty; });
-      push(spread ? spreadByTheme(block) : shuffle(block, rng));
+      push(byGroupShuffled(block));
     });
   }
 
@@ -209,12 +264,46 @@ function startExam(student, config) {
   session.student = student;
   session.startTime = Date.now();
   session.endTime = null;
-  session.taskOrder = buildTaskOrder(activeConfig);
+
+  /* ── ЧИСЛО ЗАХОДА ─────────────────────────────────────────────────
+     Экзамен собирается фиксированным номером билета — чтобы на всех
+     устройствах были одни и те же слова и один и тот же порядок заданий.
+     Но из-за этого и варианты ответа стояли всегда одинаково: пройдя
+     работу второй раз, можно было запомнить не правило, а место кнопки.
+
+     СОСТАВ работы номер билета по-прежнему определяет: те же примеры, те
+     же аяты у всех. А вот МЕСТА — и вариантов ответа, и тем внутри
+     раздела — задаёт это число, своё у каждого захода. Ответ хранится
+     признаком варианта, а не его местом, поэтому проверка не страдает.
+
+     Число сохраняется в черновике: после перезагрузки посреди работы
+     кнопки и задания останутся там же, где были. */
+  /* Число берём случайным, а не из часов: два захода подряд укладываются
+     в одну миллисекунду, и кнопки вставали бы на прежние места. */
+  session.optSeed = Math.floor(Math.random() * 1000000) + 1;
+  shuffleTaskOptions(session.optSeed);
+  session.taskOrder = buildTaskOrder(activeConfig);   // порядок зависит от числа захода
   session.answers = {};
   session.currentIndex = 0;
   session.finished = false;
 
   saveDraft(); // автосохранение с самого начала (защита от потери связи)
+}
+
+/* Переставить варианты во всех заданиях заданным числом. Меняются только
+   места: сами варианты и признак верного ответа остаются прежними. */
+function shuffleTaskOptions(seed) {
+  if (typeof TASKS === 'undefined' || !Array.isArray(TASKS)) return;
+  var rng = (typeof makeRng === 'function') ? makeRng(seed || 1) : Math.random;
+  TASKS.forEach(function (t) {
+    if (!Array.isArray(t.options) || t.options.length < 2) return;
+    var a = t.options.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    t.options = a;
+  });
 }
 
 function currentTask() {
@@ -560,6 +649,8 @@ function saveDraft() {
       // Без него после перезагрузки собиралась ДРУГАЯ работа: те же номера
       // заданий, но другие слова, а ответы оставались от прежних.
       seed: session.seed || null,
+      // и порядок вариантов: после перезагрузки кнопки не должны прыгать
+      optSeed: session.optSeed || null,
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch (e) { /* localStorage может быть недоступен — не критично */ }
@@ -581,6 +672,10 @@ function restoreDraft(draft) {
       ? window.SESSION_EXAM_CONFIG : EXAM_CONFIG;
     rebuildTasks(session.mode.randomizeExamples, cfg, draft.seed);
     session.seed = draft.seed;
+  }
+  if (draft.optSeed != null) {
+    session.optSeed = draft.optSeed;
+    shuffleTaskOptions(draft.optSeed);
   }
   session.student = draft.student;
   session.startTime = draft.startTime;

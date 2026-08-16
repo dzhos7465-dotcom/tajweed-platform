@@ -162,20 +162,36 @@
 
     // что ученик отметил на каждом слове и верно ли
     const marks = {};      // индекс слова → {rule, ok}
+    /* ЧЕРТА СУДИТСЯ ЦЕЛИКОМ, А НЕ ПО СЛОВАМ.
+       Правило часто лежит НА СТЫКЕ: конец одного слова и начало
+       следующего — так устроены икляб, идгам, ихфа. Ученик проводит одну
+       черту через оба слова, и это правильный ответ.
+
+       Раньше документ проверял каждое слово порознь. Правило записано на
+       одном слове стыка, поэтому второе не находило себя среди верных и
+       получало красный крест: работа выглядела наполовину ошибочной, хотя
+       движок засчитал её верно. Теперь смотрим: если ХОТЬ ОДНО слово под
+       чертой — нужное место, вся черта верна. */
+    const covered = {};    // какие места ученик закрыл
     strokes.forEach(function (s) {
-      if (!s || !Array.isArray(s.words)) return;
+      if (!s || !Array.isArray(s.words) || !s.words.length) return;
+      var good = false;
       s.words.forEach(function (w) {
-        const here = targets[w] || [];
-        const good = here.indexOf(s.rule) !== -1;
-        // если на слове уже стоит верная отметка, не затираем её ошибочной
-        if (marks[w] && marks[w].ok) return;
+        if ((targets[w] || []).indexOf(s.rule) !== -1) { good = true; covered[w] = true; }
+      });
+      s.words.forEach(function (w) {
+        if (marks[w] && marks[w].ok) return;   // верную отметку не затираем
         marks[w] = { rule: s.rule, ok: good };
       });
     });
 
-    // места, которые ученик не тронул вовсе
+    /* Места, которые ученик не тронул вовсе. Считаем по закрытым местам,
+       а не по «есть ли отметка на слове»: слово стыка могло попасть под
+       черту соседнего правила и выглядеть тронутым, не будучи найденным. */
     const missed = {};
-    Object.keys(targets).forEach(function (w) { if (!marks[w]) missed[w] = true; });
+    Object.keys(targets).forEach(function (w) {
+      if (!covered[w] && !(marks[w] && marks[w].ok)) missed[w] = true;
+    });
 
     const html = words.map(function (word, i) {
       const key = String(i);
