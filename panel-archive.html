@@ -209,10 +209,10 @@ body { margin: 0; }
    балл. Одной меньше — и балл, не поместившись, уходил на вторую строку,
    растягивая место под учеником вдвое. На телефоне дата скрыта, поэтому
    там колонок на одну меньше — см. правило ниже. */
-.res-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.res-row { display: grid; grid-template-columns: 1fr auto auto auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
 /* В режиме выбора появляется пятый элемент — галочка. Без своей колонки
    она попадала в колонку имени и растягивалась на всю её ширину. */
-.res-row.picking { grid-template-columns: 22px 1fr auto auto auto; }
+.res-row.picking { grid-template-columns: 22px 1fr auto auto auto auto; }
 .res-row .res-check { width: 18px; height: 18px; margin: 0; accent-color: var(--seal); cursor: pointer; }
 .res-row:last-child { border-bottom: none; }
 .res-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink);
@@ -230,8 +230,8 @@ body { margin: 0; }
   /* На телефоне дата скрыта, значит ячеек три: имя, отметка состояния и
      балл. Колонок ровно столько же — строка остаётся одна, а имя при
      нехватке места ужимается многоточием. */
-  .res-row { grid-template-columns: 1fr auto auto; }
-  .res-row.picking { grid-template-columns: 22px 1fr auto auto; }
+  .res-row { grid-template-columns: 1fr auto auto auto; }
+  .res-row.picking { grid-template-columns: 22px 1fr auto auto auto; }
   .res-meta { display: none; }
   .res-score { font-size: var(--text-lg); }
 }
@@ -365,6 +365,14 @@ body { margin: 0; }
             Чтение вслух — последним заданием</label>
           <label class="sort-opt"><input type="checkbox" id="af-spread" checked>
             Не ставить подряд вопросы одного правила</label>
+          <!-- Порог хранится В САМОЙ АКТИВНОСТИ, а не в общих настройках.
+               Иначе, поменяв его однажды, преподаватель задним числом
+               пересудил бы все прошлые контрольные: вчерашний «сдал» стал
+               бы «не сдал». Выставленная оценка меняться не должна. -->
+          <label class="sort-opt"><input type="checkbox" id="af-pass-on">
+            Проходной балл:
+            <input id="af-pass" type="number" min="1" max="100" value="70"
+              style="width:70px; margin-left:6px;" disabled></label>
         </div>
 
         <div class="collapse" data-collapse>
@@ -977,12 +985,31 @@ body { margin: 0; }
 
   function loadResults() {
     // Грузим и результаты (тест), и записи (чтение) — чтобы свести общий балл
+    /* Порог сдачи лежит в АКТИВНОСТИ, а работа знает свою СЕССИЮ. Поэтому
+       подтягиваем сессии и активности и строим мостик сессия → порог.
+       Если что-то из этого не загрузится, вердикта просто не будет —
+       баллы покажутся как прежде. */
     Promise.all([
       StorageAPI.results.list(),
-      StorageAPI.recordings.list().catch(function () { var e = []; e.failed = true; return e; })
+      StorageAPI.recordings.list().catch(function () { var e = []; e.failed = true; return e; }),
+      StorageAPI.sessions.list().catch(function () { return []; }),
+      StorageAPI.activities.list().catch(function () { return []; })
     ]).then(function (both) {
       const res = both[0] || [];
       const recs = both[1] || [];
+
+      const passBySession = {};
+      (function () {
+        const passByAct = {};
+        (both[3] || []).forEach(function (a) {
+          if (a && a.id != null && a.passScore != null) passByAct[a.id] = a.passScore;
+        });
+        (both[2] || []).forEach(function (ses) {
+          if (!ses || ses.id == null) return;
+          const p = passByAct[ses.activityId];
+          if (p != null) passBySession[ses.id] = p;
+        });
+      })();
       if (res && res.failed) {
         $('results-list').innerHTML =
           '<div class="status-line">Не удалось связаться с таблицей.<br>' +
@@ -1073,6 +1100,10 @@ body { margin: 0; }
         x._reciteExpected = expected;
         x._missingRec = rd.missing || 0;
         x._readingByAyah = rd.byAyah || {};   // балл каждого аята отдельно
+        /* Порог этой работы. Берётся из активности через сессию и
+           прикладывается к работе — дальше все, кто её показывает, судят
+           по одному и тому же числу. */
+        x._pass = (x.sessionId != null) ? (passBySession[x.sessionId] != null ? passBySession[x.sessionId] : null) : null;
         x._notSubmitted = false;
 
         /* ВАЖНО: «не сдано» ставим, только если список записей ДЕЙСТВИТЕЛЬНО
@@ -1132,11 +1163,40 @@ body { margin: 0; }
         const scores = students.map(function (s) { return s._total; }).filter(function (n) { return n != null; });
         const avg = scores.length ? Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / scores.length) : null;
 
+        /* Сколько сдали. Считаем только проверенные работы: пока чей-то
+           балл не окончателен, «сдали 4 из 6» вводило бы в заблуждение. */
+        const pass = head._pass;
+        let passLine = '';
+        if (pass != null) {
+          const judged = students.filter(function (s) { return s._total != null && !s._waiting; });
+          const okCount = judged.filter(function (s) { return s._total >= pass; }).length;
+          if (judged.length) {
+            passLine = ' · сдали ' + okCount + ' из ' + judged.length +
+                       (judged.length < students.length ? ' (проверено не всё)' : '');
+          }
+        }
+
         const rows = students.map(function (x) {
           const score = x._total;
           // цвет балла: зелёный ≥70, янтарный 40-69, красный <40
           let scoreColor = 'var(--ink-faint)';
           if (score != null) scoreColor = score >= 70 ? 'var(--ok)' : (score >= 40 ? 'var(--amber, #b8860b)' : 'var(--err)');
+          /* Вердикт ставится ТОЛЬКО когда работа проверена целиком: пока
+             чтение не оценено, итог неизвестен, и писать «сдано» нельзя.
+             Пограничных — тех, кто в двух баллах от черты, — помечаем
+             отдельно: двадцать баллов из ста ставит преподаватель на слух,
+             и такие работы стоит переслушать, прежде чем решать судьбу. */
+          let verdictTag = '';
+          if (x._pass != null && score != null && !x._waiting) {
+            const passed = score >= x._pass;
+            const near = Math.abs(score - x._pass) <= 2;
+            verdictTag = '<span class="res-tag" style="' +
+              (passed
+                ? 'background:var(--ok-tint); color:var(--ok); border:1px solid var(--ok);'
+                : 'background:var(--err-tint); color:var(--err); border:1px solid var(--err);') +
+              '">' + (passed ? 'сдано' : 'не сдано') +
+              (near ? ' · у черты' : '') + '</span>';
+          }
           const pendingTag = x._waiting
             ? '<span class="res-tag res-tag-wait">ждёт чтения</span>'
             : (x._notSubmitted
@@ -1162,7 +1222,7 @@ body { margin: 0; }
                  растягивал место под именем. */
               '<div class="res-name">' + (x.fullName || '—') + docBtn + '</div>' +
               '<div class="res-meta">' + shortWhen(x.date, x.time) + '</div>' +
-              pendingTag +
+              pendingTag + verdictTag +
               '<div class="res-score" style="color:' + scoreColor + '">' + (score != null ? score : '—') + '</div>' +
             '</div>';
         }).join('');
@@ -1171,7 +1231,7 @@ body { margin: 0; }
             '<div class="res-group-head">' +
               '<span class="res-group-name">' + title + '</span>' +
               '<span class="res-group-stat">' + students.length + ' ' + plural(students.length, 'ученик','ученика','учеников') +
-                (avg != null ? ' · средний ' + avg : '') + '</span>' +
+                (avg != null ? ' · средний ' + avg : '') + passLine + '</span>' +
               '<button class="res-shot-btn" data-group="' + g + '" title="Сохранить картинкой">📷</button>' +
               (students.some(function (x) { return typeof WorkDoc !== 'undefined' && WorkDoc.ready(x); })
                 ? '<button class="res-shot-btn res-docs-btn" data-group="' + g +
@@ -2041,12 +2101,22 @@ body { margin: 0; }
     });
   })();
 
+  (function () {
+    var chk = $('af-pass-on');
+    if (chk) chk.addEventListener('change', function () {
+      $('af-pass').disabled = !chk.checked;
+    });
+  })();
+
   function showForm() {
     editingActivity = null;
     $('form-title').textContent = 'Новая активность';
     $('activity-form').style.display = '';
     $('activities-top').style.display = 'none';
     $('af-title').value = '';
+    $('af-pass-on').checked = false;
+    $('af-pass').disabled = true;
+    $('af-pass').value = 70;
     $('af-type').value = 'exam';
     $('af-order').value = 'byType';
     $('af-recite-last').checked = true;
@@ -2107,6 +2177,15 @@ body { margin: 0; }
         count.value = t.count || 3;
       }
     });
+    if (act.passScore != null) {
+      $('af-pass-on').checked = true;
+      $('af-pass').disabled = false;
+      $('af-pass').value = act.passScore;
+    } else {
+      $('af-pass-on').checked = false;
+      $('af-pass').disabled = true;
+      $('af-pass').value = 70;
+    }
     // Отметить блоки нулевого курса
     (act.course0 || []).forEach(function (b) {
       const c = $('af-course0') && $('af-course0').querySelector('.c0-check[data-block="' + b.block + '"]');
@@ -2235,6 +2314,8 @@ body { margin: 0; }
       timeLimit: parseInt($('af-time').value, 10) || 0,
       themes: themes,
       course0: course0,            // блоки нулевого курса (буквы и знаки)
+      // порог сдачи: null — платформа не судит, просто показывает балл
+      passScore: $('af-pass-on').checked ? (parseInt($('af-pass').value, 10) || 70) : null,
       recite: collectAyahs(),   // аяты для чтения, выбранные преподавателем
       sortMim: $('af-sort-mim').checked,   // распределение по миму
       sortNun: $('af-sort-nun').checked,   // распределение по нуну

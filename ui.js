@@ -719,6 +719,7 @@
         _reading: null, _waiting: false,
         // тот же сборщик, что уходит в базу: два списка полей разошлись бы
         review: (typeof compactReview === 'function') ? compactReview(result.details) : [],
+        _pass: (typeof window !== 'undefined' && window.PASS_SCORE != null) ? window.PASS_SCORE : null,
       };
       WorkDoc.save(r, 'Садулаев Джохар').then(function (res) {
         btn.disabled = false; btn.textContent = 'Скачать мою работу';

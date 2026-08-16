@@ -441,7 +441,8 @@
           ';font-weight:600;margin-bottom:12px;">' + esc(examTitle || 'Работа по таджвиду') + '</div>' +
         row('Ученик', r.fullName || '—') +
         row('Группа', r.group || '') +
-        row('Сдано', when) +
+        // не «Сдано»: рядом стоит вердикт с тем же словом в другом смысле
+        row('Дата сдачи', when) +
         row('Преподаватель', teacherName || '') +
       '</div>';
   }
@@ -460,6 +461,25 @@
         (test != null ? 'тест ' + test + ' × 80%' : '') +
         (reading != null ? ' · чтение ' + reading + '/10 × 20%' : '') +
       '</div>' +
+      /* Вердикт — только если преподаватель назначил порог этой работе.
+         Без порога документ ничего не решает за него и просто показывает
+         балл, как раньше. */
+      passLine(r, total) +
+    '</div>';
+  }
+
+  function passLine(r, total) {
+    const pass = (r._pass != null) ? Number(r._pass) : null;
+    if (pass == null || total == null) return '';
+    const ok = total >= pass;
+    return '<div style="margin-top:12px;">' +
+      '<span style="display:inline-block;font-size:14px;font-weight:700;padding:5px 18px;' +
+        'border-radius:999px;' +
+        (ok ? 'background:#e8f3ec;color:' + OK + ';border:1px solid ' + OK + ';'
+            : 'background:#f8ecec;color:' + ERR + ';border:1px solid ' + ERR + ';') +
+      '">' + (ok ? 'Сдано' : 'Не сдано') + '</span>' +
+      '<div style="font-size:11px;color:' + FAINT + ';margin-top:6px;">' +
+        'проходной балл — ' + pass + '</div>' +
     '</div>';
   }
 
@@ -548,11 +568,18 @@
          осторожнее — и внизу оставалось пустое поле. */
       if (d.ty === 'recite') return 19;   // вопрос и аят в рамке — и всё
       if (d.ty === 'find')   return 24;   // аят, отметки ученика и подписи
+
       if (d.ty === 'sort') {
-        // коробки идут столбиком: чем больше правил, тем задание выше
-        var boxes = Array.isArray(d.gr) ? d.gr.length : 3;
-        return 10 + boxes * 6;
+        /* В ДОКУМЕНТЕ КОРОБОК НЕТ. На экране распределение — это столбик
+           коробок, и я считал высоту по их числу. Но в документе оно
+           рисуется одной строкой слов подряд: коробки не нужны, ответ уже
+           дан. Мера по коробкам завышала высоту вдвое — оттого страницы и
+           обрывались на середине с пустым полем внизу.
+           Считаем по словам: они переносятся примерно по семь в строку. */
+        var items = Array.isArray(d.it) ? d.it.length : 6;
+        return 16 + Math.ceil(items / 7) * 6;
       }
+
       // вопрос: заголовок, пример и кнопки вариантов
       var opts = Array.isArray(d.op) ? d.op.length : 4;
       return 15 + opts * 4.5;

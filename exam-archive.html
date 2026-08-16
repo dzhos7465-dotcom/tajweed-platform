@@ -649,6 +649,8 @@
           cfg.title = activity.title || cfg.title;
           cfg.activityThemes = activity.themes || [];   // ← рецепт преподавателя
           cfg.activityCourse0 = activity.course0 || [];  // блоки нулевого курса
+          // порог сдачи — чтобы ученик увидел вердикт в своём документе
+          window.PASS_SCORE = (activity.passScore != null) ? activity.passScore : null;
           /* Пустой список — это НЕ «выбери сам», а «чтения не будет».
              Раньше здесь ставился null, и сборщик считал, что аяты просто
              не заданы, и подставлял случайные — задание чтения появлялось
