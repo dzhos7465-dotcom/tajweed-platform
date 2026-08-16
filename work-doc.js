@@ -402,15 +402,28 @@
       }).join('') + '</div>';
   }
 
-  /* ── Шапка ── */
+  /* ── Шапка первой страницы ──────────────────────────────────────────
+     Сведения о работе стоят СПИСКОМ, строка под строкой: ученик, группа,
+     сдано, преподаватель. Раньше они шли одной строкой через точки и
+     растягивали верх страницы, а имя преподавателя вообще пряталось внизу
+     каждой страницы — искать его приходилось глазами. Теперь всё, что
+     нужно знать о работе, читается в одном месте сверху. */
   function header(r, teacherName, examTitle) {
-    return '<div style="text-align:center;padding-bottom:18px;border-bottom:2px solid ' + GOLD + ';">' +
+    function row(label, value) {
+      if (!value) return '';
+      return '<div style="display:flex;gap:10px;margin-bottom:5px;">' +
+        '<span style="width:120px;font-size:12px;color:' + FAINT + ';">' + label + '</span>' +
+        '<span style="flex:1;font-size:13px;color:' + INK + ';font-weight:600;">' + esc(value) + '</span>' +
+      '</div>';
+    }
+    var when = String(r.date || '') + (r.time ? ' · ' + String(r.time) : '');
+    return '<div style="padding-bottom:14px;border-bottom:2px solid ' + GOLD + ';">' +
         '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:' + TEAL +
-          ';font-weight:600;">' + esc(examTitle || 'Работа по таджвиду') + '</div>' +
-        '<div style="font-size:26px;font-weight:700;color:' + INK + ';margin:8px 0 4px;">' +
-          esc(r.fullName || '—') + '</div>' +
-        '<div style="font-size:13px;color:' + SOFT + ';">' +
-          esc(r.group || '') + ' · ' + esc(r.date || '') + (r.time ? ' · ' + esc(r.time) : '') + '</div>' +
+          ';font-weight:600;margin-bottom:12px;">' + esc(examTitle || 'Работа по таджвиду') + '</div>' +
+        row('Ученик', r.fullName || '—') +
+        row('Группа', r.group || '') +
+        row('Сдано', when) +
+        row('Преподаватель', teacherName || '') +
       '</div>';
   }
 
@@ -431,11 +444,11 @@
     '</div>';
   }
 
-  function footer(teacherName) {
-    return '<div style="margin-top:auto;padding-top:16px;border-top:1px solid #ece3cf;text-align:center;">' +
-        '<div style="color:' + GOLD + ';font-size:15px;margin-bottom:4px;">۞</div>' +
-        '<div style="font-size:12px;color:' + FAINT + ';">' + esc(teacherName) +
-          ' · преподаватель таджвида</div>' +
+  /* Низ страницы. Имя преподавателя отсюда убрано: оно теперь стоит в
+     шапке первой страницы, а повторяться на каждой ему незачем. */
+  function footer() {
+    return '<div style="margin-top:auto;padding-top:14px;border-top:1px solid #ece3cf;text-align:center;">' +
+        '<div style="color:' + GOLD + ';font-size:14px;">۞</div>' +
       '</div>';
   }
 
@@ -499,7 +512,7 @@
           ';margin-bottom:6px;">Разбор работы</div>' +
         review.slice(0, FIRST).map(taskBlock).join('') +
       '</div>' +
-      footer(teacherName)
+      footer()
     );
     for (let i = FIRST; i < review.length; i += REST) {
       pages.push(
@@ -508,7 +521,7 @@
         '<div>' + review.slice(i, i + REST).map(function (d, k) {
           return taskBlock(d, i + k);
         }).join('') + '</div>' +
-        footer(teacherName)
+        footer()
       );
     }
     return pages;
@@ -520,7 +533,12 @@
     const nodes = pages.map(pageWrap);
 
     return Promise.all(nodes.map(function (n) {
-      return html2canvas(n, { backgroundColor: PAPER, scale: 2 });
+      /* Плотность снимка. Двойная давала очень чёткую, но тяжёлую картинку:
+         работа на десяток страниц выходила в несколько мегабайт, а по почте
+         и в мессенджере это уже неудобно. Полторы читаются так же хорошо —
+         арабская вязь остаётся резкой, — а файл становится примерно вдвое
+         легче. Ниже опускать нельзя: огласовки начинают мылиться. */
+      return html2canvas(n, { backgroundColor: PAPER, scale: 1.5 });
     })).then(function (canvases) {
       nodes.forEach(function (n) { document.body.removeChild(n); });
       const { jsPDF } = window.jspdf;
@@ -530,7 +548,9 @@
       canvases.forEach(function (c, i) {
         if (i) pdf.addPage();
         const h = Math.min(H, (c.height / c.width) * W);
-        pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, h);
+        /* Сжатие 0.82 вместо 0.92: на глаз неотличимо, вес заметно меньше.
+           Текст на снимке крупный и контрастный, ему такое сжатие не вредит. */
+        pdf.addImage(c.toDataURL('image/jpeg', 0.82), 'JPEG', 0, 0, W, h);
       });
       return pdf;
     }).catch(function (err) {
