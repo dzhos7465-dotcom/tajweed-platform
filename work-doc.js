@@ -310,7 +310,26 @@
       else { badge = (d.rg != null) ? ('чтение: ' + d.rg + ' из 10') : 'чтение'; badgeColor = GOLD; }
     }
     else if (ok) { badge = 'верно'; badgeColor = OK; }
-    else { badge = 'ошибка'; badgeColor = ERR; }
+    else {
+      /* ЧАСТИЧНО ВЕРНО — НЕ ОШИБКА.
+         В распределении и «найди в аяте» балл начисляется за каждое верное
+         место. Разложил шесть слов из восьми — получил три четверти балла.
+         Подпись «ошибка» это скрывала: ученик видел красную отметку и
+         думал, что задание не зачтено вовсе. Показываем, сколько сделано,
+         и цветом — что сделано частично, а не провалено. */
+      const p = d.pt;
+      const partial = p && p.total > 0 && p.right > 0 && p.right < p.total;
+      if (partial) {
+        badge = 'частично верно: ' + p.right + ' из ' + p.total;
+        badgeColor = GOLD;
+      } else if (p && p.total > 0 && p.right === 0) {
+        badge = 'ошибка: 0 из ' + p.total;
+        badgeColor = ERR;
+      } else {
+        badge = 'ошибка';
+        badgeColor = ERR;
+      }
+    }
 
     head = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
         '<span style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:' + TEAL +
@@ -508,7 +527,34 @@
        Теперь её высота предсказуема при любом составе работы.
 
        Разбор начинается со второй страницы, по три задания на лист. */
-    const REST = 3;
+    /* ── СКОЛЬКО ЗАДАНИЙ ВЛЕЗЕТ НА СТРАНИЦУ ────────────────────────────
+       Раньше на лист ставилось ровно три задания, каким бы ни был их
+       размер. Из-за этого чтение аята — а это две строки, вопрос и рамка —
+       занимало треть листа, и рядом оставалось пустое место, куда легко
+       вставало бы ещё одно такое же.
+
+       Теперь у каждого задания своя мера высоты, и лист наполняется, пока
+       есть место. Мера примерная: точную высоту знает только браузер, а
+       считать её пришлось бы отрисовкой каждой страницы дважды. Числа
+       взяты с запасом — лучше оставить поле внизу, чем срезать задание. */
+    const PAGE_ROOM = 100;          // условная вместимость листа
+
+    /* Числа выверены по тому, что уже работало: обычный вопрос с четырьмя
+       вариантами занимал треть листа, значит его мера — 33. Остальное
+       посчитано от него. Чтение — самое низкое задание, четыре на лист. */
+    function taskCost(d) {
+      if (d.ty === 'recite') return 22;   // вопрос и аят в рамке — и всё
+      if (d.ty === 'find')   return 33;   // аят, отметки ученика и подписи
+      if (d.ty === 'sort') {
+        // коробки идут столбиком: чем больше правил, тем задание выше
+        var boxes = Array.isArray(d.gr) ? d.gr.length : 3;
+        return 10 + boxes * 6;
+      }
+      // вопрос: заголовок, пример и кнопки вариантов
+      var opts = Array.isArray(d.op) ? d.op.length : 4;
+      return 15 + opts * 4.5;
+    }
+
     const pages = [];
     pages.push(
       header(r, teacherName, r.exam) +
@@ -516,21 +562,33 @@
       rulesSummary(review) +
       footer()
     );
-    for (let i = 0; i < review.length; i += REST) {
+    /* Раскладываем задания по листам: набираем, пока помещается. */
+    const chunks = [];
+    let cur = [], room = PAGE_ROOM;
+    review.forEach(function (d) {
+      const cost = taskCost(d);
+      if (cur.length && cost > room) { chunks.push(cur); cur = []; room = PAGE_ROOM; }
+      cur.push(d);
+      room -= cost;
+    });
+    if (cur.length) chunks.push(cur);
+
+    chunks.forEach(function (chunk, ci) {
+      const from = chunks.slice(0, ci).reduce(function (n, c) { return n + c.length; }, 0);
       pages.push(
         '<div style="font-size:12px;color:' + FAINT + ';margin-bottom:14px;">' +
           esc(r.fullName || '') + ' · ' + esc(r.exam || '') + '</div>' +
         // заголовок раздела — только над первой страницей разбора
-        (i === 0
+        (ci === 0
           ? '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:' +
             FAINT + ';margin-bottom:10px;">Разбор работы</div>'
           : '') +
-        '<div>' + review.slice(i, i + REST).map(function (d, k) {
-          return taskBlock(d, i + k);
+        '<div>' + chunk.map(function (d, k) {
+          return taskBlock(d, from + k);       // сквозная нумерация заданий
         }).join('') + '</div>' +
         footer()
       );
-    }
+    });
     return pages;
   }
 
