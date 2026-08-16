@@ -501,23 +501,30 @@
     // Дальше — по 11 заданий на страницу.
     /* Карточки крупные — арабское слово в рамке, варианты ответа, объяснение.
        На первую страницу помещается меньше: там ещё шапка и балл. */
-    const FIRST = 2, REST = 3;
+    /* ПЕРВАЯ СТРАНИЦА — ТИТУЛЬНАЯ, БЕЗ ЗАДАНИЙ.
+       На ней шапка, балл и полоска «Результат по правилам». Заданий тут
+       больше нет: полоска растёт вместе с числом тем, и страница
+       перерастала лист — тем сильнее, чем полнее была контрольная.
+       Теперь её высота предсказуема при любом составе работы.
+
+       Разбор начинается со второй страницы, по три задания на лист. */
+    const REST = 3;
     const pages = [];
     pages.push(
       header(r, teacherName, r.exam) +
       scoreBlock(r) +
       rulesSummary(review) +
-      '<div style="margin-top:14px;">' +
-        '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:' + FAINT +
-          ';margin-bottom:6px;">Разбор работы</div>' +
-        review.slice(0, FIRST).map(taskBlock).join('') +
-      '</div>' +
       footer()
     );
-    for (let i = FIRST; i < review.length; i += REST) {
+    for (let i = 0; i < review.length; i += REST) {
       pages.push(
         '<div style="font-size:12px;color:' + FAINT + ';margin-bottom:14px;">' +
           esc(r.fullName || '') + ' · ' + esc(r.exam || '') + '</div>' +
+        // заголовок раздела — только над первой страницей разбора
+        (i === 0
+          ? '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:' +
+            FAINT + ';margin-bottom:10px;">Разбор работы</div>'
+          : '') +
         '<div>' + review.slice(i, i + REST).map(function (d, k) {
           return taskBlock(d, i + k);
         }).join('') + '</div>' +
@@ -547,10 +554,25 @@
       const H = pdf.internal.pageSize.getHeight();
       canvases.forEach(function (c, i) {
         if (i) pdf.addPage();
-        const h = Math.min(H, (c.height / c.width) * W);
+
+        /* ВПИСЫВАЕМ, СОХРАНЯЯ ПРОПОРЦИИ.
+           Раньше ширина ставилась во весь лист всегда, а высота обрезалась
+           по листу. Стоило странице перерасти лист — и снимок сплющивался
+           по вертикали: буквы становились приземистыми. Первая страница
+           перерастала чаще других, там сверх заданий стоят шапка, балл и
+           полоска правил.
+
+           Теперь берём меньший из двух масштабов — по ширине и по высоте.
+           Содержимое может стать чуть мельче, но форму не потеряет
+           никогда. Если осталось поле, ставим снимок по центру. */
+        var scale = Math.min(W / c.width, H / c.height);
+        var w = c.width * scale;
+        var h = c.height * scale;
+        var x = (W - w) / 2;      // если осталось поле по бокам — по центру
+
         /* Сжатие 0.82 вместо 0.92: на глаз неотличимо, вес заметно меньше.
            Текст на снимке крупный и контрастный, ему такое сжатие не вредит. */
-        pdf.addImage(c.toDataURL('image/jpeg', 0.82), 'JPEG', 0, 0, W, h);
+        pdf.addImage(c.toDataURL('image/jpeg', 0.82), 'JPEG', x, 0, w, h);
       });
       return pdf;
     }).catch(function (err) {
