@@ -959,12 +959,27 @@
         if (left > 0) {
           clock.textContent = fmtTime(left);
           // предупреждение за N минут до конца
+          /* Предупреждение должно НЕ ГАСНУТЬ. Всплывающая надпись живёт
+             две секунды: ученик, склонившийся над заданием, её не видел.
+             Поэтому вместе с ней зажигаем полосу над заданием — она стоит
+             до конца работы и обновляет число минут. */
           if (!warned && warnMin > 0 && left <= warnMin * 60) {
             warned = true;
             clock.classList.add('warn');
             showToast('Время заканчивается: осталось ' + warnMin + ' мин');
           }
           if (left <= 60) { clock.classList.remove('warn'); clock.classList.add('danger'); }
+
+          if (warned) {
+            var banner = document.getElementById('time-banner');
+            if (banner) {
+              banner.classList.add('on');
+              banner.classList.toggle('danger', left <= 60);
+              banner.textContent = (left <= 60)
+                ? 'Осталась минута — завершайте работу'
+                : 'Времени осталось ' + Math.ceil(left / 60) + ' мин — завершайте работу';
+            }
+          }
           return;
         }
 

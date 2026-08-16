@@ -243,6 +243,50 @@
 .timer-clock.warn { background: var(--warn-tint); color: var(--warn); }
 .timer-clock.danger { background: var(--err-tint); color: var(--err); }
 
+/* ── Время на исходе ──────────────────────────────────────────────
+   Прежде о конце сообщала надпись, всплывавшая на пару секунд: ученик,
+   склонившийся над заданием, её просто не видел. Теперь часы сами
+   становятся заметными — и остаются такими до конца работы.
+   Пульсация редкая и неяркая: задача — попасть в боковое зрение, а не
+   отвлекать от задания. */
+.timer-clock.warn {
+  background: var(--warn); color: #fff;
+  font-size: var(--text-sm); padding: var(--space-1) var(--space-4);
+  animation: clock-pulse 2s ease-in-out infinite;
+}
+.timer-clock.danger {
+  background: var(--err); color: #fff;
+  font-size: var(--text-sm); padding: var(--space-1) var(--space-4);
+  animation: clock-pulse 1.2s ease-in-out infinite;
+}
+@keyframes clock-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.08); opacity: .82; }
+}
+/* Полоса через весь верх — её не пропустить, даже глядя в задание. */
+.time-banner {
+  display: none; text-align: center; font-size: var(--text-sm);
+  font-weight: var(--weight-semi); color: #fff; background: var(--warn);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius);
+  margin-bottom: var(--space-3);
+}
+.time-banner.on { display: block; }
+.time-banner.danger { background: var(--err); }
+
+/* ── Кнопки «Назад» и «Вперёд» стоят на месте ──────────────────────
+   Раньше они шли сразу за заданием и прыгали по экрану: у короткого
+   вопроса высоко, у распределения низко. Ученик каждый раз искал их
+   заново. Теперь они прижаты к низу окна — палец находит их не глядя.
+   Место под ними резервируем отступом, иначе они накрывали бы последний
+   вариант ответа. */
+.q-actions {
+  position: sticky; bottom: 0; z-index: 5;
+  background: var(--paper-raised);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-4);
+}
+
 /* Всплывающее уведомление «время заканчивается» */
 .time-toast { position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%); background: var(--ink); color: var(--paper); font-size: var(--text-sm); font-weight: var(--weight-medium); padding: var(--space-3) var(--space-5); border-radius: var(--radius-pill); box-shadow: var(--shadow-lg); z-index: 60; opacity: 0; pointer-events: none; transition: opacity var(--motion-base) var(--ease); max-width: 90%; text-align: center; }
 .time-toast.show { opacity: 1; }
@@ -387,11 +431,12 @@
       <span class="timer-clock" id="timer-clock">0:00</span>
     </div>
     <div class="track"><i id="track-fill"></i></div>
+    <div class="time-banner" id="time-banner"></div>
     <div class="task-no" id="q-no">Задание 1</div>
     <div class="task-prompt" id="q-prompt">—</div>
     <div class="example"><span class="rule-tag" id="q-rule-tag"></span><div class="arabic" id="q-example">—</div></div>
     <div class="options" id="q-options"></div>
-    <div class="nav">
+    <div class="nav q-actions">
       <button class="btn btn-quiet" id="btn-back">Назад</button>
       <span class="grow"></span>
       <button class="btn btn-quiet" id="btn-fwd">Вперёд</button>

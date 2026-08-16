@@ -213,15 +213,24 @@ body { margin: 0; }
 .res-row:last-child { border-bottom: none; }
 .res-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink);
   display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+/* Длинное имя не должно выталкивать балл на следующую строку: пусть лучше
+   само сожмётся с многоточием. Балл важнее полного написания фамилии —
+   его ищут глазами первым. */
+.res-name > span:first-child, .res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .res-meta { font-size: var(--text-xs); color: var(--ink-faint); }
 .res-tag { font-size: var(--text-xs); font-weight: var(--weight-semi); padding: 2px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
 .res-tag-wait { background: var(--amber-tint, #f5ecd0); color: var(--amber, #8a6d1a); }
 .res-tag-done { background: var(--ok-tint); color: var(--ok); }
 .res-score { font-size: var(--text-xl); font-weight: var(--weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) {
-  .res-row { grid-template-columns: 1fr auto; }
-  .res-row.picking { grid-template-columns: 22px 1fr auto; }
+  /* На телефоне колонок было две, а ячеек три: имя, отметка «ждёт» и балл.
+     Балл сваливался на вторую строку и растягивал место под учеником вдвое.
+     Даём балду свою колонку — строка остаётся одна, а имя при нехватке
+     места ужимается многоточием. */
+  .res-row { grid-template-columns: 1fr auto auto; }
+  .res-row.picking { grid-template-columns: 22px 1fr auto auto; }
   .res-meta { display: none; }
+  .res-score { font-size: var(--text-lg); }
 }
 
 /* Детальный просмотр работы ученика */
