@@ -1445,24 +1445,66 @@ body { margin: 0; }
     var workTitle = (last && last.exam) ? last.exam : 'Контрольная работа';
     var workDate = last ? shortDate(last.date) : '';
 
-    // строки таблицы
+    /* ── СТРОКА СНИМКА ────────────────────────────────────────────────
+       Раньше имя и все пометки стояли в одну строку. У ученика с двумя
+       пометками строка переполнялась, текст наезжал сам на себя и снимок
+       выходил неопрятным — а его показывают родителям.
+
+       Теперь у строки три ясные части: слева имя с короткой припиской под
+       ним, посередине вердикт, справа балл. Приписки укорочены: подробности
+       уместны в панели, на снимке важно, что видно с одного взгляда. */
+    var passScore = null;
+    all.forEach(function (r) { if (r._pass != null) passScore = r._pass; });
+
     var rowsHtml = all.map(function (r) {
       var s = r._total;
       var col = s == null ? '#9b9b9b' : (s >= 70 ? '#2f6b46' : (s >= 40 ? '#b8912f' : '#a53a3a'));
-      var scoreText = (s != null) ? s : (r._waiting ? '—' : '—');
+      var scoreText = (s != null) ? s : '—';
+
+      var note = '';
+      if (r._waiting) note = '<span style="color:#b8912f;">ждёт проверки чтения</span>';
+      else if (r._notSubmitted) note = '<span style="color:#a53a3a;">чтение не сдано</span>';
+      else if (r._missingRec) note = '<span style="color:#9a6a1e;">не сдано записей: ' + r._missingRec + '</span>';
+
+      var verdict = '';
+      if (passScore != null && s != null && !r._waiting) {
+        var ok = s >= passScore;
+        verdict = '<div style="margin:0 14px;font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;' +
+          (ok ? 'color:#2f6b46;background:#e8f3ec;border:1px solid #cfe3d7;'
+              : 'color:#a53a3a;background:#f8ecec;border:1px solid #eed3d3;') +
+          'white-space:nowrap;">' + (ok ? 'сдано' : 'не сдано') + '</div>';
+      }
+
       return '<div style="display:flex;align-items:center;padding:13px 22px;border-bottom:1px solid #ece3cf;">' +
-        '<div style="flex:1;font-size:17px;color:#23252e;font-weight:500;">' + (r.fullName || '—') + '</div>' +
-        (r._waiting ? '<div style="font-size:12px;color:#b8912f;margin-right:14px;">ждёт чтения</div>' : '') +
-        (r._notSubmitted ? '<div style="font-size:12px;color:#a53a3a;margin-right:14px;">чтение не сдано</div>' : '') +
-        (r._missingRec ? '<div style="font-size:12px;color:#9a6a1e;margin-right:14px;">не сдано записей: ' +
-          r._missingRec + ' — они считаются нулём</div>' : '') +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:17px;color:#23252e;font-weight:500;">' + (r.fullName || '—') + '</div>' +
+          (note ? '<div style="font-size:12px;margin-top:3px;">' + note + '</div>' : '') +
+        '</div>' +
+        verdict +
         '<div style="font-size:22px;font-weight:700;color:' + col + ';min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">' + scoreText + '</div>' +
       '</div>';
     }).join('');
 
+    /* Итог по группе: сколько сдали. Считаем только проверенные работы. */
+    var passLinePoster = '';
+    if (passScore != null) {
+      var judged = all.filter(function (r) { return r._total != null && !r._waiting; });
+      var okN = judged.filter(function (r) { return r._total >= passScore; }).length;
+      if (judged.length) {
+        passLinePoster = '<div style="text-align:center;margin-top:14px;font-size:13px;color:#5b5b66;">' +
+          'Сдали <b style="color:#23252e;">' + okN + '</b> из ' + judged.length +
+          ' · проходной балл ' + passScore +
+          (judged.length < all.length ? ' · проверено не всё' : '') + '</div>';
+      }
+    }
+
     // Постер — самостоятельный оформленный блок (строим за экраном)
     var poster = document.createElement('div');
-    poster.style.cssText = 'position:fixed;left:-9999px;top:0;width:560px;font-family:Inter,system-ui,sans-serif;' +
+    /* Имя ученик пишет сам и может набрать по-арабски. Шрифт интерфейса
+       арабскую вязь не соединяет, поэтому добавляем запасной — тот же,
+       которым набран Коран в платформе. */
+    poster.style.cssText = 'position:fixed;left:-9999px;top:0;width:560px;' +
+      "font-family:Inter,system-ui,'Amiri','Scheherazade New',sans-serif;" +
       'background:#fdfbf4;box-sizing:border-box;';
     poster.innerHTML =
       // рамка с золотом
@@ -1486,6 +1528,7 @@ body { margin: 0; }
         '<div style="background:#fffdf8;border:1px solid #ece3cf;border-radius:12px;overflow:hidden;margin-top:10px;">' +
           rowsHtml +
         '</div>' +
+        passLinePoster +
         // подпись
         '<div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #ece3cf;font-size:13px;color:#8f8f9c;">' + TEACHER_SIGNATURE + '</div>' +
       '</div>';
