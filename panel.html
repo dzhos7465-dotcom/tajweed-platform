@@ -205,10 +205,14 @@ body { margin: 0; }
 .res-doc-btn:hover { opacity: 1; }
 .res-group-name { font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--seal); }
 .res-group-stat { font-size: var(--text-xs); color: var(--ink-faint); }
-.res-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+/* Колонок ровно столько, сколько ячеек: имя, дата, отметка состояния,
+   балл. Одной меньше — и балл, не поместившись, уходил на вторую строку,
+   растягивая место под учеником вдвое. На телефоне дата скрыта, поэтому
+   там колонок на одну меньше — см. правило ниже. */
+.res-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
 /* В режиме выбора появляется пятый элемент — галочка. Без своей колонки
    она попадала в колонку имени и растягивалась на всю её ширину. */
-.res-row.picking { grid-template-columns: 22px 1fr auto auto; }
+.res-row.picking { grid-template-columns: 22px 1fr auto auto auto; }
 .res-row .res-check { width: 18px; height: 18px; margin: 0; accent-color: var(--seal); cursor: pointer; }
 .res-row:last-child { border-bottom: none; }
 .res-name { font-size: var(--text-base); font-weight: var(--weight-semi); color: var(--ink);
@@ -223,10 +227,9 @@ body { margin: 0; }
 .res-tag-done { background: var(--ok-tint); color: var(--ok); }
 .res-score { font-size: var(--text-xl); font-weight: var(--weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) {
-  /* На телефоне колонок было две, а ячеек три: имя, отметка «ждёт» и балл.
-     Балл сваливался на вторую строку и растягивал место под учеником вдвое.
-     Даём балду свою колонку — строка остаётся одна, а имя при нехватке
-     места ужимается многоточием. */
+  /* На телефоне дата скрыта, значит ячеек три: имя, отметка состояния и
+     балл. Колонок ровно столько же — строка остаётся одна, а имя при
+     нехватке места ужимается многоточием. */
   .res-row { grid-template-columns: 1fr auto auto; }
   .res-row.picking { grid-template-columns: 22px 1fr auto auto; }
   .res-meta { display: none; }
