@@ -550,9 +550,25 @@ function computeResult() {
     if (!cat) return;                       // чтение считается отдельно
     const res = checkTask(task, session.answers[taskId]);
     if (!res.auto) return;
+    /* ВЕС ЗАДАНИЯ ВНУТРИ ВИДА.
+       Обычно задания вида равны между собой — на этом держится простое
+       объяснение: «доля вида делится на число заданий».
+
+       У распределения иначе. Число слов в нём задаёт преподаватель, когда
+       выбирает правила-коробки: у мима выходит 6 слов, у нуна 8, у мадда
+       12. Делить долю поровну значило бы платить одинаково за вдвое разный
+       труд — ученик, разложивший двенадцать слов, получал бы столько же,
+       сколько разложивший шесть. Поэтому внутри распределения задания
+       считаются ПО ЧИСЛУ СЛОВ.
+
+       Для остальных видов вес остаётся единичным: там задания однородны. */
+    var w = 1;
+    if (task.type === TASK_TYPES.SORT && Array.isArray(task.items) && task.items.length) {
+      w = task.items.length;
+    }
     if (!byCat[cat]) byCat[cat] = { sum: 0, n: 0 };
-    byCat[cat].sum += (res.max > 0) ? (res.earned / res.max) : 0;
-    byCat[cat].n += 1;
+    byCat[cat].sum += ((res.max > 0) ? (res.earned / res.max) : 0) * w;
+    byCat[cat].n += w;
   });
 
   const shares = (typeof CATEGORY_SHARES !== 'undefined') ? CATEGORY_SHARES : {};
@@ -588,7 +604,9 @@ function computeResult() {
       perCategory[c] = {
         ratio: ratio,
         share: Math.round(weight * 100),
-        count: byCat[c].n,
+        // n — суммарный вес вида: у распределения это число слов, у прочих
+        // видов совпадает с числом заданий
+        weightSum: byCat[c].n,
         earned: Math.round(ratio * weight * 100),
       };
       autoPercent += ratio * weight * 100;
