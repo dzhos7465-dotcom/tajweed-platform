@@ -1569,7 +1569,15 @@ body { margin: 0; }
   }
 
   // ── Форма создания активности ──
-  const THEME_LIST = (typeof THEMES !== 'undefined') ? Object.values(THEMES) : [];
+  /* Порядок тем берём из поля order, а не из порядка строк в файле.
+     Мадд лин занесли позже ляма, и в списке он вставал ПОСЛЕ него: лям
+     оказывался в середине мадда вместо конца. Порядок изучения задан в
+     библиотеке — на него и опираемся. */
+  const THEME_LIST = (typeof THEMES !== 'undefined')
+    ? Object.values(THEMES).slice().sort(function (a, b) {
+        return (a.order || 0) - (b.order || 0);
+      })
+    : [];
 
   function themeColor(id) { return (typeof ruleAccent === 'function') ? ruleAccent(id) : 'var(--seal)'; }
 
@@ -1899,51 +1907,65 @@ body { margin: 0; }
      буквам большую часть оценки, какой вес им ни ставь. */
   function updateBalance() {
     var box = $('af-balance');
-    if (!box || typeof TASK_WEIGHTS === 'undefined') return;
-    var c0w = (typeof COURSE0_WEIGHTS !== 'undefined') ? COURSE0_WEIGHTS : { single: 2, sort: 2.5 };
-    // вес нулевого курса дробный — округляем только при показе
-    var fmt = function (n) { return String(Math.round(n * 10) / 10).replace('.', ','); };
+    if (!box || typeof CATEGORY_SHARES === 'undefined') return;
 
-    var c0n = 0, c0p = 0, c1n = 0, c1p = 0, recite = 0;
+    /* Считаем ровно так же, как посчитает движок: доли ВИДОВ заданий.
+       Держать здесь свою формулу значило бы обещать преподавателю одно,
+       а выставить ученику другое. */
+    var counts = { single: 0, sort: 0, find: 0, course0: 0 };
 
     (collectCourse0() || []).forEach(function (row) {
       var b = (typeof COURSE0_BY_ID !== 'undefined') ? COURSE0_BY_ID[row.block] : null;
-      if (b && b.prop) { c0n += 1; c0p += c0w.sort; }
-      else { c0n += row.count; c0p += row.count * c0w.single; }
+      counts.course0 += (b && b.prop) ? 1 : row.count;
     });
-
-    (collectThemes() || []).forEach(function (t) {
-      c1n += t.count; c1p += t.count * TASK_WEIGHTS.single;
-    });
-    var sortCount = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) +
-                    (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0) +
-                    (($('af-sort-madd') && $('af-sort-madd').checked) ? 1 : 0);
-    c1n += sortCount; c1p += sortCount * TASK_WEIGHTS.sort;
-    /* Заданий «найди» столько, сколько отмечено аятов: на каждый своё. */
-    var findCount =
+    (collectThemes() || []).forEach(function (t) { counts.single += t.count; });
+    counts.sort = (($('af-sort-mim') && $('af-sort-mim').checked) ? 1 : 0) +
+                  (($('af-sort-nun') && $('af-sort-nun').checked) ? 1 : 0) +
+                  (($('af-sort-madd') && $('af-sort-madd').checked) ? 1 : 0);
+    counts.find =
       ($('af-find-nun-ayahs') ? $('af-find-nun-ayahs').querySelectorAll('.fap-check:checked').length : 0) +
       ($('af-find-mim-ayahs') ? $('af-find-mim-ayahs').querySelectorAll('.fap-check:checked').length : 0) +
       ($('af-find-madd-ayahs') ? $('af-find-madd-ayahs').querySelectorAll('.fap-check:checked').length : 0);
-    c1n += findCount; c1p += findCount * TASK_WEIGHTS.find;
-    recite = ($('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0);
 
-    var total = c0p + c1p;
-    if (!total && !recite) { box.innerHTML = ''; return; }
+    var recite = ($('af-ayahs') ? $('af-ayahs').querySelectorAll('.ap-check:checked').length : 0);
+    var present = Object.keys(counts).filter(function (c) { return counts[c] > 0; });
+    if (!present.length && !recite) { box.innerHTML = ''; return; }
 
-    var parts = [];
-    if (c0n) parts.push('<b>Нулевой курс:</b> ' + c0n + ' зад. · ' + fmt(c0p) + ' б.');
-    if (c1n) parts.push('<b>Правила:</b> ' + c1n + ' зад. · ' + fmt(c1p) + ' б.');
-    var line = parts.join(' &nbsp;·&nbsp; ');
+    var c0Share = (typeof COURSE0_TEST_SHARE !== 'undefined') ? COURSE0_TEST_SHARE : 0.2;
+    var ruleCats = present.filter(function (c) { return c !== 'course0'; });
+    var hasC0 = present.indexOf('course0') !== -1;
+    var ruleTotal = 0;
+    ruleCats.forEach(function (c) { ruleTotal += (CATEGORY_SHARES[c] || 1); });
 
-    if (c0n && c1n) {
-      var share = Math.round(c0p * 100 / total);
-      line += '<br><span class="share">Буквы дают ' + share + '% теста, правила ' +
-              (100 - share) + '%.</span>';
-      if (share >= 70) line += ' <span class="warn">Правила почти не влияют на оценку.</span>';
-      else if (share <= 20) line += ' <span class="warn">Буквы почти не влияют на оценку.</span>';
-    }
-    if (recite) {
-      line += '<br>Чтение вслух: ' + recite + ' аят(ов). Тест даёт 80% итога, чтение 20%.';
+    var weight = {};
+    if (hasC0 && ruleCats.length) {
+      weight.course0 = c0Share;
+      ruleCats.forEach(function (c) { weight[c] = (1 - c0Share) * (CATEGORY_SHARES[c] || 1) / ruleTotal; });
+    } else if (hasC0) { weight.course0 = 1; }
+    else { ruleCats.forEach(function (c) { weight[c] = (CATEGORY_SHARES[c] || 1) / ruleTotal; }); }
+
+    var testPoints = recite ? 80 : 100;
+    var NAMES = { course0: 'Буквы и знаки', single: 'Вопросы о правилах',
+                  sort: 'Распределение', find: 'Найди в аяте' };
+    var ORDER = ['course0', 'single', 'sort', 'find'];
+
+    var rows = [], thin = [];
+    ORDER.forEach(function (c) {
+      if (!counts[c]) return;
+      var pts = Math.round(weight[c] * testPoints);
+      rows.push('<b>' + NAMES[c] + ':</b> ' + counts[c] + ' зад. · <b>' + pts + ' б.</b>');
+      if (counts[c] < 3) thin.push(NAMES[c].toLowerCase());
+    });
+    if (recite) rows.push('<b>Чтение:</b> ' + recite + ' аят(ов) · <b>20 б.</b>');
+
+    var line = rows.join('<br>');
+    line += '<br><span class="share">Всего 100 баллов. Внутри каждой строки задания равны' +
+            ' между собой — сколько бы их ни было.</span>';
+
+    if (thin.length) {
+      line += '<br><span class="warn">Мало заданий: ' + thin.join(', ') +
+              '. Все баллы строки лягут на одно-два задания — случайная ошибка' +
+              ' обойдётся дорого.</span>';
     }
     box.innerHTML = line;
   }

@@ -367,7 +367,7 @@ function checkTask(task, answer) {
    Итог нормализуется к 100 баллам независимо от числа и веса заданий.
 ────────────────────────────────────────────────────────────────────── */
 function computeResult() {
-  let autoEarned = 0, autoMax = 0;
+  let autoEarned = 0, autoMax = 0;   // очки заданий; наружу уйдёт балл из ста
   let manualMax = 0;
   let pendingCount = 0;
 
@@ -443,15 +443,84 @@ function computeResult() {
 
   const totalMax = autoMax + manualMax;
 
-  // Нормализация к 100. Пока ручная часть не проверена, показываем
-  // предварительный процент по авто-части — и явно помечаем, что не финал.
-  const autoPercent = autoMax > 0 ? Math.round((autoEarned / autoMax) * 100) : 0;
+  /* ── БАЛЛ ТЕСТА: ПО ДОЛЯМ ВИДОВ ───────────────────────────────────
+     Считаем не «сколько очков набрано из скольких», а долю каждого ВИДА
+     заданий. Внутри вида задания равны: доля вида делится на их число.
+
+     Почему не суммой очков. При суммировании доля вида зависела от того,
+     сколько заданий этого вида поставил преподаватель: десять вопросов
+     против одного «найди» — и вопросы решали работу. Теперь он назначает,
+     что проверяет, а число заданий выбирает по удобству.
+
+     Частичный зачёт сохраняется: распределение и «найди» дают дробную
+     долю задания, как и раньше. */
+  const byCat = {};
+  session.taskOrder.forEach(function (taskId) {
+    const task = getTask(taskId);
+    const cat = (typeof categoryOfTask === 'function') ? categoryOfTask(task) : null;
+    if (!cat) return;                       // чтение считается отдельно
+    const res = checkTask(task, session.answers[taskId]);
+    if (!res.auto) return;
+    if (!byCat[cat]) byCat[cat] = { sum: 0, n: 0 };
+    byCat[cat].sum += (res.max > 0) ? (res.earned / res.max) : 0;
+    byCat[cat].n += 1;
+  });
+
+  const shares = (typeof CATEGORY_SHARES !== 'undefined') ? CATEGORY_SHARES : {};
+  const c0Share = (typeof COURSE0_TEST_SHARE !== 'undefined') ? COURSE0_TEST_SHARE : 0.2;
+
+  /* Нулевому курсу — твёрдая пятая часть теста, остальное делят виды
+     правил по своим числам. Если правил нет, буквы забирают всё. */
+  const cats = Object.keys(byCat);
+  const ruleCats = cats.filter(function (c) { return c !== 'course0'; });
+  const hasC0 = cats.indexOf('course0') !== -1;
+
+  let ruleTotal = 0;
+  ruleCats.forEach(function (c) { ruleTotal += (shares[c] || 1); });
+
+  const weightOf = {};
+  if (hasC0 && ruleCats.length) {
+    weightOf.course0 = c0Share;
+    ruleCats.forEach(function (c) {
+      weightOf[c] = (1 - c0Share) * (shares[c] || 1) / ruleTotal;
+    });
+  } else if (hasC0) {
+    weightOf.course0 = 1;
+  } else {
+    ruleCats.forEach(function (c) { weightOf[c] = (shares[c] || 1) / ruleTotal; });
+  }
+
+  let autoPercent = 0;
+  const perCategory = {};
+  if (cats.length) {
+    cats.forEach(function (c) {
+      const ratio = byCat[c].n ? (byCat[c].sum / byCat[c].n) : 0;   // средняя доля заданий вида
+      const weight = weightOf[c] || 0;                              // доля вида в тесте
+      perCategory[c] = {
+        ratio: ratio,
+        share: Math.round(weight * 100),
+        count: byCat[c].n,
+        earned: Math.round(ratio * weight * 100),
+      };
+      autoPercent += ratio * weight * 100;
+    });
+    autoPercent = Math.round(autoPercent);
+  } else if (autoMax > 0) {
+    // видов не нашлось — считаем по старому, чтобы работа не осталась без балла
+    autoPercent = Math.round((autoEarned / autoMax) * 100);
+  }
+
+  /* Наружу отдаём балл ИЗ СТА, а не внутренние очки. «34 из 58» ничего не
+     говорит ни ученику, ни преподавателю и заставляет считать в уме. */
+  autoEarned = autoPercent;
+  autoMax = 100;
 
   return {
     student: session.student,
     durationMs: (session.endTime || Date.now()) - session.startTime,
 
     auto: { earned: autoEarned, max: autoMax, percent: autoPercent },
+    perCategory: perCategory,     // сколько дал каждый вид заданий
     manual: { max: manualMax, pending: pendingCount },
 
     hasPendingManual: pendingCount > 0,   // ← ключ к «частичному результату»
