@@ -999,15 +999,20 @@ body { margin: 0; }
       const recs = both[1] || [];
 
       const passBySession = {};
+      const titleBySession = {};
       (function () {
-        const passByAct = {};
+        const passByAct = {}, titleByAct = {};
         (both[3] || []).forEach(function (a) {
-          if (a && a.id != null && a.passScore != null) passByAct[a.id] = a.passScore;
+          if (!a || a.id == null) return;
+          if (a.passScore != null) passByAct[a.id] = a.passScore;
+          if (a.title) titleByAct[a.id] = a.title;
         });
         (both[2] || []).forEach(function (ses) {
           if (!ses || ses.id == null) return;
           const p = passByAct[ses.activityId];
           if (p != null) passBySession[ses.id] = p;
+          const t = titleByAct[ses.activityId];
+          if (t) titleBySession[ses.id] = t;
         });
       })();
       if (res && res.failed) {
@@ -1104,6 +1109,15 @@ body { margin: 0; }
            прикладывается к работе — дальше все, кто её показывает, судят
            по одному и тому же числу. */
         x._pass = (x.sessionId != null) ? (passBySession[x.sessionId] != null ? passBySession[x.sessionId] : null) : null;
+        /* НАЗВАНИЕ РАБОТЫ — НЫНЕШНЕЕ, А НЕ ЗАПИСАННОЕ ПРИ СДАЧЕ.
+           В самой работе название сохраняется таким, каким было в момент
+           сдачи. Стоит переименовать активность посреди сдачи — и у первых
+           учеников записано одно, у последних другое: список брал название
+           из первой работы, снимок из последней, и они расходились.
+           Спрашиваем активность — она одна на всех и знает своё имя сейчас. */
+        x._examTitle = (x.sessionId != null && titleBySession[x.sessionId])
+          ? titleBySession[x.sessionId]
+          : (x.exam || '');
         x._notSubmitted = false;
 
         /* ВАЖНО: «не сдано» ставим, только если список записей ДЕЙСТВИТЕЛЬНО
@@ -1157,7 +1171,7 @@ body { margin: 0; }
            две домашки одной группы выглядели одинаково. */
         const head = students[0] || {};
         const title = groupLabel(head.group || '—') +
-          (head.exam ? ' · ' + head.exam : '') +
+          (head._examTitle ? ' · ' + head._examTitle : '') +
           (head.date ? ' · ' + head.date : '');
         // средний общий балл по группе (по посчитанным)
         const scores = students.map(function (s) { return s._total; }).filter(function (n) { return n != null; });
@@ -1442,7 +1456,10 @@ body { margin: 0; }
 
     // название работы и дата (берём из самой свежей записи)
     var last = all[all.length - 1];
-    var workTitle = (last && last.exam) ? last.exam : 'Контрольная работа';
+    // то же название, что в списке: берём нынешнее имя активности
+    var withTitle = all.filter(function (r) { return r._examTitle; })[0];
+    var workTitle = withTitle ? withTitle._examTitle
+                  : ((last && last.exam) ? last.exam : 'Контрольная работа');
     var workDate = last ? shortDate(last.date) : '';
 
     /* ── СТРОКА СНИМКА ────────────────────────────────────────────────
