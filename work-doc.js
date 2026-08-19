@@ -439,7 +439,7 @@
     return '<div style="padding-bottom:14px;border-bottom:2px solid ' + GOLD + ';">' +
         '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:' + TEAL +
           ';font-weight:600;margin-bottom:12px;">' + esc(examTitle || 'Работа по таджвиду') + '</div>' +
-        row('Ученик', r.fullName || '—') +
+        row('Ученик(ца)', r.fullName || '—') +
         row('Группа', r.group || '') +
         // не «Сдано»: рядом стоит вердикт с тем же словом в другом смысле
         row('Дата сдачи', when) +
