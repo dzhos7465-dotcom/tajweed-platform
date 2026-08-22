@@ -890,10 +890,33 @@
     var grp = String(r.student.group || '');
     $('r-meta').textContent = (/^гр/i.test(grp) ? grp : 'Группа ' + grp) + ' · ответов ' +
       r.answeredCount + ' из ' + r.totalCount + ' · время ' + mins + ' мин ' + secs + ' сек';
-    $('r-score').textContent = r.auto.percent;
-
-    // В тренировке чтение никто не проверяет — не обещаем итоговый балл.
+    // В тренировке чтение никто не проверяет — там балл окончателен.
     var isTraining = !!(session.mode && session.mode.sendResult === false);
+
+    /* ── БАЛЛ НЕ ПОКАЗЫВАЕМ, ПОКА РАБОТА НЕ ПРОВЕРЕНА ─────────────────
+       Раньше здесь стояло крупное число — балл автоматической части. Для
+       ребёнка это просто «моя оценка»: он запоминал 84 и уходил довольный.
+       А потом преподаватель проверял чтение, итог получался другим, и
+       выходило, будто у него отняли баллы. Объяснить это ребёнку нельзя,
+       да и не должен он ничего объяснять.
+
+       Поэтому: есть в работе то, что проверяет человек, — числа нет вовсе.
+       Ни крупного, ни «набрано столько из стольких», ни разбивки по темам:
+       она складывается в тот же балл, только по частям.
+
+       Нет ручной части — балл окончателен, показываем как раньше. В
+       тренировке тоже показываем: там чтение и не оценивается. */
+    var hideScore = !!(r.hasPendingManual && !isTraining);
+
+    /* На месте числа — знак, что работа принята. Пустое место наверху
+       читалось бы как «что-то не сработало»; ребёнку нужен ясный ответ,
+       что всё в порядке. */
+    var scale = document.querySelector('#screen-result .figure .scale');
+    if (scale) scale.style.display = hideScore ? 'none' : '';
+    $('r-score').textContent = hideScore ? '✓' : r.auto.percent;
+
+    var table = document.querySelector('#screen-result .breakdown');
+    if (table) table.style.display = hideScore ? 'none' : '';
 
     /* Откуда взялась сотня. Без этой строки крупное число выглядит
        взявшимся из воздуха — непонятно ни ученику, ни преподавателю.
@@ -906,11 +929,10 @@
        ниже, которое читают не все. */
     var howEl = document.getElementById('r-how');
     if (howEl) {
-      var base = 'набрано ' + niceScore(r.auto.earned) +
-                 ' из ' + niceScore(r.auto.max) + ' возможных баллов';
-      howEl.textContent = (r.hasPendingManual && !isTraining)
-        ? (base + ' — это 80% итога, ещё 20% даёт чтение вслух')
-        : base;
+      howEl.textContent = hideScore
+        ? ''
+        : ('набрано ' + niceScore(r.auto.earned) +
+           ' из ' + niceScore(r.auto.max) + ' возможных баллов');
     }
 
     if (isTraining) {
@@ -923,9 +945,9 @@
         $('r-pending').classList.remove('show');
       }
     } else if (r.hasPendingManual) {
-      $('r-cap').textContent = 'предварительный результат (автоматическая часть)';
-      $('r-pending').textContent = 'Часть заданий (чтение вслух) проверяется преподавателем. ' +
-        'Итоговый балл будет объявлен после проверки.';
+      $('r-cap').textContent = 'работа принята';
+      $('r-pending').textContent = 'Чтение вслух слушает преподаватель — поэтому балл ' +
+        'объявляется после проверки, а не сейчас. Ответы и записи сохранены.';
       $('r-pending').classList.add('show');
     } else {
       $('r-cap').textContent = 'результат автоматической проверки';
