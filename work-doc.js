@@ -293,12 +293,134 @@
     '</div>';
   }
 
+  /* Разложенные слова по коробкам, как их разложил ученик. */
+  function sortPlacement(d) {
+    const items = Array.isArray(d.it) ? d.it : [];
+    const groups = Array.isArray(d.gr) ? d.gr : [];
+    const placed = (d.ai && typeof d.ai === 'object') ? d.ai : null;
+    const answer = (d.ci && typeof d.ci === 'object') ? d.ci : null;
+
+    const textOf = function (it) { return esc(it.text || exampleText(it.exampleRef)); };
+    const chip = function (inner, color, bg) {
+      return '<span style="display:inline-block;font-family:' + AR + ';direction:rtl;' +
+        'font-size:18px;background:' + bg + ';border:1px solid ' + color + ';border-radius:8px;' +
+        'padding:3px 10px;margin:0 5px 5px 0;color:' + INK + ';">' + inner + '</span>';
+    };
+    const nameOfGroup = function (gid) {
+      const g = groups.filter(function (x) { return x.id === gid; })[0];
+      return g ? (g.label || g.id) : gid;
+    };
+
+    // старые работы: расклада не сохранено — показываем как раньше, рядом
+    if (!placed || !groups.length) {
+      return '<div>' + items.map(function (it) {
+        return chip(textOf(it), '#e6ded1', '#fdfbf4');
+      }).join('') + '</div>';
+    }
+
+    let out = '';
+    groups.forEach(function (g) {
+      const inBox = items.filter(function (it) { return placed[it.id] === g.id; });
+      const missed = answer
+        ? items.filter(function (it) { return answer[it.id] === g.id && placed[it.id] !== g.id; })
+        : [];
+      out += '<div style="margin-bottom:8px;">' +
+        '<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:' +
+          FAINT + ';margin-bottom:4px;">' + esc(g.label || g.id) + '</div>' +
+        (inBox.length
+          ? inBox.map(function (it) {
+              const right = !answer || answer[it.id] === g.id;
+              return right
+                ? chip('✓ ' + textOf(it), '#cfe3d7', '#eef6f1')
+                : chip('✗ ' + textOf(it) +
+                    '<span style="font-family:inherit;font-size:11px;color:' + ERR +
+                    ';margin-right:6px;">→ ' + esc(nameOfGroup(answer[it.id])) + '</span>',
+                    '#eed3d3', '#f9eeee');
+            }).join('')
+          : '<span style="font-size:12px;color:' + FAINT + ';">пусто</span>') +
+        (missed.length
+          ? '<div style="font-size:11px;color:' + FAINT + ';margin-top:2px;">сюда следовало: ' +
+            missed.map(textOf).join(' · ') + '</div>'
+          : '') +
+      '</div>';
+    });
+
+    // слова, которые ученик вообще не разложил
+    const left = items.filter(function (it) { return !placed[it.id]; });
+    if (left.length) {
+      out += '<div style="font-size:11px;color:' + FAINT + ';margin-top:2px;">не разложено: ' +
+        left.map(textOf).join(' · ') + '</div>';
+    }
+    return out;
+  }
+
+  /* ── СКОЛЬКО СТОИЛО ЗАДАНИЕ ───────────────────────────────────────
+     Ученик видит «верно» и «ошибка», но не знает, чего ему это стоило.
+     Одно задание «найди» весит как несколько вопросов, и без цифры это
+     не прочитать. Считаем ровно так же, как считал движок: доля вида
+     делится между его заданиями, у распределения — по числу слов.
+
+     Считается один раз на всю работу и раздаётся заданиям. */
+  function taskPoints(review, hasRecite) {
+    const shares = (typeof CATEGORY_SHARES !== 'undefined') ? CATEGORY_SHARES : {};
+    const c0Share = (typeof COURSE0_TEST_SHARE !== 'undefined') ? COURSE0_TEST_SHARE : 0.15;
+
+    function catOf(d) {
+      if (d.ty === 'recite') return null;
+      if (typeof course0Name === 'function' && course0Name(d.t)) return 'course0';
+      if (d.ty === 'find') return 'find';
+      if (d.ty === 'sort') return 'sort';
+      return 'single';
+    }
+    function weightOf(d) {
+      return (d.ty === 'sort' && Array.isArray(d.it) && d.it.length) ? d.it.length : 1;
+    }
+
+    const sum = {};
+    review.forEach(function (d) {
+      const c = catOf(d);
+      if (!c) return;
+      sum[c] = (sum[c] || 0) + weightOf(d);
+    });
+
+    const cats = Object.keys(sum);
+    const ruleCats = cats.filter(function (c) { return c !== 'course0'; });
+    const hasC0 = cats.indexOf('course0') !== -1;
+    let ruleTotal = 0;
+    ruleCats.forEach(function (c) { ruleTotal += (shares[c] || 1); });
+
+    const w = {};
+    if (hasC0 && ruleCats.length) {
+      w.course0 = c0Share;
+      ruleCats.forEach(function (c) { w[c] = (1 - c0Share) * (shares[c] || 1) / ruleTotal; });
+    } else if (hasC0) { w.course0 = 1; }
+    else { ruleCats.forEach(function (c) { w[c] = (shares[c] || 1) / ruleTotal; }); }
+
+    const testPoints = hasRecite ? 80 : 100;
+    const map = new Map();
+    review.forEach(function (d) {
+      const c = catOf(d);
+      if (!c || !sum[c]) return;
+      map.set(d, (w[c] || 0) * testPoints * weightOf(d) / sum[c]);
+    });
+    return map;
+  }
+
+  function fmtPts(n) {
+    return String(Math.round(n * 10) / 10).replace('.', ',');
+  }
+
   /* ── Одно задание, как оно выглядело на экране ── */
-  function taskBlock(d, i) {
+  function taskBlock(d, i, pts) {
     const isRecite = d.ty === 'recite';
     const ok = d.ok === true;
-    const right = fullTheme(d.c, d.t);
-    const chosen = fullTheme(d.a, d.t);
+    /* Верный и выбранный ответ ищем по ВНУТРЕННЕМУ ИМЕНИ (ci/ai), а не по
+       подписи. Подпись — это «Идгам», такого имени в библиотеке нет, и
+       признак правила не находился: во всей работе не выводилось ни одного
+       разбора ошибки. Для старых работ, где имён не сохранено, остаётся
+       прежний путь по подписи. */
+    const right = fullTheme(d.ci != null ? d.ci : d.c, d.t);
+    const chosen = fullTheme(d.ai != null ? d.ai : d.a, d.t);
 
     let head, badge, badgeColor;
     if (isRecite) {
@@ -306,7 +428,7 @@
          писать «проверяет преподаватель» неправду нельзя. У каждого аята
          балл свой; несданная запись — ноль, и об этом сказано прямо, чтобы
          ноль не выглядел как строгая оценка за прочитанное. */
-      if (d.rmiss) { badge = 'чтение не сдано: 0 из 10'; badgeColor = ERR; }
+      if (d.rmiss) { badge = 'не прочитано · 0 из 10'; badgeColor = ERR; }
       else { badge = (d.rg != null) ? ('чтение: ' + d.rg + ' из 10') : 'чтение'; badgeColor = GOLD; }
     }
     else if (ok) { badge = 'верно'; badgeColor = OK; }
@@ -361,22 +483,29 @@
             (d.pt.wrong ? ' · лишних отметок: ' + d.pt.wrong : '') : '') + '</div>' +
         findLegend(d);
     } else if (d.ty === 'sort') {
+      /* ── КУДА УЧЕНИК РАЗЛОЖИЛ СЛОВА ──────────────────────────────────
+         Раньше здесь стояла строка «Разложено верно: 0 из 6» и просто ряд
+         слов. Ученик видел, что ошибся, но не видел ГДЕ: ни куда он их
+         положил, ни куда следовало. Разбор без этого бесполезен —
+         повторить нечего.
+
+         Теперь показываем коробки так, как он их заполнил: верное слово
+         зелёным, неверное красным и рядом мелко — правило, которому оно
+         на самом деле принадлежит. */
       body = '<div style="font-size:13px;color:' + (ok ? SOFT : ERR) + ';margin-bottom:8px;">' +
           (d.pt ? 'Разложено верно: ' + d.pt.right + ' из ' + d.pt.total : '') + '</div>' +
-        (Array.isArray(d.it)
-          ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + d.it.map(function (it) {
-              return '<span style="font-family:' + AR + ';direction:rtl;font-size:19px;' +
-                'background:#fdfbf4;border:1px solid #e6ded1;border-radius:8px;padding:4px 12px;">' +
-                esc(it.text || exampleText(it.exampleRef)) + '</span>';
-            }).join('') + '</div>'
-          : '');
+        sortPlacement(d);
     } else if (isRecite) {
       body = mushaf(ayahText(d.ay), 26, true);
     }
 
     // объяснение — только там, где ошибся: смотреть надо туда
     let expl = '';
-    if (!ok && !isRecite && ruleSign(right)) {
+    if (!ok && !isRecite && d.xp) {
+      // задание нулевого курса несёт разбор при себе
+      expl = '<div style="margin-top:8px;padding:10px 12px;background:#f3efe6;border-radius:8px;' +
+          'font-size:12px;color:' + SOFT + ';line-height:1.55;">' + d.xp + '</div>';
+    } else if (!ok && !isRecite && ruleSign(right)) {
       expl = '<div style="margin-top:8px;padding:10px 12px;background:#f3efe6;border-radius:8px;' +
           'font-size:12px;color:' + SOFT + ';line-height:1.55;">' +
         '<b style="color:' + OK + ';">' + esc(ruleName(right)) + '.</b> ' + esc(ruleSign(right)) +
@@ -387,9 +516,19 @@
       '</div>';
     }
 
+    /* Заработано из возможного — рядом с отметкой. Частичный зачёт виден
+       числом: «3,2 из 4,8» понятнее, чем одно слово «частично верно».
+       У чтения балла не пишем: он и так стоит в отметке, из десяти. */
+    let ptsLine = '';
+    if (pts != null && !isRecite) {
+      const share = (d.pt && d.pt.total > 0) ? (d.pt.right / d.pt.total) : (ok ? 1 : 0);
+      ptsLine = '<div style="font-size:11px;color:' + FAINT + ';margin:2px 0 6px;text-align:right;">' +
+        fmtPts(share * pts) + ' из ' + fmtPts(pts) + ' б.</div>';
+    }
+
     return '<div style="padding:13px 16px;margin-bottom:11px;background:#fdfbf6;' +
         'border:1px solid #ece3cf;border-radius:12px;break-inside:avoid;">' +
-      head + question + body + expl +
+      head + ptsLine + question + body + expl +
     '</div>';
   }
 
@@ -439,7 +578,7 @@
     return '<div style="padding-bottom:14px;border-bottom:2px solid ' + GOLD + ';">' +
         '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:' + TEAL +
           ';font-weight:600;margin-bottom:12px;">' + esc(examTitle || 'Работа по таджвиду') + '</div>' +
-        row('Ученик(ца)', r.fullName || '—') +
+        row('Ученик', r.fullName || '—') +
         row('Группа', r.group || '') +
         // не «Сдано»: рядом стоит вердикт с тем же словом в другом смысле
         row('Дата сдачи', when) +
@@ -520,12 +659,19 @@
     const byAyah = r._readingByAyah || {};
     const hasPerAyah = Object.keys(byAyah).length > 0;
     const avgGrade = (r._reading != null) ? Math.round(r._reading / 10) : null;
+    /* Ученик не сдал НИ ОДНОЙ записи. Тогда «чтение: 0 из 10» читается так,
+       будто преподаватель послушал и поставил ноль, — а он ничего не
+       слушал, потому что слушать было нечего. Разница для ученика
+       существенная: в одном случае он плохо прочитал, в другом не прочитал
+       вовсе, и поправимо это по-разному. */
+    const nothingSubmitted = !hasPerAyah && !!r._notSubmitted;
 
-    if (hasPerAyah || avgGrade != null) {
+    if (hasPerAyah || avgGrade != null || nothingSubmitted) {
       review = review.map(function (d) {
         if (d.ty !== 'recite') return d;
         let g = null, missing = false;
-        if (hasPerAyah) {
+        if (nothingSubmitted) { g = 0; missing = true; }
+        else if (hasPerAyah) {
           if (d.ay && byAyah[d.ay] != null) g = byAyah[d.ay];
           else if (d.ay) { g = 0; missing = true; }
           else g = avgGrade;                 // аят не записан в разборе
@@ -557,6 +703,10 @@
        есть место. Мера примерная: точную высоту знает только браузер, а
        считать её пришлось бы отрисовкой каждой страницы дважды. Числа
        взяты с запасом — лучше оставить поле внизу, чем срезать задание. */
+    /* Цена каждого задания — считается один раз на всю работу. */
+    const hasReciteTask = review.some(function (d) { return d.ty === 'recite'; });
+    const PTS = taskPoints(review, hasReciteTask);
+
     const PAGE_ROOM = 100;          // условная вместимость листа
 
     /* Мера высоты у каждого вида своя. Вопрос с четырьмя вариантами —
@@ -614,7 +764,7 @@
             FAINT + ';margin-bottom:10px;">Разбор работы</div>'
           : '') +
         '<div>' + chunk.map(function (d, k) {
-          return taskBlock(d, from + k);       // сквозная нумерация заданий
+          return taskBlock(d, from + k, PTS.get(d));   // сквозная нумерация заданий
         }).join('') + '</div>' +
         footer()
       );

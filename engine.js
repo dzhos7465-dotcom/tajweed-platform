@@ -527,6 +527,7 @@ function computeResult() {
       groups: task.groups || null,        // и сами коробки
       options: task.options || null,
       prompt: task.prompt || null,
+      explain: task.explain || null,
     });
   });
 
@@ -824,7 +825,11 @@ function compactReview(details) {
              ok: d.correct, p: d.pending, pt: d.partial, an: d.answered,
              // чтобы работу можно было показать такой, какой её видел ученик
              ex: d.exampleRef, ay: d.ayahRef, op: d.options, q: d.prompt, h: d.hero,
-             it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId };
+             it: d.items, gr: d.groups, ai: d.answerId, ci: d.correctId,
+             /* Разбор задания нулевого курса. У правил объяснение строится
+                из библиотеки по имени правила, а буквы и знаки несут его при
+                себе — и без этого поля в документе оно пропадало. */
+             xp: d.explain || null };
   });
 }
 
