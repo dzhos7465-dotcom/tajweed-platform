@@ -179,9 +179,18 @@
       s.words.forEach(function (w) {
         if ((targets[w] || []).indexOf(s.rule) !== -1) { good = true; covered[w] = true; }
       });
+      /* ЗНАЧОК — ОДИН НА ЧЕРТУ, А НЕ НА КАЖДОЕ СЛОВО.
+         Черта часто накрывает два слова: правило лежит на стыке. Раньше
+         галочка или крестик ставились над каждым словом под чертой, и одна
+         отметка ученика выглядела как две ошибки. В подписи стояло «лишних
+         отметок: 1», а крестиков в аяте было три — не сходилось.
+
+         Черту рисуем под всеми её словами, значок ставим один раз — над
+         последним словом черты, там, где она кончается. */
+      var last = s.words[s.words.length - 1];
       s.words.forEach(function (w) {
         if (marks[w] && marks[w].ok) return;   // верную отметку не затираем
-        marks[w] = { rule: s.rule, ok: good };
+        marks[w] = { rule: s.rule, ok: good, badge: (String(w) === String(last)) };
       });
     });
 
@@ -201,11 +210,11 @@
       if (m && m.ok) {
         const c = ruleColor(m.rule);
         style = 'border-bottom:3px solid ' + c + ';padding-bottom:2px;';
-        tail = '<span style="font-family:sans-serif;font-size:11px;color:' + c +
+        if (m.badge) tail = '<span style="font-family:sans-serif;font-size:11px;color:' + c +
                ';vertical-align:super;">✓</span>';
       } else if (m) {
         style = 'border-bottom:3px wavy solid ' + ERR + ';padding-bottom:2px;color:' + ERR + ';';
-        tail = '<span style="font-family:sans-serif;font-size:11px;color:' + ERR +
+        if (m.badge) tail = '<span style="font-family:sans-serif;font-size:11px;color:' + ERR +
                ';vertical-align:super;">✗</span>';
       } else if (missed[key]) {
         style = 'border-bottom:3px dashed ' + FAINT + ';padding-bottom:2px;';
@@ -301,10 +310,18 @@
     const answer = (d.ci && typeof d.ci === 'object') ? d.ci : null;
 
     const textOf = function (it) { return esc(it.text || exampleText(it.exampleRef)); };
+    /* Слово в перечислении тоже не должно рваться: оборачиваем каждое. */
+    const wordSpan = function (it) {
+      return '<span style="font-family:' + AR + ';direction:rtl;white-space:nowrap;">' +
+        textOf(it) + '</span>';
+    };
+    /* white-space:nowrap обязателен. Без него длинное слово переносится
+       ПОСЕРЕДИНЕ: «لَكُ мۡ دِينُكُمۡ» — буквы разрываются, и слово перестаёт
+       читаться. Особенно заметно на телефоне, где места меньше. */
     const chip = function (inner, color, bg) {
       return '<span style="display:inline-block;font-family:' + AR + ';direction:rtl;' +
-        'font-size:18px;background:' + bg + ';border:1px solid ' + color + ';border-radius:8px;' +
-        'padding:3px 10px;margin:0 5px 5px 0;color:' + INK + ';">' + inner + '</span>';
+        'white-space:nowrap;font-size:18px;background:' + bg + ';border:1px solid ' + color +
+        ';border-radius:8px;padding:3px 10px;margin:0 5px 5px 0;color:' + INK + ';">' + inner + '</span>';
     };
     const nameOfGroup = function (gid) {
       const g = groups.filter(function (x) { return x.id === gid; })[0];
@@ -334,13 +351,13 @@
                 ? chip('✓ ' + textOf(it), '#cfe3d7', '#eef6f1')
                 : chip('✗ ' + textOf(it) +
                     '<span style="font-family:inherit;font-size:11px;color:' + ERR +
-                    ';margin-right:6px;">→ ' + esc(nameOfGroup(answer[it.id])) + '</span>',
+                    ';margin-right:6px;white-space:nowrap;">→ ' + esc(nameOfGroup(answer[it.id])) + '</span>',
                     '#eed3d3', '#f9eeee');
             }).join('')
           : '<span style="font-size:12px;color:' + FAINT + ';">пусто</span>') +
         (missed.length
           ? '<div style="font-size:11px;color:' + FAINT + ';margin-top:2px;">сюда следовало: ' +
-            missed.map(textOf).join(' · ') + '</div>'
+            missed.map(wordSpan).join(' · ') + '</div>'
           : '') +
       '</div>';
     });
@@ -349,7 +366,7 @@
     const left = items.filter(function (it) { return !placed[it.id]; });
     if (left.length) {
       out += '<div style="font-size:11px;color:' + FAINT + ';margin-top:2px;">не разложено: ' +
-        left.map(textOf).join(' · ') + '</div>';
+        left.map(wordSpan).join(' · ') + '</div>';
     }
     return out;
   }
@@ -560,6 +577,116 @@
       }).join('') + '</div>';
   }
 
+  /* ── НАСТАВЛЕНИЕ В КОНЦЕ РАБОТЫ ───────────────────────────────────
+     Разбор показывает каждую ошибку по отдельности. Но ученик, пролистав
+     двадцать карточек, не складывает их в вывод: он видит красные крестики
+     и запоминает, что «плохо написал». Здесь мы говорим прямо, ЧТО делать
+     дальше — тремя-четырьмя строками.
+
+     Ничего нового не считаем: берём то, что уже посчитано, и называем
+     словами. Правила берём по вопросам — там доля точная, по одному
+     правилу на задание. Распределение и «найди» считаем отдельно как
+     умения: в них замешано много правил сразу, и приписывать неудачу
+     одному было бы неправдой. */
+  function advice(review, r) {
+    // 1. правила — по вопросам, с точностью до правила
+    const byRule = {};
+    review.forEach(function (d) {
+      if (d.ty !== 'single') return;
+      if (!byRule[d.t]) byRule[d.t] = { ok: 0, total: 0 };
+      byRule[d.t].total++;
+      if (d.ok) byRule[d.t].ok++;
+    });
+    const weak = [], strong = [];
+    Object.keys(byRule).forEach(function (t) {
+      const v = byRule[t], share = v.ok / v.total;
+      if (share < 0.5) weak.push({ name: ruleName(t), share: share });
+      else if (share === 1 && v.total >= 2) strong.push(ruleName(t));
+    });
+    weak.sort(function (a, b) { return a.share - b.share; });
+
+    // 2. умения — распределение и поиск в аяте, целиком
+    function skillShare(ty) {
+      let right = 0, total = 0;
+      review.forEach(function (d) {
+        if (d.ty !== ty || !d.pt || !d.pt.total) return;
+        right += d.pt.right; total += d.pt.total;
+      });
+      return total ? { share: right / total, right: right, total: total } : null;
+    }
+    const sortSkill = skillShare('sort');
+    const findSkill = skillShare('find');
+
+    // 3. чтение
+    const reciteTasks = review.filter(function (d) { return d.ty === 'recite'; });
+    const missing = reciteTasks.filter(function (d) { return d.rmiss; }).length;
+    const graded = reciteTasks.filter(function (d) { return !d.rmiss && d.rg != null; });
+    const avg = graded.length
+      ? graded.reduce(function (a, d) { return a + d.rg; }, 0) / graded.length
+      : null;
+
+    const lines = [];
+
+    if (weak.length) {
+      lines.push({ mark: '!', color: ERR,
+        text: '<b>Повторить в первую очередь:</b> ' +
+          weak.slice(0, 5).map(function (x) { return esc(x.name); }).join(', ') + '.' });
+    }
+    if (sortSkill && sortSkill.share < 0.5) {
+      lines.push({ mark: '!', color: GOLD,
+        text: 'Разложить слова по правилам пока трудно — верно ' + sortSkill.right +
+              ' из ' + sortSkill.total + '. Полезно разбирать слова вслух, называя правило.' });
+    }
+    if (findSkill && findSkill.share < 0.5) {
+      lines.push({ mark: '!', color: GOLD,
+        text: 'Найти правило прямо в аяте пока трудно — верно ' + findSkill.right +
+              ' из ' + findSkill.total + '. Это главное умение: правило нужно видеть в тексте, ' +
+              'а не только узнавать в отдельном слове.' });
+    }
+
+    if (reciteTasks.length) {
+      if (missing === reciteTasks.length) {
+        lines.push({ mark: '!', color: ERR,
+          text: '<b>Чтение не сдано.</b> Это пятая часть оценки — ' +
+                'без записи её получить нельзя, как бы хорошо ни был написан тест.' });
+      } else if (missing) {
+        lines.push({ mark: '!', color: ERR,
+          text: 'Не сдано записей: ' + missing + '. Каждый заданный аят нужно прочитать, ' +
+                'иначе за него ставится ноль.' });
+      }
+      if (avg != null && avg < 5) {
+        lines.push({ mark: '!', color: GOLD,
+          text: 'Над чтением вслух нужно поработать: ' + fmtPts(avg) + ' из 10. ' +
+                'Читай медленно и проговаривай правила — быстрое чтение прячет ошибки.' });
+      } else if (avg != null && avg < 8) {
+        lines.push({ mark: '·', color: GOLD,
+          text: 'Чтение неплохое (' + fmtPts(avg) + ' из 10), но есть над чем работать.' });
+      } else if (avg != null) {
+        lines.push({ mark: '✓', color: OK,
+          text: 'Чтение вслух хорошее — ' + fmtPts(avg) + ' из 10.' });
+      }
+    }
+
+    if (strong.length) {
+      lines.push({ mark: '✓', color: OK,
+        text: '<b>Хорошо усвоено:</b> ' + strong.slice(0, 5).map(esc).join(', ') + '.' });
+    }
+    if (!lines.length) return '';
+
+    return '<div style="margin-top:16px;padding:14px 18px;background:#f7f3e9;' +
+        'border:1px solid #ece3cf;border-radius:12px;break-inside:avoid;">' +
+      '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:' + FAINT +
+        ';margin-bottom:9px;">Что дальше</div>' +
+      lines.map(function (l) {
+        return '<div style="display:flex;gap:9px;margin-bottom:7px;font-size:13px;' +
+            'color:' + SOFT + ';line-height:1.5;">' +
+          '<span style="color:' + l.color + ';font-weight:700;">' + l.mark + '</span>' +
+          '<span style="flex:1;">' + l.text + '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
   /* ── Шапка первой страницы ──────────────────────────────────────────
      Сведения о работе стоят СПИСКОМ, строка под строкой: ученик, группа,
      сдано, преподаватель. Раньше они шли одной строкой через точки и
@@ -766,6 +893,8 @@
         '<div>' + chunk.map(function (d, k) {
           return taskBlock(d, from + k, PTS.get(d));   // сквозная нумерация заданий
         }).join('') + '</div>' +
+        // наставление — в самом конце, после всех разобранных заданий
+        (ci === chunks.length - 1 ? advice(review, r) : '') +
         footer()
       );
     });
@@ -778,12 +907,15 @@
     const nodes = pages.map(pageWrap);
 
     return Promise.all(nodes.map(function (n) {
-      /* Плотность снимка. Двойная давала очень чёткую, но тяжёлую картинку:
-         работа на десяток страниц выходила в несколько мегабайт, а по почте
-         и в мессенджере это уже неудобно. Полторы читаются так же хорошо —
-         арабская вязь остаётся резкой, — а файл становится примерно вдвое
-         легче. Ниже опускать нельзя: огласовки начинают мылиться. */
-      return html2canvas(n, { backgroundColor: PAPER, scale: 1.5 });
+      /* ПЛОТНОСТЬ СНИМКА.
+         Была двойной — чётко, но тяжело. Снизил до полутора ради веса, и
+         на компьютере мелкий текст стал плохо читаться: там плотность
+         экрана единичная, и полтора — это правда полтора. На телефоне
+         экран плотный сам по себе, поэтому там разницы не заметно.
+
+         Возвращаю двойную. Вес держим сжатием картинки, а не плотностью:
+         сжатие съедает шум, плотность — буквы. */
+      return html2canvas(n, { backgroundColor: PAPER, scale: 2 });
     })).then(function (canvases) {
       nodes.forEach(function (n) { document.body.removeChild(n); });
       const { jsPDF } = window.jspdf;
@@ -808,9 +940,10 @@
         var h = c.height * scale;
         var x = (W - w) / 2;      // если осталось поле по бокам — по центру
 
-        /* Сжатие 0.82 вместо 0.92: на глаз неотличимо, вес заметно меньше.
-           Текст на снимке крупный и контрастный, ему такое сжатие не вредит. */
-        pdf.addImage(c.toDataURL('image/jpeg', 0.82), 'JPEG', x, 0, w, h);
+        /* Сжатие 0.8: на глаз неотличимо, вес заметно меньше. Текст на
+           снимке контрастный, ему такое сжатие не вредит — в отличие от
+           плотности, которую трогать нельзя. */
+        pdf.addImage(c.toDataURL('image/jpeg', 0.8), 'JPEG', x, 0, w, h);
       });
       return pdf;
     }).catch(function (err) {
