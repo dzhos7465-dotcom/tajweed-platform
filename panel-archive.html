@@ -376,13 +376,6 @@ body { margin: 0; }
         </div>
 
         <div class="collapse" data-collapse>
-          <div class="collapse-head"><span class="collapse-arrow">▸</span> Вопросы «какое правило» <span class="collapse-hint" id="cnt-themes"></span><button type="button" class="pick-all" data-target="af-themes">выбрать все</button></div>
-          <div class="collapse-body">
-            <div id="af-themes" class="themes-picker"></div>
-          </div>
-        </div>
-
-        <div class="collapse" data-collapse>
           <div class="collapse-head"><span class="collapse-arrow">▸</span> Нулевой курс: буквы и знаки <span class="collapse-hint" id="cnt-course0"></span><button type="button" class="pick-all" data-target="af-course0">выбрать все</button></div>
           <div class="collapse-body">
             <div id="af-course0" class="themes-picker"></div>
@@ -390,9 +383,9 @@ body { margin: 0; }
         </div>
 
         <div class="collapse" data-collapse>
-          <div class="collapse-head"><span class="collapse-arrow">▸</span> Аяты для чтения вслух <span class="collapse-hint" id="cnt-ayahs"></span><button type="button" class="pick-all" data-target="af-ayahs">выбрать все</button></div>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Вопросы «какое правило» <span class="collapse-hint" id="cnt-themes"></span><button type="button" class="pick-all" data-target="af-themes">выбрать все</button></div>
           <div class="collapse-body">
-            <div id="af-ayahs" class="ayahs-picker"></div>
+            <div id="af-themes" class="themes-picker"></div>
           </div>
         </div>
 
@@ -438,6 +431,13 @@ body { margin: 0; }
               <div class="find-hint-line">2. Где искать. На каждый отмеченный аят — своё задание:</div>
               <div id="af-find-madd-ayahs" class="ayahs-picker find-ayahs" style="display:none;"></div>
             </div>
+          </div>
+        </div>
+
+        <div class="collapse" data-collapse>
+          <div class="collapse-head"><span class="collapse-arrow">▸</span> Аяты для чтения вслух <span class="collapse-hint" id="cnt-ayahs"></span><button type="button" class="pick-all" data-target="af-ayahs">выбрать все</button></div>
+          <div class="collapse-body">
+            <div id="af-ayahs" class="ayahs-picker"></div>
           </div>
         </div>
 
@@ -2313,12 +2313,19 @@ body { margin: 0; }
         }
       }
     });
-    // Открыть блоки, где что-то выбрано (чтобы сразу видеть настройки)
-    var blocks = document.querySelectorAll('.collapse[data-collapse]');
-    if (blocks[0]) blocks[0].classList.add('open');  // вопросы всегда
-    if (blocks[1]) blocks[1].classList.toggle('open', (act.course0 || []).length > 0);
-    if (blocks[2]) blocks[2].classList.toggle('open', (act.recite || []).length > 0);
-    if (blocks[3]) blocks[3].classList.toggle('open', !!act.sortMim || !!act.sortNun);
+    /* Открыть блоки, где что-то выбрано — чтобы сразу видеть настройки.
+       Ищем блок ПО СОДЕРЖИМОМУ, а не по номеру: раньше стояли номера, и
+       стоило переставить разделы местами, как раскрывались чужие блоки. */
+    function openBlockOf(innerId, when) {
+      var el = $(innerId);
+      var box = el && el.closest('.collapse[data-collapse]');
+      if (box) box.classList.toggle('open', !!when);
+    }
+    openBlockOf('af-themes',  true);                              // вопросы всегда
+    openBlockOf('af-course0', (act.course0 || []).length > 0);
+    openBlockOf('af-ayahs',   (act.recite  || []).length > 0);
+    openBlockOf('af-sort-mim', !!act.sortMim || !!act.sortNun || !!act.sortMadd);
+    openBlockOf('af-find-nun', !!act.findNun || !!act.findMim || !!act.findMadd);
     updateCollapseHints();
     $('activity-form').scrollIntoView({ behavior: 'smooth' });
   }

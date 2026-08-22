@@ -545,8 +545,30 @@
     setupRecorder(task);
   }
 
-  // Логика записи для текущего recite-задания
-  var recState = { mr: null, chunks: [], stream: null, timer: null, sec: 0 };
+  /* ── ЗАПИСЬ ГОЛОСА ────────────────────────────────────────────────
+     Остановка вынесена НАРУЖУ задания. Раньше она жила внутри отрисовки,
+     и позвать её мог только сам ученик кнопкой. Забыл нажать второй раз,
+     ушёл на следующее задание — микрофон продолжал писать, а запись
+     этого аята не сохранялась вовсе. На экзамене это потеря работы. */
+  var recState = { mr: null, chunks: [], stream: null, timer: null, sec: 0, task: null, done: null };
+
+  function isRecording() {
+    return !!(recState.mr && recState.mr.state === 'recording');
+  }
+
+  /* Остановить запись и дождаться, пока она сохранится.
+     Возвращает обещание: звук приходит не мгновенно, и уходить со страницы
+     раньше, чем он сложится, нельзя — иначе аят останется несданным. */
+  function stopRecordingAndWait() {
+    if (!isRecording()) return Promise.resolve();
+    return new Promise(function (resolve) {
+      recState.done = resolve;
+      try { recState.mr.stop(); } catch (e) { resolve(); }
+      clearInterval(recState.timer);
+      // страховка: если браузер почему-то не сообщит об окончании
+      setTimeout(function () { if (recState.done) { recState.done = null; resolve(); } }, 4000);
+    });
+  }
 
   function setupRecorder(task) {
     var recBtn = document.getElementById('rec-btn');
@@ -563,16 +585,25 @@
         recState.chunks = [];
         recState.mr = new MediaRecorder(stream);
         recState.mr.ondataavailable = function (e) { if (e.data.size > 0) recState.chunks.push(e.data); };
+        recState.task = task;
         recState.mr.onstop = function () {
           var blob = new Blob(recState.chunks, { type: recState.chunks[0] ? recState.chunks[0].type : 'audio/webm' });
           var url = URL.createObjectURL(blob);
-          audioEl.src = url;
-          playback.classList.add('show');
-          recState.stream.getTracks().forEach(function (t) { t.stop(); });
-          // Сохранить запись в ответ задания
+          /* Экрана задания может уже не быть: ученик нажал «Далее» или
+             «Завершить», не остановив запись. Сохранить и отправить нужно
+             всё равно — поэтому к разметке обращаемся осторожно. */
+          var liveAudio = document.getElementById('rec-audio');
+          var livePlay = document.getElementById('playback');
+          var liveStatus = document.getElementById('rec-status');
+          if (liveAudio) liveAudio.src = url;
+          if (livePlay) livePlay.classList.add('show');
+          if (recState.stream) recState.stream.getTracks().forEach(function (t) { t.stop(); });
+
           recordAnswer(task.id, { blob: blob, url: url, size: blob.size });
           // …и сразу отправить преподавателю, не дожидаясь конца работы.
-          sendOneRecording(task, status);
+          sendOneRecording(task, liveStatus);
+
+          if (recState.done) { var fn = recState.done; recState.done = null; fn(); }
         };
         recState.mr.start();
         recBtn.classList.add('recording');
@@ -623,8 +654,26 @@
     }
   }
 
-  function fwd() { if (goNext()) renderTask(); }
-  function back() { if (goBack()) renderTask(); }
+  /* Уходя с задания чтения, сперва останавливаем запись и ждём, пока она
+     сложится. Иначе микрофон писал бы дальше, а аят остался бы несданным.
+     Ученику ничего делать не нужно — платформа сама. */
+  /* Вкладку закрыли посреди записи — отпускаем микрофон. Иначе на телефоне
+     значок записи горит и после ухода со страницы, и это пугает. */
+  window.addEventListener('pagehide', function () {
+    if (recState.stream) { try { recState.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} }
+  });
+
+  function leaveTask(then) {
+    if (!isRecording()) { then(); return; }
+    var btn = document.getElementById('rec-btn');
+    if (btn) { btn.classList.remove('recording'); btn.textContent = '●'; }
+    var st = document.getElementById('rec-status');
+    if (st) st.textContent = 'Останавливаю запись…';
+    stopRecordingAndWait().then(then);
+  }
+
+  function fwd() { leaveTask(function () { if (goNext()) renderTask(); }); }
+  function back() { leaveTask(function () { if (goBack()) renderTask(); }); }
 
   function askFinish() {
     const un = countUnanswered();
@@ -662,6 +711,19 @@
   }
 
   function doFinish() {
+    /* Если ученик нажал «Завершить», не остановив запись, — сперва
+       останавливаем и дожидаемся звука, и только потом считаем итог.
+       Иначе последний аят ушёл бы как несданный, то есть в ноль. */
+    if (isRecording()) {
+      var t = document.getElementById('dlg-text');
+      if (t) t.textContent = 'Завершаю запись чтения…';
+      stopRecordingAndWait().then(doFinishNow);
+      return;
+    }
+    doFinishNow();
+  }
+
+  function doFinishNow() {
     closeDlg();
     stopTimer();
     const result = finishExam();

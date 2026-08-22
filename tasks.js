@@ -1489,10 +1489,23 @@ function buildTasksFromTemplates(randomize, recipeArg, reciteArg, sortArg, findA
     if (fromActivity && !selectedIds.length) {
       // преподаватель не выбрал ни одного аята — заданий чтения нет
     } else if (selectedIds.length > 0) {
-      // FIXED: преподаватель задал конкретные аяты — по заданию на каждый
+      /* FIXED: преподаватель задал конкретные аяты — по заданию на каждый.
+
+         ОДИН И ТОТ ЖЕ АЯТ ДВАЖДЫ НЕ ДАЁМ. В библиотеке есть аяты, занесённые
+         в разные разделы правил под разными номерами, но с одинаковым
+         текстом. В списке выбора они выглядят как два разных пункта, и
+         преподаватель отмечает оба, не подозревая об этом. Ученик получал
+         два одинаковых аята подряд, читал один раз — и второй оставался
+         несданным, то есть уходил в ноль.
+
+         Сравниваем по ТЕКСТУ, а не по номеру: номера-то разные. */
+      var seenText = {};
       selectedIds.forEach(function (ayId, i) {
         var ayah = (typeof AYAH_BY_ID !== 'undefined') ? AYAH_BY_ID[ayId] : null;
         if (!ayah) return;
+        var key = String(ayah.text).replace(/\s+/g, ' ').trim();
+        if (seenText[key]) return;      // этот аят уже дан на чтение
+        seenText[key] = true;
         built.push({
           id: 'recite_' + i,
           theme: ayah.rules && ayah.rules[0] ? ayah.rules[0] : 'ikhfa_nun',
