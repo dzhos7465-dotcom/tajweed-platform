@@ -588,89 +588,200 @@
      правилу на задание. Распределение и «найди» считаем отдельно как
      умения: в них замешано много правил сразу, и приписывать неудачу
      одному было бы неправдой. */
+  /* Шкала оценки доли. Одна на весь разбор — чтобы «хорошо» значило одно
+     и то же, о чём бы ни шла речь. */
+  function level(share) {
+    if (share >= 0.9)  return { word: 'отлично',        rank: 4, color: OK };
+    if (share >= 0.75) return { word: 'хорошо',         rank: 3, color: OK };
+    if (share >= 0.5)  return { word: 'нужно подтянуть', rank: 2, color: GOLD };
+    return { word: 'нужно повторить', rank: 1, color: ERR };
+  }
+
+  const GROUP_NAMES = {
+    course0: 'Буквы и знаки',
+    mim: 'Правила мима',
+    nun: 'Правила нуна',
+    madd: 'Правила мадда',
+    lam: 'Правила ляма',
+  };
+
   function advice(review, r) {
-    // 1. правила — по вопросам, с точностью до правила
-    const byRule = {};
-    review.forEach(function (d) {
-      if (d.ty !== 'single') return;
-      if (!byRule[d.t]) byRule[d.t] = { ok: 0, total: 0 };
-      byRule[d.t].total++;
-      if (d.ok) byRule[d.t].ok++;
-    });
-    const weak = [], strong = [];
-    Object.keys(byRule).forEach(function (t) {
-      const v = byRule[t], share = v.ok / v.total;
-      if (share < 0.5) weak.push({ name: ruleName(t), share: share });
-      else if (share === 1 && v.total >= 2) strong.push(ruleName(t));
-    });
-    weak.sort(function (a, b) { return a.share - b.share; });
+    /* ── ЧТО СЧИТАЕМ ──────────────────────────────────────────────────
+       Три уровня подробности, от общего к частному:
+         раздел  — мим, нун, мадд, лям, нулевой курс
+         правило — конкретная тема внутри раздела
+         умение  — распределение и поиск в аяте
 
-    // 2. умения — распределение и поиск в аяте, целиком
-    function skillShare(ty) {
-      let right = 0, total = 0;
-      review.forEach(function (d) {
-        if (d.ty !== ty || !d.pt || !d.pt.total) return;
-        right += d.pt.right; total += d.pt.total;
-      });
-      return total ? { share: right / total, right: right, total: total } : null;
+       Раньше вывод был почти одинаков у всех: «хорошо усвоено» перечисляло
+       любые темы без ошибок, а их у каждого хватает. Теперь называем
+       сильным только то, что вправду выделяется, а слабым — то, что
+       выделяется в другую сторону; остальное остаётся в оценке раздела. */
+
+    function groupOf(themeId) {
+      if (typeof course0Name === 'function' && course0Name(themeId)) return 'course0';
+      const th = (typeof THEMES !== 'undefined') ? THEMES[themeId] : null;
+      return (th && th.group) ? th.group : null;
     }
-    const sortSkill = skillShare('sort');
-    const findSkill = skillShare('find');
+    function share(d) {
+      if (d.pt && d.pt.total > 0) return { got: d.pt.right, all: d.pt.total };
+      return { got: d.ok ? 1 : 0, all: 1 };
+    }
 
-    // 3. чтение
-    const reciteTasks = review.filter(function (d) { return d.ty === 'recite'; });
-    const missing = reciteTasks.filter(function (d) { return d.rmiss; }).length;
-    const graded = reciteTasks.filter(function (d) { return !d.rmiss && d.rg != null; });
-    const avg = graded.length
-      ? graded.reduce(function (a, d) { return a + d.rg; }, 0) / graded.length
-      : null;
+    const byGroup = {}, byRule = {}, bySkill = {};
+    review.forEach(function (d) {
+      if (d.ty === 'recite') return;
+      const v = share(d);
+
+      const g = groupOf(d.t);
+      if (g) {
+        if (!byGroup[g]) byGroup[g] = { got: 0, all: 0 };
+        byGroup[g].got += v.got; byGroup[g].all += v.all;
+      }
+      if (d.ty === 'single') {
+        if (!byRule[d.t]) byRule[d.t] = { got: 0, all: 0 };
+        byRule[d.t].got += v.got; byRule[d.t].all += v.all;
+      } else if (d.ty === 'sort' || d.ty === 'find') {
+        if (!bySkill[d.ty]) bySkill[d.ty] = { got: 0, all: 0 };
+        bySkill[d.ty].got += v.got; bySkill[d.ty].all += v.all;
+      }
+    });
 
     const lines = [];
 
+    /* 1. РАЗДЕЛЫ. Главная картина: где ученик стоит по каждой теме курса. */
+    const gKeys = Object.keys(byGroup).filter(function (g) { return byGroup[g].all >= 2; });
+    if (gKeys.length) {
+      const order = ['course0', 'mim', 'nun', 'madd', 'lam'];
+      gKeys.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+      const parts = gKeys.map(function (g) {
+        const v = byGroup[g], lv = level(v.got / v.all);
+        return '<span style="color:' + lv.color + ';"><b>' + esc(GROUP_NAMES[g] || g) +
+               '</b> — ' + lv.word + '</span>';
+      });
+      lines.push({ mark: '·', color: FAINT, text: parts.join(' &nbsp;·&nbsp; ') });
+    }
+
+    /* 2. ОТДЕЛЬНЫЕ ПРАВИЛА — только те, что выбиваются из своего раздела.
+          Если раздел и так «нужно повторить», перечислять внутри него все
+          правила незачем: ученик и без списка знает, что тему не понял. */
+    const weak = [];
+    Object.keys(byRule).forEach(function (t) {
+      const v = byRule[t];
+      if (v.all < 1) return;
+      const sh = v.got / v.all;
+      if (sh >= 0.5) return;
+      const g = groupOf(t);
+      const gs = (g && byGroup[g].all) ? byGroup[g].got / byGroup[g].all : 0;
+      // правило проваленo, а раздел в целом сносный — вот это и стоит назвать
+      if (gs >= 0.5) weak.push({ name: ruleName(t), sh: sh });
+    });
+    weak.sort(function (a, b) { return a.sh - b.sh; });
     if (weak.length) {
       lines.push({ mark: '!', color: ERR,
-        text: '<b>Повторить в первую очередь:</b> ' +
-          weak.slice(0, 5).map(function (x) { return esc(x.name); }).join(', ') + '.' });
+        text: '<b>Разобрать отдельно:</b> ' +
+          weak.slice(0, 4).map(function (x) { return esc(x.name); }).join(', ') +
+          ' — остальное в этих разделах даётся лучше.' });
     }
-    if (sortSkill && sortSkill.share < 0.5) {
-      lines.push({ mark: '!', color: GOLD,
-        text: 'Разложить слова по правилам пока трудно — верно ' + sortSkill.right +
-              ' из ' + sortSkill.total + '. Полезно разбирать слова вслух, называя правило.' });
+
+    /* 3. УМЕНИЯ. Узнать правило в отдельном слове и найти его в аяте —
+          разные вещи, и расходятся они у всех по-разному. */
+    const qAll = Object.keys(byRule).reduce(function (a, t) { return a + byRule[t].all; }, 0);
+    const qGot = Object.keys(byRule).reduce(function (a, t) { return a + byRule[t].got; }, 0);
+    const qShare = qAll ? qGot / qAll : null;
+
+    if (bySkill.find && bySkill.find.all) {
+      const f = bySkill.find.got / bySkill.find.all, lv = level(f);
+      if (lv.rank <= 2) {
+        lines.push({ mark: '!', color: lv.color,
+          text: 'Найти правило прямо в аяте — ' + lv.word + ' (' + bySkill.find.got +
+                ' из ' + bySkill.find.all + ')' +
+                (qShare != null && qShare - f >= 0.25
+                  ? '. В отдельном слове правило узнаётся заметно увереннее — значит трудность не в самом правиле, а в том, чтобы разглядеть его в тексте.'
+                  : '. Это главное умение: правило нужно видеть в чтении, а не только в списке.') });
+      } else if (lv.rank === 4 && bySkill.find.all >= 2) {
+        lines.push({ mark: '✓', color: OK,
+          text: 'Правила в аяте находятся уверенно — самое трудное задание даётся.' });
+      }
     }
-    if (findSkill && findSkill.share < 0.5) {
-      lines.push({ mark: '!', color: GOLD,
-        text: 'Найти правило прямо в аяте пока трудно — верно ' + findSkill.right +
-              ' из ' + findSkill.total + '. Это главное умение: правило нужно видеть в тексте, ' +
-              'а не только узнавать в отдельном слове.' });
+    if (bySkill.sort && bySkill.sort.all) {
+      const so = bySkill.sort.got / bySkill.sort.all, lv = level(so);
+      if (lv.rank <= 2) {
+        lines.push({ mark: '!', color: lv.color,
+          text: 'Разложить слова по правилам — ' + lv.word + ' (' + bySkill.sort.got +
+                ' из ' + bySkill.sort.all + '). Здесь правила сравниваются между собой; ' +
+                'полезно разбирать слова вслух, называя признак.' });
+      }
     }
+
+    /* 4. ЧТЕНИЕ. Балл ставит преподаватель, поэтому говорим не о правилах,
+          а о том, что делать дальше. Отдельно смотрим на РАЗБРОС между
+          аятами: ровное чтение и рваное требуют разного. */
+    const reciteTasks = review.filter(function (d) { return d.ty === 'recite'; });
+    const missing = reciteTasks.filter(function (d) { return d.rmiss; }).length;
+    const grades = reciteTasks.filter(function (d) { return !d.rmiss && d.rg != null; })
+                              .map(function (d) { return d.rg; });
+    const avg = grades.length ? grades.reduce(function (a, b) { return a + b; }, 0) / grades.length : null;
 
     if (reciteTasks.length) {
       if (missing === reciteTasks.length) {
         lines.push({ mark: '!', color: ERR,
-          text: '<b>Чтение не сдано.</b> Это пятая часть оценки — ' +
-                'без записи её получить нельзя, как бы хорошо ни был написан тест.' });
+          text: '<b>Чтение не сдано.</b> Это пятая часть оценки — без записи её не получить, ' +
+                'как бы хорошо ни был написан тест.' });
       } else if (missing) {
         lines.push({ mark: '!', color: ERR,
-          text: 'Не сдано записей: ' + missing + '. Каждый заданный аят нужно прочитать, ' +
-                'иначе за него ставится ноль.' });
+          text: 'Не сдано записей: ' + missing + '. За непрочитанный аят ставится ноль, ' +
+                'даже если остальные прочитаны хорошо.' });
       }
-      if (avg != null && avg < 5) {
-        lines.push({ mark: '!', color: GOLD,
-          text: 'Над чтением вслух нужно поработать: ' + fmtPts(avg) + ' из 10. ' +
-                'Читай медленно и проговаривай правила — быстрое чтение прячет ошибки.' });
-      } else if (avg != null && avg < 8) {
-        lines.push({ mark: '·', color: GOLD,
-          text: 'Чтение неплохое (' + fmtPts(avg) + ' из 10), но есть над чем работать.' });
-      } else if (avg != null) {
-        lines.push({ mark: '✓', color: OK,
-          text: 'Чтение вслух хорошее — ' + fmtPts(avg) + ' из 10.' });
+
+      if (avg != null) {
+        const hi = Math.max.apply(null, grades), lo = Math.min.apply(null, grades);
+        const spread = (grades.length > 1) ? (hi - lo) : 0;
+        let txt;
+        if (avg >= 9.5) {
+          txt = '<b>Чтение отличное</b> — ' + fmtPts(avg) + ' из 10. Дальше дело в мелочах: ' +
+                'выдерживать длительность мадда одинаково и не терять гунну в конце.';
+        } else if (avg >= 8.5) {
+          txt = '<b>Чтение очень хорошее</b> — ' + fmtPts(avg) + ' из 10. До отличного не хватает ' +
+                'точности в отдельных местах, а не понимания правил.';
+        } else if (avg >= 7) {
+          txt = 'Чтение уверенное — ' + fmtPts(avg) + ' из 10, но правила соблюдаются не везде. ' +
+                'Читай медленнее: на скорости первым теряется то, что знаешь.';
+        } else if (avg >= 5) {
+          txt = 'Чтение нужно подтянуть — ' + fmtPts(avg) + ' из 10. Разбирай аят по словам, ' +
+                'называя правило вслух, и только потом читай целиком.';
+        } else {
+          txt = '<b>Над чтением нужно серьёзно поработать</b> — ' + fmtPts(avg) + ' из 10. ' +
+                'Начни с одного аята и доведи его до чистого чтения, прежде чем брать следующий.';
+        }
+        if (spread >= 3) {
+          txt += ' Читаешь неровно: один аят на ' + fmtPts(hi) + ', другой на ' + fmtPts(lo) +
+                 ' — разбери тот, что дался хуже.';
+        }
+        lines.push({ mark: avg >= 8.5 ? '✓' : (avg >= 7 ? '·' : '!'),
+                     color: avg >= 8.5 ? OK : (avg >= 7 ? GOLD : ERR), text: txt });
       }
     }
 
-    if (strong.length) {
+    /* 5. СИЛЬНОЕ. Называем только то, что вправду выделяется: правило без
+          единой ошибки в разделе, который в целом не безупречен. Когда
+          безупречно всё — так и говорим, одной строкой. */
+    const strong = [];
+    Object.keys(byRule).forEach(function (t) {
+      const v = byRule[t];
+      if (v.all < 2 || v.got !== v.all) return;
+      const g = groupOf(t);
+      const gs = (g && byGroup[g].all) ? byGroup[g].got / byGroup[g].all : 1;
+      if (gs < 0.9) strong.push(ruleName(t));      // выделяется на фоне раздела
+    });
+    if (qShare === 1 && qAll >= 4) {
       lines.push({ mark: '✓', color: OK,
-        text: '<b>Хорошо усвоено:</b> ' + strong.slice(0, 5).map(esc).join(', ') + '.' });
+        text: '<b>В вопросах нет ни одной ошибки.</b> Правила названы верно все до одного.' });
+    } else if (strong.length) {
+      lines.push({ mark: '✓', color: OK,
+        text: '<b>Держится твёрдо:</b> ' + strong.slice(0, 4).map(esc).join(', ') +
+              ' — здесь ошибок нет, хотя раздел в целом даётся не полностью.' });
     }
+
     if (!lines.length) return '';
 
     return '<div style="margin-top:16px;padding:14px 18px;background:#f7f3e9;' +
